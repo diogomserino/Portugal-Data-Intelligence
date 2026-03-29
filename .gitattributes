@@ -1,0 +1,35 @@
+# =============================================================================
+# GitHub Linguist Configuration
+# Controls language detection for repository statistics
+# =============================================================================
+
+# -- SQL: Ensure all SQL files are detected as SQL --------------------------
+*.sql linguist-detectable=true
+*.sql linguist-language=SQL
+
+# -- DAX: Ensure DAX measures are detected as DAX --------------------------
+*.dax linguist-detectable=true
+*.dax linguist-language=DAX
+
+# -- Jupyter Notebooks: Count as language -----------------------------------
+*.ipynb linguist-detectable=true
+
+# -- Python: Standard detection (already works) -----------------------------
+*.py linguist-detectable=true
+
+# -- Mark documentation as non-language (prevents Markdown inflation) -------
+docs/** linguist-documentation=true
+*.md linguist-documentation=true
+LICENCE linguist-documentation=true
+
+# -- Mark generated/data files so they don't skew stats --------------------
+data/** linguist-generated=true
+*.csv linguist-generated=true
+*.json linguist-generated=true
+reports/insights/** linguist-generated=true
+
+# -- Binary files ----------------------------------------------------------
+*.png binary
+*.pptx binary
+*.db binary
+*.pbix binary

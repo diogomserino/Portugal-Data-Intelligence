@@ -1,0 +1,254 @@
+// =============================================================================
+// KPI Measures - Portugal Data Intelligence
+// Latest values for executive dashboard KPI cards
+// =============================================================================
+
+// Setup: Measures Table
+_Measures = ROW("Placeholder", BLANK())
+
+
+// -----------------------------------------------------------------------------
+// 1.1 Latest GDP (Nominal)
+// Returns the most recent nominal GDP value in EUR millions.
+// Display Folder: KPI Measures | Format: #,##0 "M"
+// Used On: Page 1 (Executive Overview), Page 2 (GDP & Growth)
+// -----------------------------------------------------------------------------
+Latest GDP =
+VAR _LastDate =
+    CALCULATE(
+        MAX(fact_gdp[date_key]),
+        ALLSELECTED(dim_date)
+    )
+RETURN
+    CALCULATE(
+        SUM(fact_gdp[nominal_gdp]),
+        fact_gdp[date_key] = _LastDate
+    )
+
+
+// -----------------------------------------------------------------------------
+// 1.2 Latest GDP Growth
+// Returns the most recent year-on-year GDP growth rate.
+// Display Folder: KPI Measures | Format: +0.0%;-0.0%;0.0%
+// Used On: Page 1 (Executive Overview), Page 2 (GDP & Growth)
+// -----------------------------------------------------------------------------
+Latest GDP Growth =
+VAR _LastDate =
+    CALCULATE(
+        MAX(fact_gdp[date_key]),
+        ALLSELECTED(dim_date)
+    )
+RETURN
+    CALCULATE(
+        SUM(fact_gdp[gdp_growth_yoy]),
+        fact_gdp[date_key] = _LastDate
+    ) / 100
+
+
+// -----------------------------------------------------------------------------
+// 1.3 Latest GDP Per Capita
+// Returns the most recent GDP per capita value in EUR.
+// Display Folder: KPI Measures | Format: EUR#,##0
+// Used On: Page 1 (Executive Overview), Page 2 (GDP & Growth)
+// -----------------------------------------------------------------------------
+Latest GDP Per Capita =
+VAR _LastDate =
+    CALCULATE(
+        MAX(fact_gdp[date_key]),
+        ALLSELECTED(dim_date)
+    )
+RETURN
+    CALCULATE(
+        AVERAGE(fact_gdp[gdp_per_capita]),
+        fact_gdp[date_key] = _LastDate
+    )
+
+
+// -----------------------------------------------------------------------------
+// 1.4 Latest Unemployment Rate
+// Returns the most recent general unemployment rate.
+// Display Folder: KPI Measures | Format: 0.0%
+// Used On: Page 1 (Executive Overview), Page 3 (Labour Market)
+// -----------------------------------------------------------------------------
+Latest Unemployment Rate =
+VAR _LastDate =
+    CALCULATE(
+        MAX(fact_unemployment[date_key]),
+        ALLSELECTED(dim_date)
+    )
+RETURN
+    CALCULATE(
+        AVERAGE(fact_unemployment[unemployment_rate]),
+        fact_unemployment[date_key] = _LastDate
+    ) / 100
+
+
+// -----------------------------------------------------------------------------
+// 1.5 Latest Youth Unemployment
+// Returns the most recent youth unemployment rate (under 25).
+// Display Folder: KPI Measures | Format: 0.0%
+// Used On: Page 1 (Executive Overview), Page 3 (Labour Market)
+// -----------------------------------------------------------------------------
+Latest Youth Unemployment =
+VAR _LastDate =
+    CALCULATE(
+        MAX(fact_unemployment[date_key]),
+        ALLSELECTED(dim_date)
+    )
+RETURN
+    CALCULATE(
+        AVERAGE(fact_unemployment[youth_unemployment_rate]),
+        fact_unemployment[date_key] = _LastDate
+    ) / 100
+
+
+// -----------------------------------------------------------------------------
+// 1.6 Latest HICP
+// Returns the most recent HICP inflation rate.
+// Display Folder: KPI Measures | Format: 0.0%
+// Used On: Page 1 (Executive Overview), Page 5 (Prices & Fiscal)
+// -----------------------------------------------------------------------------
+Latest HICP =
+VAR _LastDate =
+    CALCULATE(
+        MAX(fact_inflation[date_key]),
+        ALLSELECTED(dim_date)
+    )
+RETURN
+    CALCULATE(
+        AVERAGE(fact_inflation[hicp]),
+        fact_inflation[date_key] = _LastDate
+    ) / 100
+
+
+// -----------------------------------------------------------------------------
+// 1.7 Latest Debt to GDP
+// Returns the most recent debt-to-GDP ratio.
+// Display Folder: KPI Measures | Format: 0.0%
+// Used On: Page 1 (Executive Overview), Page 5 (Prices & Fiscal)
+// -----------------------------------------------------------------------------
+Latest Debt to GDP =
+VAR _LastDate =
+    CALCULATE(
+        MAX(fact_public_debt[date_key]),
+        ALLSELECTED(dim_date)
+    )
+RETURN
+    CALCULATE(
+        AVERAGE(fact_public_debt[debt_to_gdp_ratio]),
+        fact_public_debt[date_key] = _LastDate
+    ) / 100
+
+
+// -----------------------------------------------------------------------------
+// 1.8 Latest ECB Rate
+// Returns the most recent ECB main refinancing rate.
+// Display Folder: KPI Measures | Format: 0.00%
+// Used On: Page 1 (Executive Overview), Page 4 (Financial Conditions)
+// -----------------------------------------------------------------------------
+Latest ECB Rate =
+VAR _LastDate =
+    CALCULATE(
+        MAX(fact_interest_rates[date_key]),
+        ALLSELECTED(dim_date)
+    )
+RETURN
+    CALCULATE(
+        AVERAGE(fact_interest_rates[ecb_main_refinancing_rate]),
+        fact_interest_rates[date_key] = _LastDate
+    ) / 100
+
+
+// -----------------------------------------------------------------------------
+// 1.9 Latest Euribor 12M
+// Returns the most recent 12-month Euribor rate.
+// Display Folder: KPI Measures | Format: 0.00%
+// Used On: Page 1 (Executive Overview), Page 4 (Financial Conditions)
+// -----------------------------------------------------------------------------
+Latest Euribor 12M =
+VAR _LastDate =
+    CALCULATE(
+        MAX(fact_interest_rates[date_key]),
+        ALLSELECTED(dim_date)
+    )
+RETURN
+    CALCULATE(
+        AVERAGE(fact_interest_rates[euribor_12m]),
+        fact_interest_rates[date_key] = _LastDate
+    ) / 100
+
+
+// -----------------------------------------------------------------------------
+// 1.10 Latest PT 10Y Bond Yield
+// Returns the most recent Portuguese 10-year government bond yield.
+// Display Folder: KPI Measures | Format: 0.00%
+// Used On: Page 4 (Financial Conditions)
+// -----------------------------------------------------------------------------
+Latest PT 10Y Bond =
+VAR _LastDate =
+    CALCULATE(
+        MAX(fact_interest_rates[date_key]),
+        ALLSELECTED(dim_date)
+    )
+RETURN
+    CALCULATE(
+        AVERAGE(fact_interest_rates[portugal_10y_bond_yield]),
+        fact_interest_rates[date_key] = _LastDate
+    ) / 100
+
+
+// -----------------------------------------------------------------------------
+// 1.11 Latest Total Credit
+// Returns the most recent total credit to the economy in EUR millions.
+// Display Folder: KPI Measures | Format: #,##0 "M"
+// Used On: Page 1 (Executive Overview), Page 4 (Financial Conditions)
+// -----------------------------------------------------------------------------
+Latest Total Credit =
+VAR _LastDate =
+    CALCULATE(
+        MAX(fact_credit[date_key]),
+        ALLSELECTED(dim_date)
+    )
+RETURN
+    CALCULATE(
+        SUM(fact_credit[total_credit]),
+        fact_credit[date_key] = _LastDate
+    )
+
+
+// -----------------------------------------------------------------------------
+// 1.12 Latest NPL Ratio
+// Returns the most recent non-performing loan ratio.
+// Display Folder: KPI Measures | Format: 0.0%
+// Used On: Page 4 (Financial Conditions)
+// -----------------------------------------------------------------------------
+Latest NPL Ratio =
+VAR _LastDate =
+    CALCULATE(
+        MAX(fact_credit[date_key]),
+        ALLSELECTED(dim_date)
+    )
+RETURN
+    CALCULATE(
+        AVERAGE(fact_credit[npl_ratio]),
+        fact_credit[date_key] = _LastDate
+    ) / 100
+
+
+// -----------------------------------------------------------------------------
+// 1.13 Latest Budget Balance
+// Returns the most recent government budget balance as % of GDP.
+// Display Folder: KPI Measures | Format: +0.0%;-0.0%;0.0%
+// Used On: Page 5 (Prices & Fiscal)
+// -----------------------------------------------------------------------------
+Latest Budget Balance =
+VAR _LastDate =
+    CALCULATE(
+        MAX(fact_public_debt[date_key]),
+        ALLSELECTED(dim_date)
+    )
+RETURN
+    CALCULATE(
+        AVERAGE(fact_public_debt[budget_deficit]),
+        fact_public_debt[date_key] = _LastDate
+    ) / 100

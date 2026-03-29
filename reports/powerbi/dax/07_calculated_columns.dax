@@ -1,0 +1,53 @@
+// =============================================================================
+// Calculated Columns - Portugal Data Intelligence
+// Columns created in Power BI Data view for dim_date table
+// =============================================================================
+
+
+// -----------------------------------------------------------------------------
+// dim_date: Economic Period
+// Classifies each date into a macroeconomic period for Portugal.
+// Aligned with SQL queries: 5 periods matching the analytical framework.
+// Periods: Pre-Crisis (2010-2011), Troika (2012-2014), Recovery (2015-2019),
+//          COVID (2020), Post-COVID (2021-2025)
+// -----------------------------------------------------------------------------
+Economic Period =
+SWITCH(
+    TRUE(),
+    dim_date[year] <= 2011, "Pre-Crisis",
+    dim_date[year] >= 2012 && dim_date[year] <= 2014, "Troika",
+    dim_date[year] >= 2015 && dim_date[year] <= 2019, "Recovery",
+    dim_date[year] = 2020, "COVID",
+    dim_date[year] >= 2021, "Post-COVID"
+)
+
+
+// -----------------------------------------------------------------------------
+// dim_date: Period Sort Order
+// Ensures correct chronological sorting of economic periods in visuals.
+// -----------------------------------------------------------------------------
+Period Sort Order =
+SWITCH(
+    dim_date[Economic Period],
+    "Pre-Crisis", 1,
+    "Troika", 2,
+    "Recovery", 3,
+    "COVID", 4,
+    "Post-COVID", 5
+)
+
+
+// -----------------------------------------------------------------------------
+// dim_date: Year-Quarter
+// Formatted label for quarterly axis in GDP charts.
+// Example: "2023-Q1"
+// -----------------------------------------------------------------------------
+Year-Quarter = dim_date[year] & "-Q" & dim_date[quarter]
+
+
+// -----------------------------------------------------------------------------
+// dim_date: Year-Month
+// Formatted label for monthly axis in trend charts.
+// Example: "2023-01"
+// -----------------------------------------------------------------------------
+Year-Month = dim_date[year] & "-" & FORMAT(dim_date[full_date], "MM")

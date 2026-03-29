@@ -1,0 +1,48 @@
+// =============================================================================
+// Period Comparison Measures - Portugal Data Intelligence
+// Aggregate metrics by economic period for historical comparison
+// =============================================================================
+
+
+// -----------------------------------------------------------------------------
+// 5.1 Avg Unemployment by Period
+// Average unemployment rate within each economic period.
+// Used in crisis impact comparison and cross-pillar analysis.
+// Display Folder: Period Comparisons | Format: 0.0
+// Used On: Page 3 (Labour Market), Page 6 (Cross-Pillar)
+// -----------------------------------------------------------------------------
+Avg Unemployment by Period =
+AVERAGEX(
+    FILTER(
+        ALL(dim_date),
+        dim_date[Economic Period] = SELECTEDVALUE(dim_date[Economic Period])
+    ),
+    CALCULATE(AVERAGE(fact_unemployment[unemployment_rate]))
+)
+
+
+// -----------------------------------------------------------------------------
+// 5.2 Period GDP Growth
+// Average GDP growth rate for each economic period.
+// Display Folder: Period Comparisons | Format: +0.0%;-0.0%;0.0%
+// Used On: Page 2 (GDP & Growth), Page 6 (Cross-Pillar)
+// -----------------------------------------------------------------------------
+Period GDP Growth =
+AVERAGEX(
+    FILTER(
+        ALL(dim_date),
+        dim_date[Economic Period] = SELECTEDVALUE(dim_date[Economic Period])
+    ),
+    CALCULATE(AVERAGE(fact_gdp[gdp_growth_yoy]))
+) / 100
+
+
+// -----------------------------------------------------------------------------
+// 5.3 Avg Budget Balance
+// Average government budget balance as % of GDP.
+// Used in the waterfall chart showing annual fiscal positions.
+// Display Folder: Period Comparisons | Format: +0.0%;-0.0%;0.0%
+// Used On: Page 5 (Prices & Fiscal)
+// -----------------------------------------------------------------------------
+Avg Budget Balance =
+AVERAGE(fact_public_debt[budget_deficit]) / 100

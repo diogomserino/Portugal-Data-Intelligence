@@ -1,0 +1,116 @@
+// =============================================================================
+// Derived / Calculated Measures - Portugal Data Intelligence
+// Cross-pillar calculations combining multiple fact tables
+// =============================================================================
+
+
+// -----------------------------------------------------------------------------
+// 4.1 Sovereign Spread
+// Spread between PT 10Y bond yield and ECB rate in basis points.
+// Proxy for sovereign risk premium.
+// Display Folder: Derived Measures | Format: 0 "bps"
+// Used On: Page 4 (Financial Conditions), Page 6 (Cross-Pillar)
+// -----------------------------------------------------------------------------
+Sovereign Spread =
+VAR _BondYield = AVERAGE(fact_interest_rates[portugal_10y_bond_yield])
+VAR _ECBRate = AVERAGE(fact_interest_rates[ecb_main_refinancing_rate])
+RETURN
+    IF(
+        NOT ISBLANK(_BondYield) && NOT ISBLANK(_ECBRate),
+        (_BondYield - _ECBRate) * 100,
+        BLANK()
+    )
+
+
+// -----------------------------------------------------------------------------
+// 4.2 Real Interest Rate
+// ECB rate minus HICP inflation (Fisher approximation).
+// Negative values indicate accommodative real monetary conditions.
+// Display Folder: Derived Measures | Format: +0.0%;-0.0%;0.0%
+// Used On: Page 5 (Prices & Fiscal), Page 6 (Cross-Pillar)
+// -----------------------------------------------------------------------------
+Real Interest Rate =
+VAR _ECBRate = AVERAGE(fact_interest_rates[ecb_main_refinancing_rate])
+VAR _HICP = AVERAGE(fact_inflation[hicp])
+VAR _LastDateRates =
+    CALCULATE(
+        MAX(fact_interest_rates[date_key]),
+        ALLSELECTED(dim_date)
+    )
+VAR _LastDateInflation =
+    CALCULATE(
+        MAX(fact_inflation[date_key]),
+        ALLSELECTED(dim_date)
+    )
+VAR _LatestECB =
+    CALCULATE(
+        AVERAGE(fact_interest_rates[ecb_main_refinancing_rate]),
+        fact_interest_rates[date_key] = _LastDateRates
+    )
+VAR _LatestHICP =
+    CALCULATE(
+        AVERAGE(fact_inflation[hicp]),
+        fact_inflation[date_key] = _LastDateInflation
+    )
+RETURN
+    IF(
+        NOT ISBLANK(_ECBRate) && NOT ISBLANK(_HICP),
+        (_ECBRate - _HICP) / 100,
+        IF(
+            NOT ISBLANK(_LatestECB) && NOT ISBLANK(_LatestHICP),
+            (_LatestECB - _LatestHICP) / 100,
+            BLANK()
+        )
+    )
+
+
+// -----------------------------------------------------------------------------
+// 4.3 Credit-to-GDP Ratio
+// Total credit relative to annualised nominal GDP.
+// GDP is quarterly, so multiply by 4 to annualise.
+// A rising ratio may indicate credit-fuelled growth or financial deepening.
+// Display Folder: Derived Measures | Format: 0.0%
+// Used On: Page 4 (Financial Conditions), Page 6 (Cross-Pillar)
+// -----------------------------------------------------------------------------
+Credit to GDP Ratio =
+VAR _TotalCredit = SUM(fact_credit[total_credit])
+VAR _LatestGDP =
+    CALCULATE(
+        SUM(fact_gdp[nominal_gdp]),
+        LASTNONBLANK(dim_date[full_date], CALCULATE(SUM(fact_gdp[nominal_gdp])))
+    )
+VAR _AnnualisedGDP = _LatestGDP * 4
+RETURN
+    IF(
+        NOT ISBLANK(_TotalCredit) && NOT ISBLANK(_AnnualisedGDP) && _AnnualisedGDP <> 0,
+        DIVIDE(_TotalCredit, _AnnualisedGDP),
+        BLANK()
+    )
+
+
+// -----------------------------------------------------------------------------
+// 4.4 Youth Unemployment Gap
+// Difference between youth and general unemployment rates.
+// A larger gap indicates disproportionate impact on young workers.
+// Display Folder: Derived Measures | Format: 0.0 (percentage points)
+// Used On: Page 3 (Labour Market), Page 6 (Cross-Pillar)
+// -----------------------------------------------------------------------------
+Youth Unemployment Gap =
+VAR _YouthRate = AVERAGE(fact_unemployment[youth_unemployment_rate])
+VAR _GeneralRate = AVERAGE(fact_unemployment[unemployment_rate])
+RETURN
+    IF(
+        NOT ISBLANK(_YouthRate) && NOT ISBLANK(_GeneralRate),
+        _YouthRate - _GeneralRate,
+        BLANK()
+    )
+
+
+// -----------------------------------------------------------------------------
+// 4.5 Avg GDP Per Capita
+// Average GDP per capita for the selected period.
+// Display Folder: Derived Measures | Format: EUR#,##0
+// Used On: Page 2 (GDP & Growth)
+// -----------------------------------------------------------------------------
+Avg GDP Per Capita =
+AVERAGE(fact_gdp[gdp_per_capita])

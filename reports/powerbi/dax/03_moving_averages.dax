@@ -1,0 +1,112 @@
+// =============================================================================
+// Moving Average Measures - Portugal Data Intelligence
+// Rolling averages to smooth short-term volatility and reveal trends
+// =============================================================================
+
+
+// -----------------------------------------------------------------------------
+// 3.1 Unemployment 3M Moving Average
+// 3-month rolling average of the general unemployment rate.
+// Display Folder: Moving Averages | Format: 0.0
+// Used On: Page 3 (Labour Market)
+// -----------------------------------------------------------------------------
+Unemployment 3M MA =
+AVERAGEX(
+    DATESINPERIOD(
+        dim_date[full_date],
+        MAX(dim_date[full_date]),
+        -3,
+        MONTH
+    ),
+    CALCULATE(AVERAGE(fact_unemployment[unemployment_rate]))
+)
+
+
+// -----------------------------------------------------------------------------
+// 3.2 Unemployment 12M Moving Average
+// 12-month rolling average of the general unemployment rate.
+// Display Folder: Moving Averages | Format: 0.0
+// Used On: Page 3 (Labour Market)
+// -----------------------------------------------------------------------------
+Unemployment 12M MA =
+AVERAGEX(
+    DATESINPERIOD(
+        dim_date[full_date],
+        MAX(dim_date[full_date]),
+        -12,
+        MONTH
+    ),
+    CALCULATE(AVERAGE(fact_unemployment[unemployment_rate]))
+)
+
+
+// -----------------------------------------------------------------------------
+// 3.3 HICP 3M Moving Average
+// 3-month rolling average of HICP inflation.
+// Display Folder: Moving Averages | Format: 0.0
+// Used On: Page 5 (Prices & Fiscal)
+// -----------------------------------------------------------------------------
+HICP 3M MA =
+AVERAGEX(
+    DATESINPERIOD(
+        dim_date[full_date],
+        MAX(dim_date[full_date]),
+        -3,
+        MONTH
+    ),
+    CALCULATE(AVERAGE(fact_inflation[hicp]))
+)
+
+
+// -----------------------------------------------------------------------------
+// 3.4 HICP 12M Moving Average
+// 12-month rolling average of HICP inflation.
+// Display Folder: Moving Averages | Format: 0.0
+// Used On: Page 5 (Prices & Fiscal)
+// -----------------------------------------------------------------------------
+HICP 12M MA =
+AVERAGEX(
+    DATESINPERIOD(
+        dim_date[full_date],
+        MAX(dim_date[full_date]),
+        -12,
+        MONTH
+    ),
+    CALCULATE(AVERAGE(fact_inflation[hicp]))
+)
+
+
+// -----------------------------------------------------------------------------
+// 3.5 Credit 3M Moving Average
+// 3-month rolling average of total credit to the economy.
+// Display Folder: Moving Averages | Format: #,##0 "M"
+// Used On: Page 4 (Financial Conditions)
+// -----------------------------------------------------------------------------
+Total Credit 3M MA =
+AVERAGEX(
+    DATESINPERIOD(
+        dim_date[full_date],
+        MAX(dim_date[full_date]),
+        -3,
+        MONTH
+    ),
+    CALCULATE(SUM(fact_credit[total_credit]))
+)
+
+
+// -----------------------------------------------------------------------------
+// 3.6 Euribor 12M 3-Month Moving Average
+// 3-month rolling average of the 12-month Euribor rate.
+// Display Folder: Moving Averages | Format: 0.00
+// Used On: Page 4 (Financial Conditions)
+// -----------------------------------------------------------------------------
+Euribor 12M 3M MA =
+AVERAGEX(
+    DATESINPERIOD(
+        dim_date[full_date],
+        MAX(dim_date[full_date]),
+        -3,
+        MONTH
+    ),
+    CALCULATE(AVERAGE(fact_interest_rates[euribor_12m]))
+)

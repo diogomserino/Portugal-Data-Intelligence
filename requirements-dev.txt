@@ -1,0 +1,21 @@
+# Development dependencies for Portugal Data Intelligence
+-r requirements.txt
+
+# Testing
+pytest>=7.0.0,<9.0.0
+pytest-cov>=4.0.0,<6.0.0
+# Jupyter Notebooks
+jupyter>=1.0.0,<2.0.0
+notebook>=7.0.0,<8.0.0
+
+# Code quality
+black>=23.0.0,<25.0.0
+flake8>=6.0.0,<8.0.0
+isort>=5.12.0,<6.0.0
+
+# Type checking
+mypy>=1.0.0,<2.0.0
+
+# Documentation
+mkdocs>=1.5.0,<2.0.0
+mkdocs-material>=9.0.0,<10.0.0

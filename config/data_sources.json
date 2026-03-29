@@ -1,0 +1,223 @@
+{
+  "data_sources": [
+    {
+      "code": "EUROSTAT",
+      "name": "European Statistical Office",
+      "url": "https://ec.europa.eu/eurostat",
+      "api_url": "https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1",
+      "description": "The statistical office of the European Union, providing harmonised and comparable statistics across all EU member states. Primary source for GDP, unemployment, inflation and government debt data.",
+      "country": "EU",
+      "format": ["CSV", "JSON", "SDMX"],
+      "indicators": [
+        {
+          "name": "Nominal GDP (current prices)",
+          "pillar": "gdp",
+          "series_id": "namq_10_gdp/Q.CP_MEUR.SCA.B1GQ.PT",
+          "unit": "EUR millions",
+          "granularity": "quarterly"
+        },
+        {
+          "name": "Real GDP (chain-linked volumes, 2010)",
+          "pillar": "gdp",
+          "series_id": "namq_10_gdp/Q.CLV10_MEUR.SCA.B1GQ.PT",
+          "unit": "EUR millions",
+          "granularity": "quarterly"
+        },
+        {
+          "name": "GDP per capita",
+          "pillar": "gdp",
+          "series_id": "nama_10_pc/A.CP_EUR_HAB.B1GQ.PT",
+          "unit": "EUR per inhabitant",
+          "granularity": "annual"
+        },
+        {
+          "name": "Unemployment Rate (seasonally adjusted)",
+          "pillar": "unemployment",
+          "series_id": "une_rt_m/M.SA.TOTAL.PC_ACT.T.PT",
+          "unit": "percentage",
+          "granularity": "monthly"
+        },
+        {
+          "name": "Youth Unemployment Rate (<25, seasonally adjusted)",
+          "pillar": "unemployment",
+          "series_id": "une_rt_m/M.SA.Y_LT25.PC_ACT.T.PT",
+          "unit": "percentage",
+          "granularity": "monthly"
+        },
+        {
+          "name": "Long-term Unemployment Rate (12+ months)",
+          "pillar": "unemployment",
+          "series_id": "une_ltu_q/Q.LTU.Y15-74.PC_ACT.SA.T.PT",
+          "unit": "percentage",
+          "granularity": "quarterly (interpolated to monthly)"
+        },
+        {
+          "name": "Labour Force Participation Rate (15-64)",
+          "pillar": "unemployment",
+          "series_id": "lfsq_argan/Q..T.Y15-64.TOTAL.PT",
+          "unit": "percentage",
+          "granularity": "quarterly (interpolated to monthly)"
+        },
+        {
+          "name": "HICP - Annual Rate of Change (all items)",
+          "pillar": "inflation",
+          "series_id": "prc_hicp_manr/M.RCH_A.CP00.PT",
+          "unit": "percentage",
+          "granularity": "monthly"
+        },
+        {
+          "name": "Core Inflation (excl. energy & food)",
+          "pillar": "inflation",
+          "series_id": "prc_hicp_manr/M.RCH_A.TOT_X_NRG_FOOD.PT",
+          "unit": "percentage",
+          "granularity": "monthly"
+        },
+        {
+          "name": "Energy Price Index (2015=100)",
+          "pillar": "inflation",
+          "series_id": "prc_hicp_midx/M.I15.NRG.PT",
+          "unit": "index (2015=100)",
+          "granularity": "monthly"
+        },
+        {
+          "name": "Food Price Index (2015=100)",
+          "pillar": "inflation",
+          "series_id": "prc_hicp_midx/M.I15.FOOD.PT",
+          "unit": "index (2015=100)",
+          "granularity": "monthly"
+        },
+        {
+          "name": "Government Debt (% of GDP)",
+          "pillar": "public_debt",
+          "series_id": "gov_10q_ggdebt/Q.GD.S13.PC_GDP.PT",
+          "unit": "percentage of GDP",
+          "granularity": "quarterly"
+        },
+        {
+          "name": "Government Debt (absolute)",
+          "pillar": "public_debt",
+          "series_id": "gov_10q_ggdebt/Q.GD.S13.MIO_EUR.PT",
+          "unit": "EUR millions",
+          "granularity": "quarterly"
+        },
+        {
+          "name": "Budget Balance (net lending/borrowing)",
+          "pillar": "public_debt",
+          "series_id": "gov_10q_ggnfa/Q.PC_GDP.NSA.S13.B9.PT",
+          "unit": "percentage of GDP",
+          "granularity": "quarterly"
+        },
+        {
+          "name": "External Debt Share (debt by holding sector)",
+          "pillar": "public_debt",
+          "series_id": "gov_10dd_ggd",
+          "unit": "percentage",
+          "granularity": "annual (broadcast to quarterly)"
+        }
+      ]
+    },
+    {
+      "code": "ECB",
+      "name": "European Central Bank",
+      "url": "https://www.ecb.europa.eu/stats",
+      "api_url": "https://data-api.ecb.europa.eu/service/data",
+      "description": "The European Central Bank's Statistical Data Warehouse, providing euro area monetary policy rates, money market rates, and financial market data.",
+      "country": "EU",
+      "format": ["CSV", "JSON", "SDMX"],
+      "indicators": [
+        {
+          "name": "ECB Main Refinancing Rate",
+          "pillar": "interest_rates",
+          "series_id": "FM/B.U2.EUR.4F.KR.MRR_FR.LEV",
+          "unit": "percentage",
+          "granularity": "irregular (resampled monthly)"
+        },
+        {
+          "name": "Euribor 3-Month (historical average)",
+          "pillar": "interest_rates",
+          "series_id": "FM/M.U2.EUR.RT.MM.EURIBOR3MD_.HSTA",
+          "unit": "percentage",
+          "granularity": "monthly"
+        },
+        {
+          "name": "Euribor 6-Month (historical average)",
+          "pillar": "interest_rates",
+          "series_id": "FM/M.U2.EUR.RT.MM.EURIBOR6MD_.HSTA",
+          "unit": "percentage",
+          "granularity": "monthly"
+        },
+        {
+          "name": "Euribor 12-Month (historical average)",
+          "pillar": "interest_rates",
+          "series_id": "FM/M.U2.EUR.RT.MM.EURIBOR1YD_.HSTA",
+          "unit": "percentage",
+          "granularity": "monthly"
+        },
+        {
+          "name": "Portugal 10-Year Government Bond Yield",
+          "pillar": "interest_rates",
+          "series_id": "IRS/M.PT.L.L40.CI.0000.EUR.N.Z",
+          "unit": "percentage",
+          "granularity": "monthly"
+        }
+      ]
+    },
+    {
+      "code": "BDP",
+      "name": "Banco de Portugal",
+      "url": "https://bpstat.bportugal.pt",
+      "api_url": "https://bpstat.bportugal.pt/data/v1",
+      "description": "The central bank of Portugal, providing comprehensive monetary, financial, and balance of payments statistics through the BPStat statistical portal.",
+      "country": "PT",
+      "format": ["JSON (JSON-stat)"],
+      "indicators": [
+        {
+          "name": "Total Non-Financial Sector Indebtedness",
+          "pillar": "credit",
+          "series_id": "12457932",
+          "dataset_id": "921a2108733e34fe71b5fed3dfa75c20",
+          "domain_id": 18,
+          "unit": "EUR millions",
+          "granularity": "monthly"
+        },
+        {
+          "name": "Non-Financial Corporations Debt",
+          "pillar": "credit",
+          "series_id": "12559924",
+          "dataset_id": "08adcab6f448ae4408de0cca87b4cb4c",
+          "domain_id": 18,
+          "unit": "EUR millions",
+          "granularity": "monthly"
+        },
+        {
+          "name": "Household Debt",
+          "pillar": "credit",
+          "series_id": "12457924",
+          "dataset_id": "56ebacd8518e60ef58c85cb8185b4818",
+          "domain_id": 18,
+          "unit": "EUR millions",
+          "granularity": "monthly"
+        },
+        {
+          "name": "Non-Performing Loans Ratio (Banking Sector)",
+          "pillar": "credit",
+          "series_id": "12504544",
+          "dataset_id": "b8cc662879c9f7b0f3faf89c7871fc38",
+          "domain_id": 59,
+          "unit": "percentage",
+          "granularity": "quarterly"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "project": "Portugal Data Intelligence",
+    "period_start": "2010-01",
+    "period_end": "2025-12",
+    "last_updated": "2026-03-18",
+    "currency": "EUR",
+    "base_year": 2015,
+    "data_type": "real (fetched from official APIs)",
+    "note": "All series IDs are verified and tested against live APIs"
+  }
+}

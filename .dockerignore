@@ -1,0 +1,16 @@
+.git
+__pycache__
+*.pyc
+*.pyo
+.env
+.coverage
+.pytest_cache
+.mypy_cache
+*.egg-info
+notebooks/
+docs/
+tests/
+.github/
+.claude/
+data/database/
+logs/

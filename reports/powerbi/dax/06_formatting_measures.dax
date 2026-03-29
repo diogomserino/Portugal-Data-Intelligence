@@ -1,0 +1,145 @@
+// =============================================================================
+// Formatting Measures - Portugal Data Intelligence
+// Trend arrows and visual indicators for executive dashboard cards
+// =============================================================================
+
+
+// -----------------------------------------------------------------------------
+// 6.1 GDP Growth Trend Arrow
+// Green up arrow for improvement, red down arrow for deterioration,
+// amber flat arrow for stable (change within 0.5 pp).
+// Display Folder: Formatting | Format: text
+// Used On: Page 1 (Executive Overview)
+// -----------------------------------------------------------------------------
+GDP Growth Trend Arrow =
+VAR _Current = [Latest GDP Growth]
+VAR _Prior =
+    CALCULATE(
+        AVERAGE(fact_gdp[gdp_growth_yoy]) / 100,
+        DATEADD(dim_date[full_date], -1, YEAR)
+    )
+VAR _Change = _Current - _Prior
+RETURN
+    IF(
+        ISBLANK(_Prior),
+        "►",
+        IF(
+            _Change > 0.005, "▲",
+            IF(_Change < -0.005, "▼", "►")
+        )
+    )
+
+
+// -----------------------------------------------------------------------------
+// 6.2 Unemployment Trend Arrow
+// For unemployment, DOWN is positive (improvement).
+// Green down arrow = improving, red up arrow = worsening.
+// Display Folder: Formatting | Format: text
+// Used On: Page 1 (Executive Overview)
+// -----------------------------------------------------------------------------
+Unemployment Trend Arrow =
+VAR _Change = [Unemployment YoY Change]
+RETURN
+    IF(
+        ISBLANK(_Change),
+        "►",
+        IF(
+            _Change < -0.3, "▼",
+            IF(_Change > 0.3, "▲", "►")
+        )
+    )
+
+
+// -----------------------------------------------------------------------------
+// 6.3 Inflation Trend Arrow
+// Trend relative to ECB 2% target. Converging towards target is positive.
+// Display Folder: Formatting | Format: text
+// Used On: Page 1 (Executive Overview)
+// -----------------------------------------------------------------------------
+Inflation Trend Arrow =
+VAR _CurrentHICP = [Latest HICP]
+VAR _ECBTarget = 0.02
+VAR _Change = [HICP YoY Change]
+VAR _DistanceFromTarget = ABS(_CurrentHICP - _ECBTarget)
+RETURN
+    IF(
+        ISBLANK(_CurrentHICP),
+        "►",
+        IF(
+            _DistanceFromTarget <= 0.005, "►",
+            IF(
+                _CurrentHICP > _ECBTarget && _Change < 0, "▼",
+                IF(
+                    _CurrentHICP < _ECBTarget && _Change > 0, "▲",
+                    IF(_Change > 0, "▲", "▼")
+                )
+            )
+        )
+    )
+
+
+// -----------------------------------------------------------------------------
+// 6.4 Credit Trend Arrow
+// Direction of total credit growth.
+// Display Folder: Formatting | Format: text
+// Used On: Page 1 (Executive Overview)
+// -----------------------------------------------------------------------------
+Credit Trend Arrow =
+VAR _Growth = [Credit YoY Growth]
+RETURN
+    IF(
+        ISBLANK(_Growth),
+        "►",
+        IF(
+            _Growth > 0.01, "▲",
+            IF(_Growth < -0.01, "▼", "►")
+        )
+    )
+
+
+// -----------------------------------------------------------------------------
+// 6.5 ECB Rate Trend Arrow
+// Year-on-year change in ECB rate.
+// Display Folder: Formatting | Format: text
+// Used On: Page 1 (Executive Overview)
+// -----------------------------------------------------------------------------
+ECB Rate Trend Arrow =
+VAR _CurrentRate =
+    CALCULATE(
+        AVERAGE(fact_interest_rates[ecb_main_refinancing_rate]),
+        LASTNONBLANK(dim_date[full_date], CALCULATE(COUNTROWS(fact_interest_rates)))
+    )
+VAR _PriorYearRate =
+    CALCULATE(
+        AVERAGE(fact_interest_rates[ecb_main_refinancing_rate]),
+        DATEADD(dim_date[full_date], -1, YEAR)
+    )
+VAR _Change = _CurrentRate - _PriorYearRate
+RETURN
+    IF(
+        ISBLANK(_PriorYearRate),
+        "►",
+        IF(
+            _Change > 0.1, "▲",
+            IF(_Change < -0.1, "▼", "►")
+        )
+    )
+
+
+// -----------------------------------------------------------------------------
+// 6.6 Debt Trend Arrow
+// Down arrow (green) indicates fiscal improvement (decreasing ratio).
+// Display Folder: Formatting | Format: text
+// Used On: Page 1 (Executive Overview)
+// -----------------------------------------------------------------------------
+Debt Trend Arrow =
+VAR _Change = [Debt to GDP YoY Change]
+RETURN
+    IF(
+        ISBLANK(_Change),
+        "►",
+        IF(
+            _Change < -1, "▼",
+            IF(_Change > 1, "▲", "►")
+        )
+    )

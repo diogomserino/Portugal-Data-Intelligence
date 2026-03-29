@@ -1,0 +1,138 @@
+// =============================================================================
+// Year-on-Year Growth Measures - Portugal Data Intelligence
+// Compare current period values against the same period one year prior
+// =============================================================================
+
+
+// -----------------------------------------------------------------------------
+// 2.1 GDP YoY Growth
+// Year-on-year growth in nominal GDP.
+// Display Folder: YoY Growth | Format: +0.0%;-0.0%;0.0%
+// Used On: Page 1, Page 2, Page 6
+// -----------------------------------------------------------------------------
+GDP YoY Growth =
+VAR _CurrentGDP =
+    SUM(fact_gdp[nominal_gdp])
+VAR _PriorYearGDP =
+    CALCULATE(
+        SUM(fact_gdp[nominal_gdp]),
+        DATEADD(dim_date[full_date], -1, YEAR)
+    )
+RETURN
+    IF(
+        NOT ISBLANK(_PriorYearGDP) && _PriorYearGDP <> 0,
+        DIVIDE(_CurrentGDP - _PriorYearGDP, _PriorYearGDP),
+        BLANK()
+    )
+
+
+// -----------------------------------------------------------------------------
+// 2.2 Unemployment YoY Change
+// Year-on-year change in unemployment rate in percentage points.
+// A negative value indicates improvement.
+// Display Folder: YoY Growth | Format: +0.0;-0.0;0.0
+// Used On: Page 1, Page 3, Page 6
+// -----------------------------------------------------------------------------
+Unemployment YoY Change =
+VAR _CurrentRate =
+    AVERAGE(fact_unemployment[unemployment_rate])
+VAR _PriorYearRate =
+    CALCULATE(
+        AVERAGE(fact_unemployment[unemployment_rate]),
+        DATEADD(dim_date[full_date], -1, YEAR)
+    )
+RETURN
+    IF(
+        NOT ISBLANK(_PriorYearRate),
+        _CurrentRate - _PriorYearRate,
+        BLANK()
+    )
+
+
+// -----------------------------------------------------------------------------
+// 2.3 Credit YoY Growth
+// Year-on-year percentage change in total credit to the economy.
+// Display Folder: YoY Growth | Format: +0.0%;-0.0%;0.0%
+// Used On: Page 1, Page 4, Page 6
+// -----------------------------------------------------------------------------
+Credit YoY Growth =
+VAR _CurrentCredit =
+    SUM(fact_credit[total_credit])
+VAR _PriorYearCredit =
+    CALCULATE(
+        SUM(fact_credit[total_credit]),
+        DATEADD(dim_date[full_date], -1, YEAR)
+    )
+RETURN
+    IF(
+        NOT ISBLANK(_PriorYearCredit) && _PriorYearCredit <> 0,
+        DIVIDE(_CurrentCredit - _PriorYearCredit, _PriorYearCredit),
+        BLANK()
+    )
+
+
+// -----------------------------------------------------------------------------
+// 2.4 Euribor 12M YoY Change
+// Year-on-year change in the 12-month Euribor rate in percentage points.
+// Display Folder: YoY Growth | Format: +0.00;-0.00;0.00
+// Used On: Page 1, Page 4, Page 6
+// -----------------------------------------------------------------------------
+Euribor 12M YoY Change =
+VAR _CurrentRate =
+    AVERAGE(fact_interest_rates[euribor_12m])
+VAR _PriorYearRate =
+    CALCULATE(
+        AVERAGE(fact_interest_rates[euribor_12m]),
+        DATEADD(dim_date[full_date], -1, YEAR)
+    )
+RETURN
+    IF(
+        NOT ISBLANK(_PriorYearRate),
+        _CurrentRate - _PriorYearRate,
+        BLANK()
+    )
+
+
+// -----------------------------------------------------------------------------
+// 2.5 HICP YoY Change
+// Year-on-year change in HICP inflation rate in percentage points.
+// Display Folder: YoY Growth | Format: +0.0;-0.0;0.0
+// Used On: Page 1, Page 5, Page 6
+// -----------------------------------------------------------------------------
+HICP YoY Change =
+VAR _CurrentHICP =
+    AVERAGE(fact_inflation[hicp])
+VAR _PriorYearHICP =
+    CALCULATE(
+        AVERAGE(fact_inflation[hicp]),
+        DATEADD(dim_date[full_date], -1, YEAR)
+    )
+RETURN
+    IF(
+        NOT ISBLANK(_PriorYearHICP),
+        _CurrentHICP - _PriorYearHICP,
+        BLANK()
+    )
+
+
+// -----------------------------------------------------------------------------
+// 2.6 Debt-to-GDP YoY Change
+// Year-on-year change in debt-to-GDP ratio in percentage points.
+// A negative value indicates fiscal improvement.
+// Display Folder: YoY Growth | Format: +0.0;-0.0;0.0
+// Used On: Page 1, Page 5, Page 6
+// -----------------------------------------------------------------------------
+Debt to GDP YoY Change =
+VAR _CurrentRatio =
+    AVERAGE(fact_public_debt[debt_to_gdp_ratio])
+VAR _PriorYearRatio =
+    CALCULATE(
+        AVERAGE(fact_public_debt[debt_to_gdp_ratio]),
+        DATEADD(dim_date[full_date], -1, YEAR)
+    )
+RETURN
+    IF(
+        NOT ISBLANK(_PriorYearRatio),
+        _CurrentRatio - _PriorYearRatio,
+        BLANK()
+    )

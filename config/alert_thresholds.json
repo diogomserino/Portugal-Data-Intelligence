@@ -1,0 +1,44 @@
+{
+    "gdp_growth_yoy": {
+        "table": "fact_gdp",
+        "column": "gdp_growth_yoy",
+        "description": "GDP YoY Growth Rate (%)",
+        "warning": {"below": -1.0},
+        "critical": {"below": -3.0}
+    },
+    "unemployment_rate": {
+        "table": "fact_unemployment",
+        "column": "unemployment_rate",
+        "description": "Unemployment Rate (%)",
+        "warning": {"above": 8.0},
+        "critical": {"above": 12.0}
+    },
+    "hicp_inflation": {
+        "table": "fact_inflation",
+        "column": "hicp",
+        "description": "HICP Inflation YoY (%)",
+        "warning": {"above": 4.0, "below": -0.5},
+        "critical": {"above": 8.0, "below": -1.0}
+    },
+    "debt_to_gdp": {
+        "table": "fact_public_debt",
+        "column": "debt_to_gdp_ratio",
+        "description": "Debt-to-GDP Ratio (%)",
+        "warning": {"above": 100.0},
+        "critical": {"above": 130.0}
+    },
+    "npl_ratio": {
+        "table": "fact_credit",
+        "column": "npl_ratio",
+        "description": "Non-Performing Loan Ratio (%)",
+        "warning": {"above": 5.0},
+        "critical": {"above": 10.0}
+    },
+    "portugal_10y_bond_yield": {
+        "table": "fact_interest_rates",
+        "column": "portugal_10y_bond_yield",
+        "description": "Portugal 10Y Bond Yield (%)",
+        "warning": {"above": 4.0},
+        "critical": {"above": 7.0}
+    }
+}
