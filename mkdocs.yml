@@ -1,0 +1,36 @@
+site_name: Portugal Data Intelligence
+site_description: Macroeconomic analytics platform for the Portuguese economy (2010-2025)
+site_author: Portugal Data Intelligence
+
+theme:
+  name: material
+  palette:
+    primary: blue grey
+    accent: indigo
+  features:
+    - navigation.sections
+    - navigation.expand
+    - search.highlight
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - User Guide: user-guide.md
+  - Tutorial: tutorial.md
+  - Architecture: architecture.md
+  - Data Dictionary: data_dictionary.md
+  - Data Quality Report: data_quality_report.md
+  - API Reference: api-reference.md
+  - Data Provenance: data_provenance.md
+  - Troubleshooting: troubleshooting.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
