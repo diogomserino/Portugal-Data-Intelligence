@@ -137,6 +137,7 @@ def _run_analysis() -> StepResult:
     from src.analysis.statistical_analysis import run_all_analyses
     from src.analysis.correlation_analysis import generate_correlation_report
     from src.analysis.visualisations import generate_all_charts
+    from src.analysis.benchmarking import plot_benchmark_comparison
 
     result = StepResult("Analysis")
     db_path = str(DATABASE_PATH)
@@ -162,6 +163,15 @@ def _run_analysis() -> StepResult:
     except Exception as exc:
         logger.error("Chart generation failed: %s", exc)
         result.errors.append(f"Chart generation failed: {exc}")
+
+    # 3. Generate benchmark charts
+    try:
+        benchmark_paths = plot_benchmark_comparison(db_path=db_path)
+        result.files.extend([str(p) for p in benchmark_paths])
+        logger.info("Generated %d benchmark chart(s).", len(benchmark_paths))
+    except Exception as exc:
+        logger.error("Benchmark chart generation failed: %s", exc)
+        result.errors.append(f"Benchmark chart generation failed: {exc}")
 
     return result
 

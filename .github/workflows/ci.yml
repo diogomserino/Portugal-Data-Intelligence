@@ -59,6 +59,10 @@ jobs:
         run: python main.py --mode etl
         continue-on-error: true
 
+      - name: Run analysis to generate charts
+        run: python main.py --mode analysis
+        continue-on-error: true
+
       - name: Run tests
         run: |
           pytest tests/ \

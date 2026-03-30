@@ -66,7 +66,7 @@ dashboard/*.html
 
 # Reports (generated outputs)
 reports/powerbi/*.pbix
-reports/powerbi/charts/*.png
+# reports/powerbi/charts/*.png  # tracked for README display
 reports/powerpoint/*.pptx
 reports/powerpoint/*.pdf
 reports/insights/*.json
