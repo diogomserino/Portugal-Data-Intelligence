@@ -102,7 +102,7 @@ def _log_linear_forecast(y: np.ndarray, horizon: int) -> dict:
 
     slope, intercept, r_value, _p, std_err = stats.linregress(t, log_y)
     residuals = log_y - (intercept + slope * t)
-    sigma = float(np.std(residuals, ddof=2))
+    sigma = float(max(np.std(residuals, ddof=2), 1e-10))
 
     fitted = np.exp(intercept + slope * t)
 
