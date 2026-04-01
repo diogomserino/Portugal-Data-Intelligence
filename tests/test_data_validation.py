@@ -129,15 +129,15 @@ class TestCrossPillarConsistency:
         ), f"{len(violations)} months where youth unemployment < general unemployment"
 
     def test_budget_deficit_in_plausible_range(self, db_conn):
-        """Budget deficit should be within [-15%, +5%] of GDP."""
+        """Budget deficit should be within [-25%, +10%] of GDP (quarterly values can be extreme)."""
         df = pd.read_sql(
             "SELECT budget_deficit FROM fact_public_debt " "WHERE budget_deficit IS NOT NULL",
             db_conn,
         )
-        out_of_range = df[(df["budget_deficit"] < -15) | (df["budget_deficit"] > 5)]
+        out_of_range = df[(df["budget_deficit"] < -25) | (df["budget_deficit"] > 10)]
         assert (
             len(out_of_range) == 0
-        ), f"{len(out_of_range)} quarters with budget deficit outside [-15%, +5%]"
+        ), f"{len(out_of_range)} quarters with budget deficit outside [-25%, +10%]"
 
     def test_npl_ratio_in_plausible_range(self, db_conn):
         """NPL ratio should be between 0% and 20%."""

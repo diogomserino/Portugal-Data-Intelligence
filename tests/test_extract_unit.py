@@ -8,7 +8,7 @@ import pytest
 
 # Realistic CSV headers matching what generate_data.py produces.
 _REALISTIC_HEADERS = {
-    "raw_gdp.csv": "date,year,quarter,nominal_gdp_eur_millions,real_gdp_eur_millions,gdp_growth_rate_yoy,gdp_growth_rate_qoq,gdp_per_capita_eur,source,country_code",
+    "raw_gdp.csv": "date,year,quarter,nominal_gdp_eur_millions,real_gdp_eur_millions,nominal_gdp_growth_rate_yoy,nominal_gdp_growth_rate_qoq,gdp_per_capita_eur,source,country_code",
     "raw_unemployment.csv": "date,year,month,unemployment_rate,youth_unemployment_rate,long_term_unemployment_rate,labour_force_participation_rate,source,country_code",
     "raw_credit.csv": "date,year,month,total_credit_eur_millions,nfc_credit_eur_millions,household_credit_eur_millions,npl_ratio,credit_growth_rate_yoy,source,country_code",
     "raw_interest_rates.csv": "date,year,month,ecb_main_refinancing_rate,euribor_3m,euribor_6m,euribor_12m,portugal_10y_bond_yield,source,country_code",

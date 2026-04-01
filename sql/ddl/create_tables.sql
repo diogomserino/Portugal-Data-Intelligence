@@ -198,6 +198,7 @@ CREATE TABLE fact_inflation (
     hicp            REAL    NOT NULL CHECK(hicp BETWEEN -10 AND 30),        -- HICP YoY (%)
     cpi_estimated   REAL    CHECK(cpi_estimated BETWEEN -10 AND 30),       -- CPI YoY (%) — estimated from HICP, not INE source
     core_inflation  REAL    CHECK(core_inflation BETWEEN -10 AND 30),      -- Core inflation excl. energy/food (%)
+    cpi_is_estimated INTEGER NOT NULL DEFAULT 0 CHECK(cpi_is_estimated IN (0, 1)), -- True if CPI was synthetically derived from HICP
     is_provisional  INTEGER NOT NULL DEFAULT 0 CHECK(is_provisional IN (0, 1)),
     source_key      INTEGER NOT NULL,                                       -- FK to dim_source
     created_at      TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,

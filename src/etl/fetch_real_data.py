@@ -327,8 +327,8 @@ def fetch_gdp() -> pd.DataFrame:
 
     # Calculate growth rates
     df = df.sort_values("date").reset_index(drop=True)
-    df["gdp_growth_rate_yoy"] = df["nominal_gdp_eur_millions"].pct_change(4) * 100
-    df["gdp_growth_rate_qoq"] = df["nominal_gdp_eur_millions"].pct_change(1) * 100
+    df["nominal_gdp_growth_rate_yoy"] = df["nominal_gdp_eur_millions"].pct_change(4) * 100
+    df["nominal_gdp_growth_rate_qoq"] = df["nominal_gdp_eur_millions"].pct_change(1) * 100
 
     # Merge annual per-capita (spread to quarters of that year)
     if not gdp_pc.empty:
@@ -342,8 +342,8 @@ def fetch_gdp() -> pd.DataFrame:
     for col in [
         "nominal_gdp_eur_millions",
         "real_gdp_eur_millions",
-        "gdp_growth_rate_yoy",
-        "gdp_growth_rate_qoq",
+        "nominal_gdp_growth_rate_yoy",
+        "nominal_gdp_growth_rate_qoq",
         "gdp_per_capita_eur",
     ]:
         if col in df.columns:

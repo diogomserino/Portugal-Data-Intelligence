@@ -241,3 +241,51 @@ Reference table for institutional data providers.
 | Referential integrity | All foreign keys | Every `date_key` and `source_key` must exist in the respective dimension table |
 | Type enforcement | All columns | Strict data type validation during ETL load stage |
 | Provisional flagging | All fact tables | Data beyond publication lag window is flagged `is_provisional = 1` |
+
+---
+
+## Data Quality Notes
+
+The following data quality issues have been identified and documented for transparency.
+Users of this data should be aware of these limitations when performing analyses.
+
+### Estimated / Synthetic Data
+
+| Column | Table | Issue | Details |
+|--------|-------|-------|---------|
+| `cpi_estimated` | fact_inflation | **100% synthetic** | Eurostat returns identical HICP and CPI values. The ETL applies a random offset `N(-0.15, 0.08)` with seed 42 to simulate the typical INE CPI deviation. The `cpi_is_estimated` flag column indicates when this offset was applied. **Do not use for official CPI analysis.** |
+| `external_debt_share_estimated` | fact_public_debt | **Forward-filled for 2025** | Eurostat `gov_10dd_ggd` data is not yet available for 2025. Values are forward-filled from Q4 2024 (44.67%). If API data is completely missing, a synthetic linear estimate (~48%→46%) is generated. |
+| EU benchmark data | raw_eu_benchmark.csv | **Explicitly synthetic** | All benchmark data is marked as "Eurostat/ECB (synthetic benchmark)". Do not use for official cross-country comparisons. |
+
+### Interpolated Data
+
+| Column | Table | Issue | Details |
+|--------|-------|-------|---------|
+| Credit (all columns) | fact_credit | **~15 months interpolated** | BdP credit data transitions from quarterly to monthly around mid-2011. Months Apr-Jun 2010, Jul-Dec 2010, Jan-Jun 2011 are linearly interpolated from quarterly observations. |
+| `npl_ratio` | fact_credit | **Quarterly frequency** | NPL ratio is reported quarterly by BdP but stored monthly. Intra-quarter months carry the same value (step function, not interpolated). |
+| `long_term_unemployment_rate` | fact_unemployment | **Quarterly source** | Eurostat `une_ltu_q` is quarterly. Monthly values within each quarter are linearly interpolated. |
+
+### Annual Data Spread to Sub-Annual
+
+| Column | Table | Issue | Details |
+|--------|-------|-------|---------|
+| `gdp_per_capita` | fact_gdp | **Annual value** | GDP per capita from Eurostat `nama_10_pc` is annual. All 4 quarters of the same year carry the same value. |
+| `external_debt_share_estimated` | fact_public_debt | **Annual source** | Eurostat `gov_10dd_ggd` is annual; values are interpolated to quarterly frequency. |
+
+### Provisional / Projected Data
+
+| Period | Issue | Details |
+|--------|-------|---------|
+| H2 2025 (Jul-Dec) | **Likely projections** | Data for the second half of 2025 may be synthetic or projected rather than confirmed Eurostat/ECB releases. Evidence: ECB main refinancing rate is missing for Jul-Dec 2025; public debt Q4 2025 does not exist in raw data and is extrapolated. Rows are flagged with `is_provisional = 1`. |
+
+### Budget Balance Seasonality
+
+Quarterly `budget_deficit` values can show extreme volatility due to fiscal seasonality (e.g., Q4 2010 = -19.1%, Q3 2023 = +7.3%). These are **not errors** — they reflect concentration of tax revenue or expenditure in specific quarters. The `budget_deficit_annual` column (rolling 4-quarter average) should be preferred for trend analysis.
+
+### GDP Growth Rates
+
+The raw file (`raw_gdp.csv`) contains **nominal** GDP growth rates (`nominal_gdp_growth_rate_yoy`, `nominal_gdp_growth_rate_qoq`). During transformation, these are **recalculated from real GDP** (`real_gdp_eur_millions`) to produce real growth rates in the processed output. The nominal rates in the raw file should not be confused with real growth.
+
+### Benchmark vs Quarterly Data Discrepancies
+
+The EU benchmark file uses annual averages which may differ from Q4 end-of-year readings in the quarterly data. Example: debt-to-GDP 2023 benchmark = 98.49% vs Q4 2023 quarterly = 96.9% (difference of 1.6 pp). This is expected when comparing annual averages with point-in-time quarterly readings.

@@ -151,7 +151,7 @@ def generate_gdp() -> pd.DataFrame:
 
     Columns produced:
         date, year, quarter, nominal_gdp_eur_millions, real_gdp_eur_millions,
-        gdp_growth_rate_yoy, gdp_growth_rate_qoq, gdp_per_capita_eur,
+        nominal_gdp_growth_rate_yoy, nominal_gdp_growth_rate_qoq, gdp_per_capita_eur,
         source, country_code
     """
     logger.info("Generating GDP data ...")
@@ -249,8 +249,8 @@ def generate_gdp() -> pd.DataFrame:
             "quarter": dates.quarter,
             "nominal_gdp_eur_millions": np.round(nominal_q, 1),
             "real_gdp_eur_millions": np.round(real_q, 1),
-            "gdp_growth_rate_yoy": np.round(yoy, 2),
-            "gdp_growth_rate_qoq": np.round(qoq, 2),
+            "nominal_gdp_growth_rate_yoy": np.round(yoy, 2),
+            "nominal_gdp_growth_rate_qoq": np.round(qoq, 2),
             "gdp_per_capita_eur": np.round(per_capita, 0),
             "source": "Synthetic (INE/Eurostat reference)",
             "country_code": "PT",

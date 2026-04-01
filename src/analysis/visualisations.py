@@ -96,7 +96,7 @@ except ImportError:
         "Post-COVID": ("2021", "2025"),
     }
 
-SOURCE_TEXT = "Source: Portugal Data Intelligence | Synthetic data based on INE, BdP, Eurostat"
+SOURCE_TEXT = "Source: Portugal Data Intelligence | Data from INE, Banco de Portugal, Eurostat, ECB"
 
 # =============================================================================
 # GLOBAL STYLE CONFIGURATION

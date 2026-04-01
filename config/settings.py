@@ -194,7 +194,7 @@ DATA_RANGES = {
     },
     "public_debt": {
         "debt_to_gdp_ratio": (50, 160),
-        "budget_deficit": (-15, 5),
+        "budget_deficit": (-25, 10),  # quarterly values can be extreme due to fiscal seasonality
         "budget_deficit_annual": (-15, 5),
         "external_debt_share_estimated": (20, 80),
     },

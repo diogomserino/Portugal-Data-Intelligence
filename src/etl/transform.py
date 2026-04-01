@@ -36,6 +36,9 @@ logger = get_logger(__name__)
 _GDP_RENAME = {
     "nominal_gdp_eur_millions": "nominal_gdp",
     "real_gdp_eur_millions": "real_gdp",
+    "nominal_gdp_growth_rate_yoy": "gdp_growth_yoy",
+    "nominal_gdp_growth_rate_qoq": "gdp_growth_qoq",
+    # Legacy column names (backwards compatibility with older raw files)
     "gdp_growth_rate_yoy": "gdp_growth_yoy",
     "gdp_growth_rate_qoq": "gdp_growth_qoq",
     "gdp_per_capita_eur": "gdp_per_capita",
@@ -82,10 +85,13 @@ def _inflation_post_hook(df: pd.DataFrame) -> pd.DataFrame:
         rng = np.random.default_rng(42)
         offset = rng.normal(-0.15, 0.08, len(df))
         df["cpi_estimated"] = (df["hicp"] + offset).round(2)
+        df["cpi_is_estimated"] = True
         logger.warning(
             "  [inflation] CPI was identical to HICP — column 'cpi_estimated' "
             "contains estimated values (offset from HICP), not real INE CPI data"
         )
+    else:
+        df["cpi_is_estimated"] = False
     return df
 
 
@@ -98,14 +104,16 @@ def _public_debt_post_hook(df: pd.DataFrame) -> pd.DataFrame:
     4. Add annualised budget deficit (rolling 4-quarter average)
     """
     # 1. Clip extreme budget deficit values
-    #    Portugal's worst deficit was ~-11.4% (2010); [-15%, +5%] is generous.
+    #    Quarterly budget balance can be very volatile due to fiscal seasonality
+    #    (e.g. Q4 2010 = -19.1%, Q3 2023 = +7.3% are legitimate).
+    #    Using [-25%, +10%] to preserve real quarterly variation.
     if "budget_deficit" in df.columns:
-        extreme = (df["budget_deficit"] < -15) | (df["budget_deficit"] > 5)
+        extreme = (df["budget_deficit"] < -25) | (df["budget_deficit"] > 10)
         n_extreme = int(extreme.sum())
         if n_extreme > 0:
-            df["budget_deficit"] = df["budget_deficit"].clip(lower=-15, upper=5)
+            df["budget_deficit"] = df["budget_deficit"].clip(lower=-25, upper=10)
             logger.info(
-                "  [public_debt] Clipped %d extreme budget_deficit values to [-15%%, +5%%]",
+                "  [public_debt] Clipped %d extreme budget_deficit values to [-25%%, +10%%]",
                 n_extreme,
             )
 
@@ -382,7 +390,7 @@ _PILLAR_CONFIGS: Dict[str, Dict[str, Any]] = {
             ("core_inflation", -5, 30),
         ],
         "round_dp": 2,
-        "keep_cols": ["date_key", "hicp", "cpi_estimated", "core_inflation"],
+        "keep_cols": ["date_key", "hicp", "cpi_estimated", "core_inflation", "cpi_is_estimated"],
         "post_hook": _inflation_post_hook,
     },
     "public_debt": {
@@ -466,8 +474,24 @@ def _add_provisional_flag(
       - Monthly (unemployment, credit, rates, inflation): ~2 months
     """
     fetch_dt = _get_fetch_date(pillar_key)
-    if fetch_dt is None or "date_key" not in df.columns:
+    if "date_key" not in df.columns:
         df["is_provisional"] = False
+        return df
+
+    if fetch_dt is None:
+        # Fallback: without a fetch date, conservatively mark H2 2025+ as
+        # provisional since these are likely projections, not confirmed data.
+        if date_key_type == "quarterly":
+            df["is_provisional"] = df["date_key"] >= "2025-Q3"
+        else:
+            df["is_provisional"] = df["date_key"] >= "2025-07"
+        n_provisional = int(df["is_provisional"].sum())
+        if n_provisional > 0:
+            logger.info(
+                "  [%s] No fetch date available — marked %d rows from H2 2025 as provisional",
+                pillar_key,
+                n_provisional,
+            )
         return df
 
     if date_key_type == "quarterly":

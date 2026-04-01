@@ -147,8 +147,8 @@ class TestTransformPillar:
                 "quarter": [1, 2, 3, 4],
                 "nominal_gdp_eur_millions": [50000.0, 52000.0, 53000.0, 55000.0],
                 "real_gdp_eur_millions": [45000.0, 46000.0, 46500.0, 47000.0],
-                "gdp_growth_rate_yoy": [2.5, 3.0, 2.8, 3.2],
-                "gdp_growth_rate_qoq": [0.5, 0.8, 0.6, 0.9],
+                "nominal_gdp_growth_rate_yoy": [2.5, 3.0, 2.8, 3.2],
+                "nominal_gdp_growth_rate_qoq": [0.5, 0.8, 0.6, 0.9],
                 "gdp_per_capita_eur": [19000.0, 19500.0, 20000.0, 20500.0],
             }
         )
@@ -176,8 +176,8 @@ class TestTransformPillar:
                 "quarter": [1],
                 "nominal_gdp_eur_millions": [-5000.0],
                 "real_gdp_eur_millions": [45000.0],
-                "gdp_growth_rate_yoy": [2.0],
-                "gdp_growth_rate_qoq": [0.5],
+                "nominal_gdp_growth_rate_yoy": [2.0],
+                "nominal_gdp_growth_rate_qoq": [0.5],
                 "gdp_per_capita_eur": [-100.0],
             }
         )

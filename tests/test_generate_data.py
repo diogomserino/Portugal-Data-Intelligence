@@ -51,8 +51,8 @@ class TestGenerateGDP:
             "quarter",
             "nominal_gdp_eur_millions",
             "real_gdp_eur_millions",
-            "gdp_growth_rate_yoy",
-            "gdp_growth_rate_qoq",
+            "nominal_gdp_growth_rate_yoy",
+            "nominal_gdp_growth_rate_qoq",
             "gdp_per_capita_eur",
         ]:
             assert col in df.columns, f"Missing column: {col}"
