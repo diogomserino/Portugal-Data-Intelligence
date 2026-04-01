@@ -30,7 +30,7 @@ _REQUIRED_COLUMNS: Dict[str, List[str]] = {
         "quarter",
         "nominal_gdp_eur_millions",
         "real_gdp_eur_millions",
-        "gdp_growth_rate_yoy",
+        "nominal_gdp_growth_rate_yoy",
         "gdp_per_capita_eur",
     ],
     "unemployment": [
