@@ -65,7 +65,7 @@ dashboard/pages/*.html
 dashboard/*.html
 
 # Reports (generated outputs)
-reports/powerbi/*.pbix
+# reports/powerbi/*.pbix  # tracked — Power BI report included in repo
 # reports/powerbi/charts/*.png  # tracked for README display
 reports/powerpoint/*.pptx
 reports/powerpoint/*.pdf
