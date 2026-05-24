@@ -79,6 +79,12 @@ _RAW_FILES: Dict[str, str] = {
     "interest_rates": "raw_interest_rates.csv",
     "inflation": "raw_inflation.csv",
     "public_debt": "raw_public_debt.csv",
+    "housing": "raw_housing.csv",
+    "labor_detail": "raw_labor_detail.csv",
+    "external_accounts": "raw_external_accounts.csv",
+    "fiscal": "raw_fiscal.csv",
+    "inequality": "raw_inequality.csv",
+    "regional": "raw_regional.csv",
 }
 
 

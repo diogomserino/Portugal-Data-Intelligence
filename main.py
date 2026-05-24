@@ -176,6 +176,21 @@ def _run_analysis() -> StepResult:
     return result
 
 
+def _run_excel_export() -> StepResult:
+    """Export all pillar data to a timestamped Excel workbook."""
+    from src.reporting.excel_export import export_to_excel
+
+    result = StepResult("Excel Export")
+    try:
+        output_path = export_to_excel()
+        result.files.append(str(output_path))
+        logger.info("Excel workbook saved: %s", output_path)
+    except Exception as exc:
+        logger.error("Excel export failed: %s", exc)
+        result.errors.append(f"Excel export failed: {exc}")
+    return result
+
+
 def _run_reports() -> StepResult:
     """Generate AI insights and executive briefing."""
     from src.ai_insights.insight_engine import InsightEngine
@@ -217,6 +232,7 @@ _MODE_STEPS = {
     "analysis": [_run_analysis],
     "reports":  [_run_reports],
     "quick":    [_run_etl, _run_analysis],
+    "excel":    [_run_excel_export],
 }
 
 _MODE_DESCRIPTIONS = {
@@ -225,6 +241,7 @@ _MODE_DESCRIPTIONS = {
     "analysis": "Run statistical analysis and generate visualisations",
     "reports":  "Generate AI insights and executive briefing",
     "quick":    "ETL + Analysis (skip report generation)",
+    "excel":    "Export all pillar data to an Excel workbook",
 }
 
 
@@ -282,6 +299,7 @@ def _parse_args() -> argparse.Namespace:
             "  python main.py --mode etl        # Data generation + ETL only\n"
             "  python main.py --mode analysis   # Analysis + charts only\n"
             "  python main.py --mode reports    # AI insights + executive briefing\n"
+            "  python main.py --mode excel      # Export data to Excel workbook\n"
             "  python main.py --mode quick      # ETL + analysis (no reports)\n"
             "  python main.py --list            # Show available modes\n"
         ),

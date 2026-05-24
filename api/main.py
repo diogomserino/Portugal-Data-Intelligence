@@ -16,7 +16,7 @@ Endpoints:
     GET /api/v1/health              → Health check
 """
 
-import sqlite3
+import json
 import sys
 from pathlib import Path
 from typing import Optional
@@ -30,14 +30,15 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from config.settings import DATABASE_PATH, DATA_PILLARS, API_ALLOWED_ORIGINS, API_KEY
-
 # ---------------------------------------------------------------------------
 # FastAPI app
 # ---------------------------------------------------------------------------
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+from config.settings import API_ALLOWED_ORIGINS, API_KEY, DATA_PILLARS, DATABASE_PATH
+from src.utils.db import get_connection as _get_db_connection
 
 app = FastAPI(
     title="Portugal Data Intelligence API",
@@ -65,6 +66,7 @@ async def check_api_key(request: Request, call_next):
             return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
     return await call_next(request)
 
+
 # ---------------------------------------------------------------------------
 # Database helper
 # ---------------------------------------------------------------------------
@@ -76,21 +78,24 @@ PILLAR_TABLES = {
     "interest_rates": "fact_interest_rates",
     "inflation": "fact_inflation",
     "public_debt": "fact_public_debt",
+    "housing": "fact_housing",
+    "labor_detail": "fact_labor_detail",
+    "external_accounts": "fact_external_accounts",
+    "fiscal": "fact_fiscal",
+    "inequality": "fact_inequality",
+    "regional": "fact_regional",
 }
 
 VALID_PILLARS = frozenset(PILLAR_TABLES.keys())
 
 
-def get_connection() -> sqlite3.Connection:
-    """Return a read-only database connection."""
+def _check_db_exists() -> None:
+    """Raise HTTPException 503 if the database file is missing."""
     if not DATABASE_PATH.exists():
         raise HTTPException(
             status_code=503,
             detail="Database not found. Run 'python main.py --mode etl' first.",
         )
-    conn = sqlite3.connect(str(DATABASE_PATH))
-    conn.row_factory = sqlite3.Row
-    return conn
 
 
 def validate_pillar(pillar: str) -> str:
@@ -107,6 +112,7 @@ def validate_pillar(pillar: str) -> str:
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
+
 
 @app.get("/")
 def root():
@@ -131,12 +137,9 @@ def root():
 def health_check():
     """Health check — verifies database connectivity."""
     try:
-        conn = get_connection()
-        try:
+        with _get_db_connection(row_factory=True) as conn:
             row = conn.execute("SELECT COUNT(*) as n FROM dim_date").fetchone()
             return {"status": "healthy", "database": "connected", "date_records": row["n"]}
-        finally:
-            conn.close()
     except Exception:
         return {"status": "unhealthy", "error": "Database connection failed"}
 
@@ -166,8 +169,8 @@ def get_pillar_latest(pillar: str):
     pillar = validate_pillar(pillar)
     table = PILLAR_TABLES[pillar]
 
-    conn = get_connection()
-    try:
+    _check_db_exists()
+    with _get_db_connection(row_factory=True) as conn:
         df = pd.read_sql(
             f"SELECT d.year, d.month, d.quarter, f.* "
             f"FROM {table} f JOIN dim_date d ON f.date_key = d.date_key "
@@ -177,7 +180,6 @@ def get_pillar_latest(pillar: str):
         if df.empty:
             raise HTTPException(status_code=404, detail=f"No data for pillar '{pillar}'.")
 
-        # Also get summary stats
         df_all = pd.read_sql(f"SELECT * FROM {table}", conn)
         numeric_cols = df_all.select_dtypes(include=[np.number]).columns.tolist()
         numeric_cols = [c for c in numeric_cols if c not in ("date_key", "source_key", "id")]
@@ -195,8 +197,6 @@ def get_pillar_latest(pillar: str):
                 "max": round(float(series.max()), 4),
                 "std": round(float(std_val), 4) if not pd.isna(std_val) else 0.0,
             }
-    finally:
-        conn.close()
 
     latest_row = df.iloc[0].to_dict()
     # Clean NaN values for JSON serialization
@@ -222,24 +222,22 @@ def get_pillar_timeseries(
     pillar = validate_pillar(pillar)
     table = PILLAR_TABLES[pillar]
 
-    conn = get_connection()
-    try:
-        query = (
-            f"SELECT d.year, d.month, d.quarter, d.date_key, f.* "
-            f"FROM {table} f JOIN dim_date d ON f.date_key = d.date_key "
-        )
-        conditions = []
-        if start_year:
-            conditions.append(f"d.year >= {int(start_year)}")
-        if end_year:
-            conditions.append(f"d.year <= {int(end_year)}")
-        if conditions:
-            query += "WHERE " + " AND ".join(conditions) + " "
-        query += f"ORDER BY d.year, d.month LIMIT {int(limit)}"
+    _check_db_exists()
+    query = (
+        f"SELECT d.year, d.month, d.quarter, d.date_key, f.* "
+        f"FROM {table} f JOIN dim_date d ON f.date_key = d.date_key "
+    )
+    conditions = []
+    if start_year:
+        conditions.append(f"d.year >= {int(start_year)}")
+    if end_year:
+        conditions.append(f"d.year <= {int(end_year)}")
+    if conditions:
+        query += "WHERE " + " AND ".join(conditions) + " "
+    query += f"ORDER BY d.year, d.month LIMIT {int(limit)}"
 
+    with _get_db_connection(row_factory=True) as conn:
         df = pd.read_sql(query, conn)
-    finally:
-        conn.close()
 
     if df.empty:
         return {"pillar": pillar, "count": 0, "data": []}
@@ -250,8 +248,9 @@ def get_pillar_timeseries(
         keep = ["date_key", "year", "month", "quarter"] + [c for c in requested if c in df.columns]
         df = df[keep]
 
-    # Clean NaN for JSON
-    records = df.where(df.notna(), None).to_dict(orient="records")
+    # Drop duplicate columns (can arise from SELECT d.*, f.* overlap) then clean NaN
+    df = df.loc[:, ~df.columns.duplicated()]
+    records = json.loads(df.to_json(orient="records"))
 
     return {
         "pillar": pillar,
@@ -267,6 +266,7 @@ def get_alerts():
     """Check all indicators against configured thresholds and return active alerts."""
     try:
         from src.alerts.alert_engine import AlertEngine
+
         engine = AlertEngine()
         alerts = engine.check_all()
         return {
@@ -293,51 +293,49 @@ def get_alerts():
 @app.get("/api/v1/correlation")
 def get_correlation():
     """Compute and return cross-pillar Pearson correlation matrix."""
-    conn = get_connection()
-    try:
-        annual_data = {}
+    _check_db_exists()
+    annual_data = {}
 
-        # GDP growth (quarterly → annual average)
+    with _get_db_connection(row_factory=True) as conn:
         gdp = pd.read_sql(
             "SELECT d.year, f.gdp_growth_yoy FROM fact_gdp f "
-            "JOIN dim_date d ON f.date_key = d.date_key", conn
+            "JOIN dim_date d ON f.date_key = d.date_key",
+            conn,
         )
         if not gdp.empty:
             annual_data["GDP Growth"] = gdp.groupby("year")["gdp_growth_yoy"].mean()
 
-        # Unemployment (monthly → annual average)
         unemp = pd.read_sql(
             "SELECT d.year, f.unemployment_rate FROM fact_unemployment f "
-            "JOIN dim_date d ON f.date_key = d.date_key", conn
+            "JOIN dim_date d ON f.date_key = d.date_key",
+            conn,
         )
         if not unemp.empty:
             annual_data["Unemployment"] = unemp.groupby("year")["unemployment_rate"].mean()
 
-        # Inflation
         infl = pd.read_sql(
             "SELECT d.year, f.hicp FROM fact_inflation f "
-            "JOIN dim_date d ON f.date_key = d.date_key", conn
+            "JOIN dim_date d ON f.date_key = d.date_key",
+            conn,
         )
         if not infl.empty:
             annual_data["Inflation"] = infl.groupby("year")["hicp"].mean()
 
-        # Bond yield
         rates = pd.read_sql(
             "SELECT d.year, f.portugal_10y_bond_yield FROM fact_interest_rates f "
-            "JOIN dim_date d ON f.date_key = d.date_key", conn
+            "JOIN dim_date d ON f.date_key = d.date_key",
+            conn,
         )
         if not rates.empty:
             annual_data["Bond Yield 10Y"] = rates.groupby("year")["portugal_10y_bond_yield"].mean()
 
-        # Debt/GDP
         debt = pd.read_sql(
             "SELECT d.year, f.debt_to_gdp_ratio FROM fact_public_debt f "
-            "JOIN dim_date d ON f.date_key = d.date_key", conn
+            "JOIN dim_date d ON f.date_key = d.date_key",
+            conn,
         )
         if not debt.empty:
             annual_data["Debt/GDP"] = debt.groupby("year")["debt_to_gdp_ratio"].mean()
-    finally:
-        conn.close()
 
     if len(annual_data) < 2:
         return {"error": "Insufficient data for correlation analysis."}

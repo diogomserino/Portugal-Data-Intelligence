@@ -35,9 +35,9 @@ class TestExtract:
         for f in expected:
             assert (RAW_DATA_DIR / f).exists(), f"Missing raw file: {f}"
 
-    def test_extract_all_returns_six_pillars(self, raw_data):
-        """extract_all() should return exactly 6 DataFrames."""
-        assert len(raw_data) == 6
+    def test_extract_all_returns_all_pillars(self, raw_data):
+        """extract_all() should return DataFrames for all 12 pillars."""
+        assert len(raw_data) == 12
         assert set(raw_data.keys()) == {
             "gdp",
             "unemployment",
@@ -45,6 +45,12 @@ class TestExtract:
             "interest_rates",
             "inflation",
             "public_debt",
+            "housing",
+            "labor_detail",
+            "external_accounts",
+            "fiscal",
+            "inequality",
+            "regional",
         }
 
     def test_extract_gdp_row_count(self, raw_data):
@@ -121,8 +127,12 @@ class TestTransform:
             assert df["date_key"].notna().all(), f"{pillar} has null date_key values"
 
     def test_no_duplicate_date_keys(self, transformed_data):
-        """Transformed DataFrames should not have duplicate date_keys."""
+        """Transformed DataFrames should not have duplicate date_keys.
+        Regional is excluded: it has 7 rows per date_key (one per NUTS2 region).
+        """
         for pillar, df in transformed_data.items():
+            if pillar == "regional":
+                continue  # multiple rows per date_key by design (one per NUTS2 region)
             dupes = df["date_key"].duplicated().sum()
             assert dupes == 0, f"{pillar} has {dupes} duplicate date_keys"
 
@@ -147,7 +157,7 @@ class TestLoad:
         assert count == EXPECTED_SOURCES
 
     def test_fact_tables_have_data(self, db_conn):
-        """All 6 fact tables should have expected row counts."""
+        """All 12 fact tables should have expected row counts."""
         for table, expected in EXPECTED_FACT_ROWS.items():
             count = db_conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
             assert count == expected, f"{table}: expected {expected}, got {count}"
@@ -175,13 +185,22 @@ class TestLoad:
             assert orphans == 0, f"{table} has {orphans} orphan source_keys"
 
     def test_no_duplicate_records(self, db_conn):
-        """Fact tables should not have duplicate (date_key, source_key) pairs."""
+        """Fact tables should not have duplicate records per their uniqueness key.
+        fact_regional uses (date_key, nuts2_code, source_key); all others use (date_key, source_key).
+        """
         tables = list(EXPECTED_FACT_ROWS.keys())
         for table in tables:
-            dupes = db_conn.execute(
-                f"SELECT date_key, source_key, COUNT(*) as cnt "
-                f"FROM {table} GROUP BY date_key, source_key HAVING cnt > 1"
-            ).fetchall()
+            if table == "fact_regional":
+                query = (
+                    f"SELECT date_key, nuts2_code, source_key, COUNT(*) as cnt "
+                    f"FROM {table} GROUP BY date_key, nuts2_code, source_key HAVING cnt > 1"
+                )
+            else:
+                query = (
+                    f"SELECT date_key, source_key, COUNT(*) as cnt "
+                    f"FROM {table} GROUP BY date_key, source_key HAVING cnt > 1"
+                )
+            dupes = db_conn.execute(query).fetchall()
             assert (
                 len(dupes) == 0
             ), f"{table} has {len(dupes)} duplicate (date_key, source_key) pairs"

@@ -14,108 +14,21 @@ Usage:
 
 import math
 import sqlite3
-from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable, Dict, Generator, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import pandas as pd
 
 from config.settings import (
     DATA_PILLARS,
     DATA_SOURCES,
-    DATABASE_DIR,
     DATABASE_PATH,
     DDL_DIR,
-    SQLITE_PRAGMAS,
 )
+from src.utils.db import get_connection
 from src.utils.logger import get_logger, log_section
 
 logger = get_logger(__name__)
-
-# Whitelist of safe PRAGMA names that may be applied to the database.
-_SAFE_PRAGMAS = frozenset(
-    {
-        "journal_mode",
-        "synchronous",
-        "cache_size",
-        "foreign_keys",
-        "temp_store",
-        "mmap_size",
-        "page_size",
-        "wal_autocheckpoint",
-        "busy_timeout",
-        "locking_mode",
-        "auto_vacuum",
-        "encoding",
-    }
-)
-
-
-# ============================================================================
-# DATABASE CONNECTION HELPERS
-# ============================================================================
-
-
-def get_connection() -> sqlite3.Connection:
-    """
-    Open a connection to the SQLite database and apply PRAGMA settings.
-
-    Creates the database directory if it does not exist.
-
-    Returns
-    -------
-    sqlite3.Connection
-        An open SQLite connection with configured pragmas.
-    """
-    DATABASE_DIR.mkdir(parents=True, exist_ok=True)
-
-    conn = sqlite3.connect(str(DATABASE_PATH))
-    cursor = conn.cursor()
-
-    # Apply PRAGMA settings from config (validated against whitelist)
-    for pragma, value in SQLITE_PRAGMAS.items():
-        if pragma not in _SAFE_PRAGMAS:
-            logger.warning(f"  Skipping unknown PRAGMA '{pragma}' — " f"not in whitelist")
-            continue
-        stmt = f"PRAGMA {pragma} = {value};"
-        cursor.execute(stmt)
-        logger.debug(f"  Applied {stmt.strip()}")
-
-    conn.commit()
-    logger.info(f"Connected to database: {DATABASE_PATH}")
-    return conn
-
-
-def close_connection(conn: sqlite3.Connection) -> None:
-    """
-    Safely close a database connection.
-
-    Parameters
-    ----------
-    conn : sqlite3.Connection
-        The connection to close.
-    """
-    try:
-        conn.close()
-        logger.info("Database connection closed")
-    except Exception as exc:
-        logger.error(f"Error closing database connection: {exc}")
-
-
-@contextmanager
-def db_connection() -> Generator[sqlite3.Connection, None, None]:
-    """Context manager that opens and automatically closes a DB connection.
-
-    Usage::
-
-        with db_connection() as conn:
-            conn.execute("SELECT ...")
-    """
-    conn = get_connection()
-    try:
-        yield conn
-    finally:
-        close_connection(conn)
 
 
 # ============================================================================
@@ -428,6 +341,55 @@ _PILLAR_CONFIGS: Dict[str, dict] = {
             "external_debt_share_estimated",
         ],
     },
+    "housing": {
+        "table_name": "fact_housing",
+        "value_columns": [
+            "house_price_index",
+            "house_price_yoy_change",
+            "avg_price_per_sqm",
+            "housing_transactions",
+            "mortgage_new_loans",
+        ],
+    },
+    "labor_detail": {
+        "table_name": "fact_labor_detail",
+        "value_columns": [
+            "employment_services_pct",
+            "employment_industry_pct",
+            "employment_agriculture_pct",
+            "real_wage_index",
+            "labour_productivity_index",
+        ],
+    },
+    "external_accounts": {
+        "table_name": "fact_external_accounts",
+        "value_columns": [
+            "trade_balance_pct_gdp",
+            "current_account_pct_gdp",
+            "reer_index",
+            "export_growth_yoy",
+        ],
+    },
+    "fiscal": {
+        "table_name": "fact_fiscal",
+        "value_columns": [
+            "total_revenue_pct_gdp",
+            "total_expenditure_pct_gdp",
+            "health_expenditure_pct",
+            "education_expenditure_pct",
+            "social_protection_pct",
+            "interest_payments_pct",
+        ],
+    },
+    "inequality": {
+        "table_name": "fact_inequality",
+        "value_columns": [
+            "gini_index",
+            "s80_s20_ratio",
+            "poverty_risk_rate",
+            "median_income_index",
+        ],
+    },
 }
 
 
@@ -466,6 +428,84 @@ def load_public_debt(conn: sqlite3.Connection, df: pd.DataFrame) -> int:
     return _load_pillar(conn, df, pillar_key="public_debt", **_PILLAR_CONFIGS["public_debt"])
 
 
+def load_housing(conn: sqlite3.Connection, df: pd.DataFrame) -> int:
+    """Load processed housing market data into fact_housing."""
+    return _load_pillar(conn, df, pillar_key="housing", **_PILLAR_CONFIGS["housing"])
+
+
+def load_labor_detail(conn: sqlite3.Connection, df: pd.DataFrame) -> int:
+    """Load processed labour market structure data into fact_labor_detail."""
+    return _load_pillar(conn, df, pillar_key="labor_detail", **_PILLAR_CONFIGS["labor_detail"])
+
+
+def load_external_accounts(conn: sqlite3.Connection, df: pd.DataFrame) -> int:
+    """Load processed external accounts data into fact_external_accounts."""
+    return _load_pillar(
+        conn, df, pillar_key="external_accounts", **_PILLAR_CONFIGS["external_accounts"]
+    )
+
+
+def load_fiscal(conn: sqlite3.Connection, df: pd.DataFrame) -> int:
+    """Load processed fiscal composition data into fact_fiscal."""
+    return _load_pillar(conn, df, pillar_key="fiscal", **_PILLAR_CONFIGS["fiscal"])
+
+
+def load_inequality(conn: sqlite3.Connection, df: pd.DataFrame) -> int:
+    """Load processed inequality data into fact_inequality."""
+    return _load_pillar(conn, df, pillar_key="inequality", **_PILLAR_CONFIGS["inequality"])
+
+
+def load_regional(conn: sqlite3.Connection, df: pd.DataFrame) -> int:
+    """Load NUTS2 regional data into fact_regional.
+
+    Custom loader because fact_regional has string columns (nuts2_code, nuts2_name)
+    alongside float metrics, which _load_pillar does not handle.
+    """
+    source_key = _resolve_source_key(conn, "regional")
+    if source_key is None:
+        raise ValueError(
+            "[regional] Cannot resolve source_key — "
+            "check dim_source is seeded and DATA_PILLARS.primary_sources is correct"
+        )
+
+    required = ["date_key", "nuts2_code", "nuts2_name"]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        raise ValueError(f"[regional] Missing required columns: {', '.join(missing)}")
+
+    float_cols = [
+        "gdp_per_capita_pps",
+        "gdp_index_eu27",
+        "unemployment_rate",
+        "youth_unemployment_rate",
+    ]
+    has_provisional = "is_provisional" in df.columns
+
+    columns = (
+        ["date_key", "nuts2_code", "nuts2_name"]
+        + float_cols
+        + (["is_provisional"] if has_provisional else [])
+        + ["source_key"]
+    )
+
+    rows = []
+    for values in df.itertuples(index=False):
+        provisional_val = (
+            (int(bool(getattr(values, "is_provisional", False))),) if has_provisional else ()
+        )
+        row = (
+            str(getattr(values, "date_key", "")),
+            str(getattr(values, "nuts2_code", "")),
+            str(getattr(values, "nuts2_name", "")),
+            *(_to_float(getattr(values, col, None)) for col in float_cols),
+            *provisional_val,
+            source_key,
+        )
+        rows.append(row)
+
+    return _insert_or_replace(conn, "fact_regional", columns, rows, "regional")
+
+
 # ============================================================================
 # LOAD ALL
 # ============================================================================
@@ -478,6 +518,12 @@ _LOAD_DISPATCH: Dict[str, Callable] = {
     "interest_rates": load_interest_rates,
     "inflation": load_inflation,
     "public_debt": load_public_debt,
+    "housing": load_housing,
+    "labor_detail": load_labor_detail,
+    "external_accounts": load_external_accounts,
+    "fiscal": load_fiscal,
+    "inequality": load_inequality,
+    "regional": load_regional,
 }
 
 
@@ -505,7 +551,7 @@ def load_all(
 
     row_counts: Dict[str, int] = {}
 
-    with db_connection() as conn:
+    with get_connection(db_path=DATABASE_PATH, apply_pragmas=True) as conn:
         # Initialise schema and seed dimension tables
         if initialise:
             initialise_database(conn)

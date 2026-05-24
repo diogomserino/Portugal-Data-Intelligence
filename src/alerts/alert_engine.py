@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from config.settings import CONFIG_DIR, DATABASE_PATH, REPORTS_DIR
+from src.utils.db import get_connection
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -209,9 +210,8 @@ class AlertEngine:
         list of Alert
             All triggered alerts, sorted by severity (critical first).
         """
-        conn = sqlite3.connect(str(self.db_path))
         all_alerts: List[Alert] = []
-        try:
+        with get_connection(self.db_path) as conn:
             for key, config in self.thresholds.items():
                 alerts = self._check_indicator(key, config, conn)
                 for alert in alerts:
@@ -226,8 +226,6 @@ class AlertEngine:
                         alert.threshold,
                     )
                 all_alerts.extend(alerts)
-        finally:
-            conn.close()
 
         # Sort: critical first, then warning
         severity_order = {"critical": 0, "warning": 1}

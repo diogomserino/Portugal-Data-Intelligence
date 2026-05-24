@@ -72,6 +72,9 @@ reports/powerpoint/*.pdf
 reports/insights/*.json
 reports/data_quality/*.json
 reports/alerts/*.json
+reports/*.xlsx
+reports/powerbi/charts/stl_unit_test_series.png
+PROGRESS.md
 reports/backtesting_results.json
 reports/ad_hoc/*.png
 

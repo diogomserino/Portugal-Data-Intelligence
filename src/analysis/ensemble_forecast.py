@@ -16,7 +16,6 @@ Usage:
     result = ef.forecast_pillar("gdp", horizon=12)
 """
 
-import sqlite3
 import warnings
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -25,6 +24,7 @@ import pandas as pd
 from scipy import stats
 
 from config.settings import DATABASE_PATH
+from src.utils.db import get_connection
 from src.utils.logger import get_logger, log_section
 
 logger = get_logger(__name__)
@@ -266,7 +266,6 @@ class EnsembleForecaster:
 
     def __init__(self, db_path: Optional[str] = None):
         self.db_path = str(db_path or DATABASE_PATH)
-        self._conn = sqlite3.connect(self.db_path)
         logger.info("EnsembleForecaster initialised — database: %s", self.db_path)
 
     def _load_series(self, pillar: str) -> Tuple[np.ndarray, pd.DataFrame]:
@@ -275,10 +274,11 @@ class EnsembleForecaster:
         if config is None:
             raise ValueError(f"Unknown pillar: {pillar}")
 
-        df = pd.read_sql(
-            f"SELECT date_key, {config['column']} FROM {config['table']} ORDER BY date_key",
-            self._conn,
-        )
+        with get_connection(self.db_path) as conn:
+            df = pd.read_sql(
+                f"SELECT date_key, {config['column']} FROM {config['table']} ORDER BY date_key",
+                conn,
+            )
         y = df[config["column"]].dropna().values.astype(float)
         return y, df
 

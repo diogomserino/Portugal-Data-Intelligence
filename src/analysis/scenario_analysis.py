@@ -13,7 +13,6 @@ from the historical data in the database where possible, with well-established
 textbook fallbacks otherwise.
 """
 
-import sqlite3
 from typing import Any, Dict, Optional
 
 import numpy as np
@@ -21,6 +20,7 @@ import pandas as pd
 from scipy import stats
 
 from config.settings import DATA_PILLARS, DATABASE_PATH
+from src.utils.db import get_connection
 from src.utils.logger import get_logger, log_section
 
 logger = get_logger(__name__)
@@ -89,7 +89,6 @@ class ScenarioEngine:
         """
         self.db_path = str(db_path or DATABASE_PATH)
         logger.info("ScenarioEngine initialised — database: %s", self.db_path)
-        self._conn = sqlite3.connect(self.db_path)
         self._load_baseline()
         self._estimate_coefficients()
 
@@ -101,12 +100,36 @@ class ScenarioEngine:
         """Read the latest values and key historical series from the database."""
         logger.info("Loading baseline data...")
 
-        # GDP
-        gdp_df = pd.read_sql(
-            "SELECT date_key, nominal_gdp, real_gdp, gdp_growth_yoy "
-            "FROM fact_gdp ORDER BY date_key",
-            self._conn,
-        )
+        with get_connection(self.db_path) as conn:
+            gdp_df = pd.read_sql(
+                "SELECT date_key, nominal_gdp, real_gdp, gdp_growth_yoy "
+                "FROM fact_gdp ORDER BY date_key",
+                conn,
+            )
+            unemp_df = pd.read_sql(
+                "SELECT date_key, unemployment_rate FROM fact_unemployment ORDER BY date_key",
+                conn,
+            )
+            infl_df = pd.read_sql(
+                "SELECT date_key, hicp FROM fact_inflation ORDER BY date_key",
+                conn,
+            )
+            rates_df = pd.read_sql(
+                "SELECT date_key, ecb_main_refinancing_rate, euribor_12m, "
+                "portugal_10y_bond_yield FROM fact_interest_rates ORDER BY date_key",
+                conn,
+            )
+            credit_df = pd.read_sql(
+                "SELECT date_key, total_credit, credit_households, npl_ratio "
+                "FROM fact_credit ORDER BY date_key",
+                conn,
+            )
+            debt_df = pd.read_sql(
+                "SELECT date_key, total_debt, debt_to_gdp_ratio, budget_deficit "
+                "FROM fact_public_debt ORDER BY date_key",
+                conn,
+            )
+
         self.gdp_series = gdp_df
         if gdp_df.empty:
             raise ValueError("No GDP data available in the database.")
@@ -114,38 +137,21 @@ class ScenarioEngine:
         self.latest_real_gdp = float(gdp_df["real_gdp"].iloc[-1])
         latest_growth = gdp_df["gdp_growth_yoy"].iloc[-1]
         self.latest_gdp_growth = 0.0 if pd.isna(latest_growth) else float(latest_growth)
-        # Annual nominal GDP (sum of last 4 quarters, validated)
         last_4q = gdp_df["nominal_gdp"].iloc[-4:]
         if len(last_4q) < 4:
             logger.warning("Less than 4 quarters for annual GDP; using available %d.", len(last_4q))
         self.annual_nominal_gdp = float(last_4q.sum())
 
-        # Unemployment
-        unemp_df = pd.read_sql(
-            "SELECT date_key, unemployment_rate FROM fact_unemployment ORDER BY date_key",
-            self._conn,
-        )
         self.unemp_series = unemp_df
         if unemp_df.empty:
             raise ValueError("No unemployment data available in the database.")
         self.latest_unemployment = float(unemp_df["unemployment_rate"].iloc[-1])
 
-        # Inflation
-        infl_df = pd.read_sql(
-            "SELECT date_key, hicp FROM fact_inflation ORDER BY date_key",
-            self._conn,
-        )
         self.infl_series = infl_df
         if infl_df.empty:
             raise ValueError("No inflation data available in the database.")
         self.latest_inflation = float(infl_df["hicp"].iloc[-1])
 
-        # Interest rates
-        rates_df = pd.read_sql(
-            "SELECT date_key, ecb_main_refinancing_rate, euribor_12m, "
-            "portugal_10y_bond_yield FROM fact_interest_rates ORDER BY date_key",
-            self._conn,
-        )
         self.rates_series = rates_df
         if rates_df.empty:
             raise ValueError("No interest rate data available in the database.")
@@ -153,12 +159,6 @@ class ScenarioEngine:
         self.latest_euribor = float(rates_df["euribor_12m"].iloc[-1])
         self.latest_bond_yield = float(rates_df["portugal_10y_bond_yield"].iloc[-1])
 
-        # Credit
-        credit_df = pd.read_sql(
-            "SELECT date_key, total_credit, credit_households, npl_ratio "
-            "FROM fact_credit ORDER BY date_key",
-            self._conn,
-        )
         self.credit_series = credit_df
         if credit_df.empty:
             raise ValueError("No credit data available in the database.")
@@ -166,12 +166,6 @@ class ScenarioEngine:
         self.latest_household_credit = float(credit_df["credit_households"].iloc[-1])
         self.latest_npl = float(credit_df["npl_ratio"].iloc[-1])
 
-        # Public debt
-        debt_df = pd.read_sql(
-            "SELECT date_key, total_debt, debt_to_gdp_ratio, budget_deficit "
-            "FROM fact_public_debt ORDER BY date_key",
-            self._conn,
-        )
         self.debt_series = debt_df
         if debt_df.empty:
             raise ValueError("No public debt data available in the database.")
@@ -637,9 +631,8 @@ class ScenarioEngine:
         logger.info("Combined stress test complete — %d scenarios.", len(scenarios))
         return result
 
-    def close(self):
-        """Close the database connection."""
-        self._conn.close()
+    def close(self) -> None:
+        """No-op: connections are managed per-query via context manager."""
         logger.info("Database connection closed.")
 
 

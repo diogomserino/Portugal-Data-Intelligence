@@ -22,6 +22,14 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+try:
+    import plotly.graph_objects as go
+    import plotly.offline as pyo
+
+    _HAS_PLOTLY = True
+except ImportError:
+    _HAS_PLOTLY = False
+
 # ---------------------------------------------------------------------------
 # Project imports
 # ---------------------------------------------------------------------------
@@ -74,6 +82,35 @@ _COLUMN_LABELS = {
     "budget_deficit": "Budget Balance Quarterly (% GDP)",
     "budget_deficit_annual": "Budget Balance Annual (% GDP)",
     "external_debt_share_estimated": "External Debt Share Est. (%)",
+    # Housing
+    "house_price_index": "House Price Index (2015=100)",
+    "house_price_yoy_change": "House Price Growth YoY (%)",
+    "avg_price_per_sqm": "Avg. Price per sqm (EUR)",
+    "housing_transactions": "Housing Transactions",
+    "mortgage_new_loans": "New Mortgage Loans (EUR M)",
+    # Labour detail
+    "employment_services_pct": "Employment: Services (%)",
+    "employment_industry_pct": "Employment: Industry (%)",
+    "employment_agriculture_pct": "Employment: Agriculture (%)",
+    "real_wage_index": "Real Wage Index (2015=100)",
+    "labour_productivity_index": "Labour Productivity Index (2015=100)",
+    # External accounts
+    "trade_balance_pct_gdp": "Trade Balance (% GDP)",
+    "current_account_pct_gdp": "Current Account (% GDP)",
+    "reer_index": "REER Index (2015=100)",
+    "export_growth_yoy": "Export Growth YoY (%)",
+    # Fiscal
+    "total_revenue_pct_gdp": "Total Revenue (% GDP)",
+    "total_expenditure_pct_gdp": "Total Expenditure (% GDP)",
+    "health_expenditure_pct": "Health Expenditure (% GDP)",
+    "education_expenditure_pct": "Education Expenditure (% GDP)",
+    "social_protection_pct": "Social Protection (% GDP)",
+    "interest_payments_pct": "Interest Payments (% GDP)",
+    # Inequality
+    "gini_index": "Gini Index",
+    "s80_s20_ratio": "S80/S20 Income Ratio",
+    "poverty_risk_rate": "Poverty Risk Rate (%)",
+    "median_income_index": "Median Income Index (EU27=100)",
 }
 
 # Pillar display config: (pillar_key, title, chart_filename, icon)
@@ -84,7 +121,27 @@ _PILLAR_CONFIG = [
     ("interest_rates", "Interest Rate Environment", "interest_rate_environment.png", ""),
     ("inflation", "Price Stability & Inflation", "inflation_dashboard.png", ""),
     ("public_debt", "Public Debt Sustainability", "public_debt_sustainability.png", ""),
+    ("housing", "Housing Market", "housing_trends.png", ""),
+    ("labor_detail", "Labour Market Detail", "labor_detail_trends.png", ""),
+    ("external_accounts", "External Competitiveness", "external_accounts_trends.png", ""),
+    ("fiscal", "Fiscal Structure", "fiscal_trends.png", ""),
+    ("inequality", "Inequality & Income", "inequality_trends.png", ""),
 ]
+
+# Primary column per pillar for Plotly interactive chart
+_PILLAR_PRIMARY_COL: Dict[str, str] = {
+    "gdp": "gdp_growth_yoy",
+    "unemployment": "unemployment_rate",
+    "credit": "npl_ratio",
+    "interest_rates": "portugal_10y_bond_yield",
+    "inflation": "hicp",
+    "public_debt": "debt_to_gdp_ratio",
+    "housing": "house_price_yoy_change",
+    "labor_detail": "real_wage_index",
+    "external_accounts": "current_account_pct_gdp",
+    "fiscal": "total_expenditure_pct_gdp",
+    "inequality": "gini_index",
+}
 
 # KPI definitions: (pillar_key, column, label, format, suffix)
 _KPI_DEFS = [
@@ -100,6 +157,7 @@ _KPI_DEFS = [
 # =============================================================================
 # DATA LOADING
 # =============================================================================
+
 
 def load_latest_briefing() -> Dict[str, Any]:
     """Load the most recent executive briefing JSON."""
@@ -150,6 +208,64 @@ def encode_chart(filename: str) -> str:
     return f"data:image/png;base64,{b64}"
 
 
+def _make_plotly_timeseries(pillar_key: str, title: str, primary_col: str) -> str:
+    """Build an interactive Plotly timeseries div for a pillar.
+
+    Returns an HTML string (the Plotly div) or empty string if unavailable.
+    """
+    if not _HAS_PLOTLY or not primary_col:
+        return ""
+    csv_path = PROCESSED_DATA_DIR / f"{pillar_key}.csv"
+    if not csv_path.exists():
+        return ""
+    try:
+        df = pd.read_csv(csv_path)
+    except Exception:
+        return ""
+    if df.empty or primary_col not in df.columns:
+        return ""
+
+    x_col = "date_key" if "date_key" in df.columns else df.columns[0]
+    col_label = _COLUMN_LABELS.get(primary_col, primary_col.replace("_", " ").title())
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=df[x_col],
+            y=df[primary_col],
+            mode="lines+markers",
+            name=col_label,
+            line={"color": "#1A1A2E", "width": 2},
+            marker={"size": 4, "color": "#1A1A2E"},
+            hovertemplate=f"<b>%{{x}}</b><br>{col_label}: %{{y:.2f}}<extra></extra>",
+        )
+    )
+    fig.update_layout(
+        xaxis={"title": "Period", "showgrid": True, "gridcolor": "#E8E8E8", "tickangle": -30},
+        yaxis={"title": col_label, "showgrid": True, "gridcolor": "#E8E8E8"},
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        font={"family": "Inter, 'Segoe UI', sans-serif", "size": 12},
+        margin={"l": 60, "r": 20, "t": 20, "b": 60},
+        height=320,
+        hovermode="x unified",
+        showlegend=False,
+    )
+    try:
+        return pyo.plot(
+            fig,
+            output_type="div",
+            include_plotlyjs="cdn",
+            config={
+                "displayModeBar": True,
+                "displaylogo": False,
+                "modeBarButtonsToRemove": ["lasso2d", "select2d"],
+            },
+        )
+    except Exception:
+        return ""
+
+
 # =============================================================================
 # CSS DESIGN SYSTEM
 # =============================================================================
@@ -193,8 +309,20 @@ body {
 .hero {
   background: linear-gradient(135deg, var(--navy) 0%, #2D2D4E 100%);
   color: #fff;
-  padding: 4rem 2rem 3rem;
+  padding: 4rem 2rem 3.5rem;
   text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+/* Portuguese flag accent bar */
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(to right, #009B3A 38.5%, #FF0000 38.5%);
 }
 .hero h1 {
   font-family: var(--font-heading);
@@ -224,6 +352,31 @@ body {
   border-left: 3px solid var(--warm-gold);
   padding-left: 1.5rem;
 }
+/* Hero KPI pills */
+.hero-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 1.5rem 0 0;
+}
+.hm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+.hm-pill.positive { background: rgba(56, 102, 65, 0.5); border-color: rgba(56,102,65,0.7); }
+.hm-pill.negative { background: rgba(155, 34, 38, 0.5); border-color: rgba(155,34,38,0.7); }
+.hm-pill.moderate { background: rgba(212, 163, 115, 0.3); border-color: rgba(212,163,115,0.5); }
+.hm-pill .pill-label { opacity: 0.75; font-size: 0.72rem; }
 
 /* --- TOC --- */
 .toc {
@@ -284,15 +437,22 @@ main {
   padding: 1.25rem 1rem;
   text-align: center;
   border-top: 3px solid var(--steel-blue);
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, transform 0.15s;
 }
-.kpi-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.kpi-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-2px); }
+/* Semantic KPI colors */
+.kpi-card.positive { border-top-color: var(--forest-green); }
+.kpi-card.moderate { border-top-color: var(--warm-gold); }
+.kpi-card.negative { border-top-color: var(--deep-red); }
 .kpi-value {
   font-size: 2rem;
   font-weight: 700;
   color: var(--navy);
   line-height: 1.2;
 }
+.kpi-value.positive { color: var(--forest-green); }
+.kpi-value.moderate { color: #9a6d00; }
+.kpi-value.negative { color: var(--deep-red); }
 .kpi-label {
   font-size: 0.78rem;
   font-weight: 500;
@@ -303,9 +463,17 @@ main {
 }
 .kpi-period {
   font-size: 0.7rem;
-  color: var(--border);
+  color: var(--medium-gray);
   margin-top: 0.2rem;
 }
+.kpi-trend {
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-top: 0.35rem;
+}
+.kpi-trend.positive { color: var(--forest-green); }
+.kpi-trend.moderate { color: #9a6d00; }
+.kpi-trend.negative { color: var(--deep-red); }
 
 /* --- PILLAR SECTIONS --- */
 .pillar-section {
@@ -415,6 +583,19 @@ figcaption {
   gap: 1.5rem;
   margin: 1.5rem 0;
 }
+.plotly-chart {
+  margin: 1.5rem 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.plotly-chart .chart-caption {
+  font-size: 0.8rem;
+  color: var(--medium-gray);
+  text-align: center;
+  padding: 0.4rem 1rem 0.6rem;
+  background: var(--light-gray);
+}
 
 /* --- RISK MATRIX --- */
 .risk-matrix {
@@ -521,12 +702,63 @@ footer {
 }
 footer .author { font-weight: 600; color: var(--navy); font-size: 0.9rem; }
 
+/* --- SECTION SEPARATORS --- */
+main > section + section {
+  border-top: 1px solid #EBEBEB;
+}
+
+/* --- SCROLL PROGRESS BAR --- */
+#progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, #009B3A 0%, var(--warm-gold) 50%, var(--deep-red) 100%);
+  z-index: 9999;
+  transition: width 0.05s linear;
+  pointer-events: none;
+}
+
+/* --- BACK TO TOP BUTTON --- */
+#back-to-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.28);
+  z-index: 9998;
+  transition: background 0.2s, transform 0.2s;
+  line-height: 1;
+}
+#back-to-top:hover { background: var(--steel-blue); transform: translateY(-3px); }
+
 /* --- RESPONSIVE --- */
 @media (max-width: 768px) {
   .hero h1 { font-size: 1.8rem; }
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .chart-grid { grid-template-columns: 1fr !important; }
   main { padding: 0 1rem; }
+  .hero-metrics { gap: 0.35rem; }
+  .hm-pill { font-size: 0.72rem; padding: 0.25rem 0.6rem; }
+}
+@media (max-width: 480px) {
+  .hero h1 { font-size: 1.5rem; }
+  .hero .subtitle { font-size: 0.95rem; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
+  .kpi-value { font-size: 1.65rem; }
+  #back-to-top { bottom: 1rem; right: 1rem; width: 2.25rem; height: 2.25rem; font-size: 1rem; }
 }
 
 /* --- PRINT --- */
@@ -536,6 +768,7 @@ footer .author { font-weight: 600; color: var(--navy); font-size: 0.9rem; }
   .pillar-section, .analysis-section { page-break-before: auto; page-break-inside: avoid; }
   body { font-size: 11pt; }
   .kpi-card { border: 1px solid #ccc; }
+  #progress-bar, #back-to-top { display: none !important; }
 }
 """
 
@@ -543,6 +776,7 @@ footer .author { font-weight: 600; color: var(--navy); font-size: 0.9rem; }
 # =============================================================================
 # HTML RENDER FUNCTIONS
 # =============================================================================
+
 
 def _esc(text: str) -> str:
     """Basic HTML escaping."""
@@ -573,10 +807,38 @@ def _risk_class(risk_text: str) -> str:
     return "moderate"
 
 
-def render_hero(briefing: Dict) -> str:
+def render_hero(briefing: Dict, kpis: Optional[Dict] = None) -> str:
     title = briefing.get("title", "Portugal Macroeconomic Intelligence Briefing")
     date = briefing.get("date", datetime.now().strftime("%d %B %Y"))
     summary = briefing.get("overall_assessment", "")
+
+    # Build metrics pills from KPI definitions
+    pills_html = ""
+    if kpis:
+        pills = []
+        _PILL_DEFS = [
+            ("gdp", "gdp_growth_yoy", "GDP", ".1f", "%"),
+            ("unemployment", "unemployment_rate", "Unemployment", ".1f", "%"),
+            ("inflation", "hicp", "Inflation", ".1f", "%"),
+            ("public_debt", "debt_to_gdp_ratio", "Debt/GDP", ".1f", "%"),
+            ("interest_rates", "portugal_10y_bond_yield", "10Y Yield", ".2f", "%"),
+        ]
+        for pk, col, lbl, fmt, suf in _PILL_DEFS:
+            val = kpis.get(pk, {}).get(col)
+            if val is None:
+                continue
+            sem = _KPI_SEMANTIC.get(col, lambda v: "neutral")(val)
+            arrow, _ = _kpi_trend(pk, col)
+            formatted = f"{val:{fmt}}{suf}"
+            pills.append(
+                f'<span class="hm-pill {sem}">'
+                f'<span class="pill-label">{lbl}</span>'
+                f" {arrow} {formatted}"
+                f"</span>"
+            )
+        if pills:
+            pills_html = f'<div class="hero-metrics">{"".join(pills)}</div>'
+
     return f"""
 <header class="hero">
   <h1>{_esc(title)}</h1>
@@ -585,6 +847,7 @@ def render_hero(briefing: Dict) -> str:
   <div class="executive-summary">
     {_paragraphs(summary)}
   </div>
+  {pills_html}
 </header>
 """
 
@@ -593,14 +856,19 @@ def render_toc() -> str:
     links = []
     for key, title, _, icon in _PILLAR_CONFIG:
         links.append(f'<a href="#{key}">{title}</a>')
-    links.extend([
-        '<a href="#cross-pillar">Cross-Pillar Analysis</a>',
-        '<a href="#benchmarking">EU Benchmarking</a>',
-        '<a href="#risk-matrix">Risk Matrix</a>',
-        '<a href="#recommendations">Strategic Recommendations</a>',
-        '<a href="#platform">Platform & Tools</a>',
-        '<a href="#methodology">Methodology</a>',
-    ])
+    links.extend(
+        [
+            '<a href="#cross-pillar">Cross-Pillar Analysis</a>',
+            '<a href="#stl-decomposition">STL Decomposition</a>',
+            '<a href="#forecasting">SARIMAX Forecasting</a>',
+            '<a href="#benchmarking">EU Benchmarking</a>',
+            '<a href="#regional">Regional Analysis (NUTS2)</a>',
+            '<a href="#risk-matrix">Risk Matrix</a>',
+            '<a href="#recommendations">Strategic Recommendations</a>',
+            '<a href="#platform">Platform & Tools</a>',
+            '<a href="#methodology">Methodology</a>',
+        ]
+    )
     items = "\n    ".join(links)
     return f"""
 <nav class="toc">
@@ -612,6 +880,52 @@ def render_toc() -> str:
 """
 
 
+_KPI_SEMANTIC = {
+    "gdp_growth_yoy": lambda v: "positive" if v > 0 else "negative",
+    "unemployment_rate": lambda v: "positive" if v < 8 else ("moderate" if v < 12 else "negative"),
+    "hicp": lambda v: "positive" if 1.0 <= v <= 3.0 else ("moderate" if v <= 5.0 else "negative"),
+    "debt_to_gdp_ratio": lambda v: (
+        "positive" if v < 80 else ("moderate" if v < 100 else "negative")
+    ),
+    "portugal_10y_bond_yield": lambda v: (
+        "positive" if v < 3.0 else ("moderate" if v < 5.0 else "negative")
+    ),
+    "npl_ratio": lambda v: "positive" if v < 5.0 else ("moderate" if v < 10.0 else "negative"),
+}
+
+_KPI_TREND_SIGN = {
+    # positive direction = good
+    "gdp_growth_yoy": 1,
+    "hicp": 0,  # neutral — direction alone doesn't say "good"
+    "unemployment_rate": -1,  # lower is better
+    "debt_to_gdp_ratio": -1,
+    "portugal_10y_bond_yield": -1,
+    "npl_ratio": -1,
+}
+
+
+def _kpi_trend(pillar_key: str, col: str) -> tuple:
+    """Return (arrow, trend_class) by comparing last two observations."""
+    csv_path = PROCESSED_DATA_DIR / f"{pillar_key}.csv"
+    if not csv_path.exists():
+        return "", "neutral"
+    try:
+        series = pd.read_csv(csv_path)[col].dropna()
+        if len(series) < 2:
+            return "", "neutral"
+        delta = float(series.iloc[-1]) - float(series.iloc[-2])
+        if abs(delta) < 1e-9:
+            return "―", "neutral"
+        sign = _KPI_TREND_SIGN.get(col, 1)
+        arrow = "▲" if delta > 0 else "▼"
+        # "good" if direction matches preferred sign
+        is_good = (delta > 0 and sign == 1) or (delta < 0 and sign == -1)
+        cls = "positive" if is_good else ("moderate" if sign == 0 else "negative")
+        return arrow, cls
+    except Exception:
+        return "", "neutral"
+
+
 def render_kpi_dashboard(kpis: Dict) -> str:
     cards = []
     for pillar_key, col, label, fmt, suffix in _KPI_DEFS:
@@ -620,18 +934,27 @@ def render_kpi_dashboard(kpis: Dict) -> str:
         period = pillar_data.get("_date", "")
         if value is not None:
             formatted = f"{value:{fmt}}{suffix}"
+            sem_cls = _KPI_SEMANTIC.get(col, lambda v: "neutral")(value)
+            arrow, trend_cls = _kpi_trend(pillar_key, col)
+            trend_html = (
+                f'<div class="kpi-trend {trend_cls}">{arrow} vs prev</div>' if arrow else ""
+            )
         else:
             formatted = "N/A"
-        cards.append(f"""
-      <div class="kpi-card">
-        <div class="kpi-value">{formatted}</div>
-        <div class="kpi-label">{_esc(label)}</div>
-        <div class="kpi-period">{_esc(period)}</div>
-      </div>""")
+            sem_cls = "neutral"
+            trend_html = ""
+        cards.append(
+            f'<div class="kpi-card {sem_cls}">'
+            f'<div class="kpi-value {sem_cls}">{formatted}</div>'
+            f'<div class="kpi-label">{_esc(label)}</div>'
+            f'<div class="kpi-period">{_esc(period)}</div>'
+            f"{trend_html}"
+            f"</div>"
+        )
 
     return f"""
 <section id="key-indicators" class="kpi-dashboard">
-  <h2>Key Indicators — Latest Values</h2>
+  <h2>Key Indicators &mdash; Latest Values</h2>
   <div class="kpi-grid">
     {"".join(cards)}
   </div>
@@ -683,10 +1006,19 @@ def render_pillar_section(
     outlook = insight.get("outlook", "")
     risk_cls = _risk_class(risk)
 
-    chart_uri = encode_chart(chart_filename)
+    primary_col = _PILLAR_PRIMARY_COL.get(section_id, "")
+    plotly_div = _make_plotly_timeseries(section_id, title, primary_col)
     chart_html = ""
-    if chart_uri:
+    if plotly_div:
         chart_html = f"""
+    <div class="plotly-chart">
+      {plotly_div}
+      <p class="chart-caption">Source: Portugal Data Intelligence &middot; Data: {START_YEAR}&ndash;{END_YEAR} &middot; Interactive chart — zoom, hover, and download supported</p>
+    </div>"""
+    else:
+        chart_uri = encode_chart(chart_filename)
+        if chart_uri:
+            chart_html = f"""
     <figure>
       <img src="{chart_uri}" alt="{_esc(title)} chart" loading="lazy">
       <figcaption>Source: Portugal Data Intelligence &middot; Data: {START_YEAR}&ndash;{END_YEAR}</figcaption>
@@ -702,7 +1034,9 @@ def render_pillar_section(
     stats_html = render_stats_table(insight.get("pillar", section_id), baseline)
     stats_section = ""
     if stats_html:
-        stats_section = f"<h3>Descriptive Statistics ({START_YEAR}&ndash;{END_YEAR})</h3>{stats_html}"
+        stats_section = (
+            f"<h3>Descriptive Statistics ({START_YEAR}&ndash;{END_YEAR})</h3>{stats_html}"
+        )
 
     risk_html = ""
     if risk:
@@ -715,12 +1049,20 @@ def render_pillar_section(
     if outlook:
         outlook_html = f"<h3>Outlook</h3>{_paragraphs(outlook)}"
 
+    headline_html = (
+        f'  <p style="font-size:1.05rem; font-weight:500; color:var(--navy); margin-bottom:1rem;">'
+        f"{_esc(headline)}</p>\n"
+        if headline
+        else ""
+    )
+    narrative_html = (
+        f'  <div class="pillar-narrative">{_paragraphs(summary)}</div>\n' if summary else ""
+    )
+
     return f"""
 <section id="{section_id}" class="pillar-section">
   <h2>{_esc(title)}</h2>
-  <p style="font-size:1.05rem; font-weight:500; color:var(--navy); margin-bottom:1rem;">{_esc(headline)}</p>
-  <div class="pillar-narrative">{_paragraphs(summary)}</div>
-  {chart_html}
+{headline_html}{narrative_html}  {chart_html}
   {findings_html}
   {stats_section}
   {risk_html}
@@ -815,6 +1157,87 @@ def render_benchmarking() -> str:
 """
 
 
+def render_regional_section() -> str:
+    """Render the NUTS2 regional analysis section with interactive choropleth."""
+    from config.settings import DATABASE_PATH
+    from src.analysis.regional_analysis import build_choropleth_div, run_regional_analysis
+
+    db_path = str(DATABASE_PATH)
+    regional = run_regional_analysis(db_path)
+    choropleth_div = build_choropleth_div(db_path) if _HAS_PLOTLY else ""
+
+    gdp_block = regional.get("gdp_per_capita_pps", {})
+    unemp_block = regional.get("unemployment_rate", {})
+    findings = regional.get("key_findings", [])
+
+    findings_html = ""
+    if findings:
+        items = "".join(f"<li>{_esc(f)}</li>" for f in findings)
+        findings_html = f"<ul style='margin:1rem 0 1rem 1.5rem;'>{items}</ul>"
+
+    # Comparison table
+    table_rows = ""
+    latest_gdp = gdp_block.get("latest_by_region", {})
+    latest_unemp = unemp_block.get("latest_by_region", {})
+    for code in sorted(latest_gdp.keys()):
+        gdp_info = latest_gdp.get(code, {})
+        unemp_info = latest_unemp.get(code, {})
+        name = gdp_info.get("name", code) if isinstance(gdp_info, dict) else code
+        gdp_val = gdp_info.get("value") if isinstance(gdp_info, dict) else gdp_info
+        unemp_val = unemp_info.get("value") if isinstance(unemp_info, dict) else unemp_info
+        gdp_fmt = f"{gdp_val:,.0f}" if isinstance(gdp_val, (int, float)) else "—"
+        unemp_fmt = f"{unemp_val:.1f}%" if isinstance(unemp_val, (int, float)) else "—"
+        table_rows += (
+            f"<tr><td><strong>{_esc(code)}</strong></td>"
+            f"<td>{_esc(name)}</td>"
+            f"<td style='text-align:right;'>{gdp_fmt}</td>"
+            f"<td style='text-align:right;'>{unemp_fmt}</td></tr>"
+        )
+
+    table_html = ""
+    if table_rows:
+        table_html = f"""
+  <table class="stats-table" style="margin-top:1.5rem;">
+    <thead>
+      <tr>
+        <th>Code</th><th>Region</th>
+        <th style="text-align:right;">GDP per Capita (PPS)</th>
+        <th style="text-align:right;">Unemployment</th>
+      </tr>
+    </thead>
+    <tbody>{table_rows}</tbody>
+  </table>"""
+
+    map_html = ""
+    if choropleth_div:
+        map_html = f"""
+  <div class="plotly-chart" style="margin:1.5rem 0;">
+    {choropleth_div}
+    <p class="chart-caption">Interactive choropleth — hover over each region for details. Source: Eurostat NUTS2.</p>
+  </div>"""
+
+    source_note = ""
+    if regional.get("source") == "synthetic_fallback":
+        source_note = (
+            '<p style="font-size:0.82rem;color:var(--medium-gray);margin-top:1rem;">'
+            "<em>Note: data based on synthetic estimates — run <code>python main.py</code> "
+            "to populate live data.</em></p>"
+        )
+
+    return f"""
+<section id="regional" class="analysis-section">
+  <h2>Regional Analysis — NUTS2</h2>
+  <p>Portugal's macroeconomic performance varies significantly across its seven NUTS2 regions.
+  Lisboa accounts for a disproportionate share of national GDP while peripheral regions face
+  structural challenges in competitiveness and employment.</p>
+  {map_html}
+  {table_html}
+  {findings_html}
+  {source_note}
+</section>
+"""
+
+
 def render_executive_dashboard() -> str:
     """Render the executive dashboard overview chart."""
     uri = encode_chart("economic_dashboard.png")
@@ -862,6 +1285,193 @@ def render_stl_decomposition() -> str:
   <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1.5rem;">
     {"".join(charts)}
   </div>
+</section>
+"""
+
+
+def render_forecasting() -> str:
+    """Render SARIMAX 12-quarter-ahead forecasts with Plotly interactive charts."""
+    if not _HAS_PLOTLY:
+        return ""
+
+    try:
+        from src.analysis.forecasting import Forecaster
+
+        forecasts = Forecaster().generate_all_forecasts()
+    except Exception:
+        return ""
+
+    if not forecasts:
+        return ""
+
+    _PRIMARY_COLS = {
+        "gdp": "real_gdp",
+        "unemployment": "unemployment_rate",
+        "inflation": "hicp",
+        "interest_rates": "ecb_main_refinancing_rate",
+        "credit": "total_credit",
+        "public_debt": "debt_to_gdp_ratio",
+    }
+
+    charts_html: list = []
+    first_chart = True
+
+    for pillar, fc_data in forecasts.items():
+        if "error" in fc_data:
+            continue
+        forecast_points = fc_data.get("forecast", [])
+        if not forecast_points:
+            continue
+
+        indicator = fc_data.get("indicator", pillar.replace("_", " ").title())
+        method = fc_data.get("method", "SARIMAX")
+        periods = [p["period"] for p in forecast_points]
+        central = [p["central"] for p in forecast_points]
+        lower_95 = [p["lower_95"] for p in forecast_points]
+        upper_95 = [p["upper_95"] for p in forecast_points]
+        lower_68 = [p.get("lower_68", p["central"]) for p in forecast_points]
+        upper_68 = [p.get("upper_68", p["central"]) for p in forecast_points]
+
+        fig = go.Figure()
+
+        # Historical tail (last 20 observations)
+        pcol = _PRIMARY_COLS.get(pillar)
+        csv_path = PROCESSED_DATA_DIR / f"{pillar}.csv"
+        if pcol and csv_path.exists():
+            try:
+                hist_df = pd.read_csv(csv_path).tail(20)
+                if not hist_df.empty and pcol in hist_df.columns:
+                    x_col = "date_key" if "date_key" in hist_df.columns else hist_df.columns[0]
+                    fig.add_trace(
+                        go.Scatter(
+                            x=hist_df[x_col],
+                            y=hist_df[pcol],
+                            mode="lines",
+                            name="Historical",
+                            line={"color": "#1A1A2E", "width": 2},
+                            hovertemplate="<b>%{x}</b><br>Historical: %{y:.2f}<extra></extra>",
+                        )
+                    )
+            except Exception:
+                pass
+
+        # 95% CI band
+        fig.add_trace(
+            go.Scatter(
+                x=periods + periods[::-1],
+                y=upper_95 + lower_95[::-1],
+                fill="toself",
+                fillcolor="rgba(200,16,46,0.08)",
+                line={"color": "rgba(255,255,255,0)"},
+                name="95% CI",
+                hoverinfo="skip",
+            )
+        )
+        # 68% CI band
+        fig.add_trace(
+            go.Scatter(
+                x=periods + periods[::-1],
+                y=upper_68 + lower_68[::-1],
+                fill="toself",
+                fillcolor="rgba(200,16,46,0.15)",
+                line={"color": "rgba(255,255,255,0)"},
+                name="68% CI",
+                hoverinfo="skip",
+            )
+        )
+        # Central forecast
+        fig.add_trace(
+            go.Scatter(
+                x=periods,
+                y=central,
+                mode="lines+markers",
+                name=f"{method} Forecast",
+                line={"color": "#C8102E", "width": 2.5, "dash": "dot"},
+                marker={"size": 5, "color": "#C8102E"},
+                hovertemplate="<b>%{x}</b><br>Forecast: %{y:.2f}<extra></extra>",
+            )
+        )
+        fig.update_layout(
+            xaxis={"showgrid": True, "gridcolor": "#E8E8E8", "tickangle": -30},
+            yaxis={"showgrid": True, "gridcolor": "#E8E8E8"},
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            font={"family": "Inter, 'Segoe UI', sans-serif", "size": 11},
+            margin={"l": 55, "r": 15, "t": 10, "b": 55},
+            height=260,
+            hovermode="x unified",
+            legend={"orientation": "h", "y": -0.28, "x": 0, "font": {"size": 10}},
+        )
+        try:
+            include_js = "cdn" if first_chart else False
+            div = pyo.plot(
+                fig,
+                output_type="div",
+                include_plotlyjs=include_js,
+                config={"displayModeBar": True, "displaylogo": False},
+            )
+            first_chart = False
+            charts_html.append(
+                f'<div style="margin-bottom:1.2rem;">'
+                f'<h4 style="color:var(--navy);font-size:0.95rem;margin-bottom:0.4rem;">'
+                f"{_esc(indicator)}"
+                f'<span style="font-size:0.78rem;color:var(--medium-gray);font-weight:400;margin-left:0.5rem;">{method}</span>'
+                f"</h4>"
+                f'<div class="plotly-chart">{div}</div>'
+                f"</div>"
+            )
+        except Exception:
+            continue
+
+    if not charts_html:
+        return ""
+
+    # Summary table
+    table_rows: list = []
+    for pillar, fc_data in forecasts.items():
+        fps = fc_data.get("forecast", [])
+        if not fps or "error" in fc_data:
+            continue
+        indicator = fc_data.get("indicator", pillar.title())
+        latest = fc_data.get("historical_latest", {})
+        lv = latest.get("value")
+        last_fc = fps[-1]
+        cv = last_fc["central"]
+        direction = "▲" if (lv is not None and cv > lv) else "▼"
+        dir_color = "#27ae60" if direction == "▲" else "#e74c3c"
+        lv_str = f"{lv:.1f}" if lv is not None else "—"
+        table_rows.append(
+            f"<tr>"
+            f"<td><strong>{_esc(indicator)}</strong></td>"
+            f"<td style='text-align:center'>{latest.get('period','—')}</td>"
+            f"<td style='text-align:center'>{lv_str}</td>"
+            f"<td style='text-align:center'>{last_fc['period']}</td>"
+            f"<td style='text-align:center'>{cv:.1f}</td>"
+            f"<td style='text-align:center;color:{dir_color};font-weight:700'>{direction}</td>"
+            f"</tr>"
+        )
+
+    table_html = ""
+    if table_rows:
+        table_html = (
+            '<div style="overflow-x:auto;margin-bottom:2rem;">'
+            '<table class="stats-table">'
+            "<thead><tr>"
+            "<th>Indicator</th><th>Latest Period</th><th>Latest Value</th>"
+            "<th>Horizon</th><th>Forecast</th><th>Direction</th>"
+            "</tr></thead>"
+            f'<tbody>{"".join(table_rows)}</tbody>'
+            "</table></div>"
+        )
+
+    return f"""
+<section id="forecasting" class="analysis-section">
+  <h2>SARIMAX Forecasting</h2>
+  <p>12-quarter-ahead forecasts generated by SARIMAX models with automatic order selection via AIC.
+  Models are cached for 7 days (joblib) and refit when new data arrives. Shaded bands show 68%
+  and 95% prediction intervals; residual diagnostics include the Ljung-Box test.</p>
+  {table_html}
+  {"".join(charts_html)}
 </section>
 """
 
@@ -989,17 +1599,19 @@ def render_methodology() -> str:
     <strong>Analysis Engine:</strong> Python (pandas, statsmodels, scipy) with
     SQLite storage, ensemble forecasting, and automated reporting.<br>
     <strong>Delivery:</strong> Power BI, Streamlit dashboard, self-contained HTML, REST API (FastAPI).<br>
-    <strong>Version:</strong> 2.1.0 &mdash; March 2026
+    <strong>Version:</strong> 2.2.0 &mdash; Generated {datetime.now().strftime("%d %B %Y")}
   </p>
 </section>
 """
 
 
 def render_footer() -> str:
-    return """
+    generated = datetime.now().strftime("%d %B %Y, %H:%M")
+    return f"""
 <footer>
-  <div class="author">Portugal Data Intelligence v2.1</div>
+  <div class="author">Portugal Data Intelligence v2.2</div>
   <p>dms1996 &middot; Portfolio 2026 &middot; Power BI &middot; Streamlit &middot; FastAPI &middot; HTML</p>
+  <p style="font-size:0.75rem; color:var(--medium-gray); margin-top:0.25rem;">Report generated: {generated}</p>
 </footer>
 """
 
@@ -1007,6 +1619,7 @@ def render_footer() -> str:
 # =============================================================================
 # MAIN GENERATOR
 # =============================================================================
+
 
 def generate_report(output_path: Optional[Path] = None) -> Path:
     """Generate the full HTML report and write to disk."""
@@ -1029,7 +1642,7 @@ def generate_report(output_path: Optional[Path] = None) -> Path:
 
     # Render sections
     sections = [
-        render_hero(briefing),
+        render_hero(briefing, kpis),
         render_toc(),
         "<main>",
         render_kpi_dashboard(kpis),
@@ -1038,25 +1651,44 @@ def generate_report(output_path: Optional[Path] = None) -> Path:
     # Pillar sections
     for key, title, chart_fn, _ in _PILLAR_CONFIG:
         insight = pillar_insights.get(key, {})
-        sections.append(
-            render_pillar_section(insight, chart_fn, key, title, baseline)
-        )
+        sections.append(render_pillar_section(insight, chart_fn, key, title, baseline))
 
-    # Executive dashboard, cross-pillar, STL, benchmarking, risk, recommendations, platform
-    sections.extend([
-        render_executive_dashboard(),
-        render_cross_pillar(briefing),
-        render_stl_decomposition(),
-        render_benchmarking(),
-        render_risk_matrix(briefing),
-        render_recommendations(briefing),
-        render_platform(),
-        render_methodology(),
-        "</main>",
-        render_footer(),
-    ])
+    # Executive dashboard, cross-pillar, STL, benchmarking, regional, risk, recommendations, platform
+    sections.extend(
+        [
+            render_executive_dashboard(),
+            render_cross_pillar(briefing),
+            render_stl_decomposition(),
+            render_forecasting(),
+            render_benchmarking(),
+            render_regional_section(),
+            render_risk_matrix(briefing),
+            render_recommendations(briefing),
+            render_platform(),
+            render_methodology(),
+            "</main>",
+            render_footer(),
+        ]
+    )
 
     body = "\n".join(sections)
+
+    js_block = """<script>
+(function () {
+  var bar = document.getElementById("progress-bar");
+  var btn = document.getElementById("back-to-top");
+  if (!bar || !btn) return;
+  window.addEventListener("scroll", function () {
+    var h = document.documentElement;
+    var pct = h.scrollTop / (h.scrollHeight - h.clientHeight);
+    bar.style.width = (Math.min(pct, 1) * 100).toFixed(1) + "%";
+    btn.style.display = h.scrollTop > 600 ? "flex" : "none";
+  });
+  btn.addEventListener("click", function () {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+})();
+</script>"""
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -1067,7 +1699,10 @@ def generate_report(output_path: Optional[Path] = None) -> Path:
   <style>{CSS}</style>
 </head>
 <body>
+<div id="progress-bar"></div>
+<button id="back-to-top" aria-label="Back to top">&#8679;</button>
 {body}
+{js_block}
 </body>
 </html>"""
 
@@ -1087,7 +1722,8 @@ if __name__ == "__main__":
         description="Generate the Portugal Economic Intelligence HTML report",
     )
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         type=Path,
         default=None,
         help="Output path (default: dashboard/pages/portugal_economic_report.html)",

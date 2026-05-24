@@ -203,3 +203,129 @@ class Alert:
     period: str         # date_key of the observation
     timestamp: str      # ISO timestamp
 ```
+
+---
+
+## New Pillar Analysis Modules
+
+### run_housing_analysis
+
+```python
+from src.analysis.housing_analysis import run_housing_analysis
+result = run_housing_analysis(db_path)
+```
+
+Returns a dict with keys: `hpi_trend`, `price_levels`, `transactions`, `mortgage`, `correlation_with_credit`, `key_findings`.
+
+---
+
+### run_labor_analysis
+
+```python
+from src.analysis.labor_analysis import run_labor_analysis
+result = run_labor_analysis(db_path)
+```
+
+Returns a dict with keys: `employment_structure`, `wage_trends`, `productivity`, `key_findings`.
+
+---
+
+### run_external_analysis
+
+```python
+from src.analysis.external_analysis import run_external_analysis
+result = run_external_analysis(db_path)
+```
+
+Returns a dict with keys: `trade_balance`, `current_account`, `reer`, `export_growth`, `competitiveness_summary`, `key_findings`.
+
+---
+
+### run_fiscal_analysis
+
+```python
+from src.analysis.fiscal_analysis import run_fiscal_analysis
+result = run_fiscal_analysis(db_path)
+```
+
+Returns a dict with keys: `fiscal_balance`, `revenue_trend`, `expenditure_structure`, `key_findings`.
+
+---
+
+### run_inequality_analysis
+
+```python
+from src.analysis.inequality_analysis import run_inequality_analysis
+result = run_inequality_analysis(db_path)
+```
+
+Returns a dict with keys: `gini`, `income_ratio`, `poverty`, `median_income`, `key_findings`.
+
+---
+
+### run_regional_analysis / build_choropleth_div
+
+```python
+from src.analysis.regional_analysis import run_regional_analysis, build_choropleth_div
+
+result = run_regional_analysis(db_path)
+# Returns: gdp_per_capita_pps, unemployment_rate, key_findings
+# Falls back to synthetic estimates if fact_regional is absent.
+
+div_html = build_choropleth_div(db_path)
+# Returns an HTML <div> string for embedding a Plotly choropleth map.
+# Downloads NUTS2 GeoJSON from Eurostat GISCO on first call and caches locally.
+```
+
+---
+
+## Advanced Analytics
+
+### detect_anomalies
+
+```python
+from src.analysis.anomaly_detection import detect_anomalies
+anomalies = detect_anomalies(db_path)
+# Returns list of dicts: {pillar, date_key, column, value, z_score, is_anomaly}
+```
+
+Uses rolling z-score (24-month window) and Isolation Forest for multivariate detection.
+
+---
+
+### run_var_analysis
+
+```python
+from src.analysis.var_analysis import run_var_analysis
+result = run_var_analysis(db_path)
+# Returns: model_summary, granger_causality, irf (impulse response), fevd
+```
+
+VAR model on GDP growth, unemployment, inflation, ECB rate, and public debt.
+
+---
+
+### run_nowcasting
+
+```python
+from src.analysis.nowcasting import run_nowcasting
+result = run_nowcasting(db_path)
+# Returns: current_quarter_estimate, confidence_interval, bridge_equation_summary
+```
+
+Bridge equation nowcast using monthly industrial production and credit data.
+
+---
+
+## Reporting
+
+### export_to_excel
+
+```python
+from src.reporting.excel_export import export_to_excel
+path = export_to_excel(db_path)
+# Creates reports/portugal_macro_TIMESTAMP.xlsx
+# One sheet per pillar + Correlations sheet + Summary sheet
+```
+
+Or via CLI: `python main.py --mode excel`

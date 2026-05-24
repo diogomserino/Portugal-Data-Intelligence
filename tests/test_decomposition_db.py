@@ -64,7 +64,7 @@ class TestDecomposeAndPlot:
         result = decompose_and_plot(short, period=12, title="short_test")
         assert result is None
 
-    def test_decompose_valid_series(self):
+    def test_decompose_valid_series(self, tmp_path):
         from src.analysis.decomposition import decompose_and_plot
 
         np.random.seed(42)
@@ -72,6 +72,7 @@ class TestDecomposeAndPlot:
         trend = np.linspace(5, 10, n)
         seasonal = np.sin(np.linspace(0, 2 * np.pi * (n / 12), n))
         series = pd.Series(trend + seasonal + np.random.normal(0, 0.1, n))
-        result = decompose_and_plot(series, period=12, title="unit_test_series")
+        out = tmp_path / "stl_unit_test_series.png"
+        result = decompose_and_plot(series, period=12, title="unit_test_series", output_path=out)
         assert result is not None
         assert "trend" in result

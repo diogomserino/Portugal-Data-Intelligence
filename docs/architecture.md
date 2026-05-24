@@ -2,9 +2,9 @@
 
 ## Portugal Data Intelligence - System Architecture
 
-**Version:** 2.1
-**Last Updated:** March 2026
-**Status:** Phase 2 - Production
+**Version:** 2.2
+**Last Updated:** May 2026
+**Status:** Phase 3 - Production
 
 ---
 
@@ -27,11 +27,10 @@ through multiple reporting channels.
 |  |                   |    |                   |    |                   |  |
 |  |  INE              |--->|  1. Extract       |--->|  SQLite Database  |  |
 |  |  Banco de Portugal|    |  2. Validate      |    |                   |  |
-|  |  PORDATA          |    |  3. Transform     |    |  - Dimension      |  |
-|  |  Eurostat         |    |  4. Enrich        |    |    Tables         |  |
-|  |                   |    |  5. Load          |    |  - Fact Tables    |  |
-|  +-------------------+    +-------------------+    |  - Staging Tables |  |
-|                                                    +--------+----------+  |
+|  |  Eurostat         |    |  3. Transform     |    |  2 dim tables     |  |
+|  |  ECB SDW          |    |  4. Enrich        |    |  12 fact tables   |  |
+|  |                   |    |  5. Load          |    |  lineage tables   |  |
+|  +-------------------+    +-------------------+    +--------+----------+  |
 |                                                             |             |
 |            +------------------------------------------------+             |
 |            |                                                              |
@@ -39,11 +38,13 @@ through multiple reporting channels.
 |  +-------------------+    +-------------------+    +-------------------+  |
 |  | ANALYSIS ENGINE   |    |  AI INSIGHTS      |    |  DELIVERY LAYER  |  |
 |  |                   |    |                   |    |                   |  |
-|  | - Trend Analysis  |--->| - GPT-4 Narrative |--->| - Power BI       |  |
-|  | - Correlations    |    | - Anomaly Comment |    | - Streamlit      |  |
-|  | - Forecasting     |    | - Key Findings    |    | - HTML Report    |  |
-|  | - Decomposition   |    | - Recommendations |    | - REST API       |  |
-|  |                   |    |                   |    |                   |  |
+|  | - Trend Analysis  |--->| - Rule-based      |--->| - Power BI       |  |
+|  | - Correlations    |    |   Narrative       |    | - Streamlit      |  |
+|  | - SARIMAX Forecast|    | - Anomaly Alerts  |    | - HTML Report    |  |
+|  | - VAR / VECM      |    | - Key Findings    |    |   (Plotly)       |  |
+|  | - Nowcasting      |    | - Recommendations |    | - REST API       |  |
+|  | - Anomaly Detect  |    |                   |    | - Excel Export   |  |
+|  | - NUTS2 Choropleth|    |                   |    | - NUTS2 Maps     |  |
 |  +-------------------+    +-------------------+    +-------------------+  |
 |                                                                           |
 +===========================================================================+
@@ -95,10 +96,13 @@ executable and produces artefacts that serve as inputs to the next stage.
 
 #### Stage 4: Analyse
 - Time series decomposition (trend, seasonal, residual)
-- Cross-pillar correlation analysis
+- Cross-pillar correlation analysis and Granger causality
 - Year-on-year and quarter-on-quarter comparisons
-- Statistical significance testing
-- Simple forecasting models (ARIMA, linear regression)
+- SARIMAX forecasting with cached model persistence (7-day TTL)
+- VAR / VECM for multi-variable dynamics (IRF, FEVD)
+- Bridge-equation nowcasting for in-quarter GDP estimation
+- Rolling z-score and Isolation Forest anomaly detection
+- Regional NUTS2 analysis with Plotly choropleth
 
 #### Stage 5: Insight
 - Feed analytical results to OpenAI GPT-4 for narrative generation
@@ -109,8 +113,10 @@ executable and produces artefacts that serve as inputs to the next stage.
 #### Stage 6: Deliver
 - Power BI dashboard with KPIs, drill-downs, and what-if scenarios
 - Interactive Streamlit dashboard (open-source alternative)
-- Self-contained HTML briefing report
+- Self-contained HTML briefing report with embedded Plotly charts
 - REST API for programmatic data access (FastAPI)
+- Excel workbook export with one sheet per pillar (`python main.py --mode excel`)
+- Interactive NUTS2 choropleth map embedded in HTML report
 
 ---
 
@@ -178,11 +184,17 @@ pillar-specific fact tables.
 | `dim_date` | Dimension | N/A | Calendar dimension with year, quarter, month attributes |
 | `dim_source` | Dimension | N/A | Data source reference table |
 | `fact_gdp` | Fact | Quarterly | GDP metrics: nominal, real, growth rate, per capita |
-| `fact_unemployment` | Fact | Monthly | Unemployment rate, youth unemployment, labour force |
+| `fact_unemployment` | Fact | Monthly | Unemployment rate, youth unemployment, labour force participation |
 | `fact_credit` | Fact | Monthly | Bank lending: total, non-financial corporations, households |
 | `fact_interest_rates` | Fact | Monthly | ECB rate, Euribor (3M/6M/12M), 10-year bond yield |
 | `fact_inflation` | Fact | Monthly | HICP, CPI (estimated), core inflation |
-| `fact_public_debt` | Fact | Quarterly | Total debt, debt-to-GDP ratio, budget deficit (quarterly + annual), external debt share (estimated) |
+| `fact_public_debt` | Fact | Quarterly | Total debt, debt-to-GDP ratio, budget deficit, external debt share |
+| `fact_housing` | Fact | Annual | House price index (2015=100), transactions, avg €/m², mortgage lending |
+| `fact_labor_detail` | Fact | Annual | Employment by sector (services/industry/agriculture), real wage index, productivity |
+| `fact_external_accounts` | Fact | Quarterly | Current account % GDP, trade balance, REER, ULC, export growth |
+| `fact_fiscal` | Fact | Annual | Revenue/expenditure % GDP, health/education/social/interest breakdown |
+| `fact_inequality` | Fact | Annual | Gini index, S80/S20 ratio, poverty risk rate, median income index |
+| `fact_regional` | Fact | Annual × 7 | NUTS2 regional data: GDP per capita PPS, EU27 index, unemployment by region |
 
 ---
 
@@ -195,8 +207,8 @@ glue between all layers of the platform.
 
 ### SQLite 3
 Chosen as the database engine for its zero-configuration deployment, file-based portability,
-and full SQL support. For a project of this scale (approximately 15 years of monthly/quarterly
-data across 6 pillars), SQLite provides more than adequate performance whilst remaining
+and full SQL support. For a project of this scale (approximately 15 years of monthly/quarterly/annual
+data across 12 pillars + NUTS2 regional data), SQLite provides more than adequate performance whilst remaining
 easily distributable as a single file. No server infrastructure is required.
 
 ### pandas / NumPy

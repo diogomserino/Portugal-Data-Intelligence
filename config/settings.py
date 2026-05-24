@@ -20,6 +20,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 DATABASE_DIR = DATA_DIR / "database"
+MODEL_CACHE_DIR = DATA_DIR / "models"
 
 # Source code directories
 SRC_DIR = PROJECT_ROOT / "src"
@@ -131,6 +132,54 @@ DATA_PILLARS = {
         "unit": "EUR millions / percentage of GDP",
         "description": "General government debt, debt-to-GDP ratio, and debt composition",
         "primary_sources": ["Banco de Portugal", "PORDATA"],
+    },
+    "housing": {
+        "name": "Housing Market",
+        "table_name": "fact_housing",
+        "granularity": "annual",
+        "unit": "index (2015=100) / EUR",
+        "description": "House price index, transactions, average price per sqm, and mortgage lending",
+        "primary_sources": ["INE", "Eurostat"],
+    },
+    "labor_detail": {
+        "name": "Labour Market Structure",
+        "table_name": "fact_labor_detail",
+        "granularity": "annual",
+        "unit": "percentage / index (2015=100)",
+        "description": "Employment by sector, real wages, and labour productivity",
+        "primary_sources": ["Eurostat"],
+    },
+    "external_accounts": {
+        "name": "External Accounts",
+        "table_name": "fact_external_accounts",
+        "granularity": "quarterly",
+        "unit": "percentage of GDP / index (2015=100)",
+        "description": "Trade balance, current account, REER, and export growth",
+        "primary_sources": ["ECB", "Banco de Portugal", "Eurostat"],
+    },
+    "fiscal": {
+        "name": "Fiscal Composition",
+        "table_name": "fact_fiscal",
+        "granularity": "annual",
+        "unit": "percentage of GDP",
+        "description": "Government revenue, expenditure by COFOG function, and interest payments",
+        "primary_sources": ["Eurostat"],
+    },
+    "inequality": {
+        "name": "Inequality and Income",
+        "table_name": "fact_inequality",
+        "granularity": "annual",
+        "unit": "index / percentage",
+        "description": "Gini coefficient, income quintile ratio, poverty risk rate, and median income",
+        "primary_sources": ["Eurostat"],
+    },
+    "regional": {
+        "name": "NUTS2 Regional Indicators",
+        "table_name": "fact_regional",
+        "granularity": "annual",
+        "unit": "PPS / percentage",
+        "description": "GDP per capita PPS and unemployment rate for Portugal's 7 NUTS2 regions",
+        "primary_sources": ["Eurostat"],
     },
 }
 
@@ -267,6 +316,7 @@ def ensure_directories():
         DOCS_DIR,
         LOG_DIR,
         DATA_QUALITY_DIR,
+        MODEL_CACHE_DIR,
     ]
     for directory in directories:
         directory.mkdir(parents=True, exist_ok=True)

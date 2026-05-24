@@ -7,6 +7,7 @@
 #   make etl           Run ETL pipeline only
 #   make analysis      Run analysis + charts only
 #   make reports       Generate reports + insights
+#   make excel         Export all pillar data to an Excel workbook
 #   make run           Run full pipeline (ETL → Analysis → Reports)
 #   make test          Run test suite with coverage
 #   make lint          Run code quality checks (black, isort, flake8)
@@ -15,7 +16,7 @@
 #   make clean         Remove generated files and caches
 # =============================================================================
 
-.PHONY: install install-dev etl analysis reports run test lint format typecheck clean help report-html
+.PHONY: install install-dev etl analysis reports excel run quick test lint format typecheck clean help report-html
 
 PYTHON ?= python
 
@@ -43,6 +44,9 @@ run:
 
 quick:
 	$(PYTHON) main.py --mode quick
+
+excel:
+	$(PYTHON) main.py --mode excel
 
 # ── Reports ──────────────────────────────────────────────────────────────────
 
@@ -98,6 +102,7 @@ help:
 	@echo "  reports       Generate reports + insights"
 	@echo "  run           Run full pipeline"
 	@echo "  quick         ETL + analysis (skip reports)"
+	@echo "  excel         Export all pillar data to Excel workbook"
 	@echo "  test          Run test suite with coverage"
 	@echo "  lint          Run code quality checks"
 	@echo "  format        Auto-format code"

@@ -11,7 +11,6 @@ Usage:
     python src/analysis/visualisations.py
 """
 
-import sqlite3
 import warnings
 from pathlib import Path
 
@@ -84,6 +83,7 @@ from src.reporting.shared_styles import (
     ZONE_THRESHOLD,
     apply_chart_style,
 )
+from src.utils.db import get_connection
 
 try:
     from config.settings import CHART_PERIODS as PERIODS
@@ -108,12 +108,6 @@ apply_chart_style()
 # =============================================================================
 # HELPER FUNCTIONS
 # =============================================================================
-
-
-def _connect(db_path=None):
-    """Return a sqlite3 connection to the project database."""
-    path = db_path or str(DEFAULT_DB)
-    return sqlite3.connect(str(path))
 
 
 def _add_source_text(fig, y=-0.02):
@@ -232,11 +226,10 @@ def plot_gdp_evolution(db_path=None):
     Dual-axis chart: nominal GDP bars + YoY growth rate line.
     Economic periods are shaded in the background.
     """
-    conn = _connect(db_path)
-    df = pd.read_sql(
-        "SELECT date_key, nominal_gdp, gdp_growth_yoy FROM fact_gdp ORDER BY date_key", conn
-    )
-    conn.close()
+    with get_connection(db_path) as conn:
+        df = pd.read_sql(
+            "SELECT date_key, nominal_gdp, gdp_growth_yoy FROM fact_gdp ORDER BY date_key", conn
+        )
 
     df["date"] = _parse_quarter_date(df["date_key"])
     df = df.sort_values("date").reset_index(drop=True)
@@ -322,13 +315,12 @@ def plot_unemployment_trends(db_path=None):
     Multi-line: general, youth, long-term unemployment with 12-month
     moving average (dashed) and crisis period shading.
     """
-    conn = _connect(db_path)
-    df = pd.read_sql(
-        "SELECT date_key, unemployment_rate, youth_unemployment_rate, "
-        "long_term_unemployment_rate FROM fact_unemployment ORDER BY date_key",
-        conn,
-    )
-    conn.close()
+    with get_connection(db_path) as conn:
+        df = pd.read_sql(
+            "SELECT date_key, unemployment_rate, youth_unemployment_rate, "
+            "long_term_unemployment_rate FROM fact_unemployment ORDER BY date_key",
+            conn,
+        )
 
     df["date"] = _parse_month_date(df["date_key"])
     df = df.sort_values("date").reset_index(drop=True)
@@ -402,13 +394,12 @@ def plot_credit_portfolio(db_path=None):
     Top panel: stacked area chart of NFC vs household credit.
     Bottom panel: NPL ratio line chart with danger zone (>10%) shading.
     """
-    conn = _connect(db_path)
-    df = pd.read_sql(
-        "SELECT date_key, credit_nfc, credit_households, npl_ratio "
-        "FROM fact_credit ORDER BY date_key",
-        conn,
-    )
-    conn.close()
+    with get_connection(db_path) as conn:
+        df = pd.read_sql(
+            "SELECT date_key, credit_nfc, credit_households, npl_ratio "
+            "FROM fact_credit ORDER BY date_key",
+            conn,
+        )
 
     df["date"] = _parse_month_date(df["date_key"])
     df = df.sort_values("date").reset_index(drop=True)
@@ -481,13 +472,12 @@ def plot_interest_rate_environment(db_path=None):
     Multi-line: ECB rate, Euribor 3M, PT 10Y bond yield.
     Sovereign spread highlighted as shaded area between ECB rate and bond yield.
     """
-    conn = _connect(db_path)
-    df = pd.read_sql(
-        "SELECT date_key, ecb_main_refinancing_rate, euribor_3m, "
-        "portugal_10y_bond_yield FROM fact_interest_rates ORDER BY date_key",
-        conn,
-    )
-    conn.close()
+    with get_connection(db_path) as conn:
+        df = pd.read_sql(
+            "SELECT date_key, ecb_main_refinancing_rate, euribor_3m, "
+            "portugal_10y_bond_yield FROM fact_interest_rates ORDER BY date_key",
+            conn,
+        )
 
     df["date"] = _parse_month_date(df["date_key"])
     df = df.sort_values("date").reset_index(drop=True)
@@ -548,11 +538,10 @@ def plot_inflation_dashboard(db_path=None):
     Panel 1: HICP vs core inflation lines with ECB 2% target.
     Panel 2: Annual average inflation bar chart.
     """
-    conn = _connect(db_path)
-    df = pd.read_sql(
-        "SELECT date_key, hicp, core_inflation FROM fact_inflation ORDER BY date_key", conn
-    )
-    conn.close()
+    with get_connection(db_path) as conn:
+        df = pd.read_sql(
+            "SELECT date_key, hicp, core_inflation FROM fact_inflation ORDER BY date_key", conn
+        )
 
     df["date"] = _parse_month_date(df["date_key"])
     df = df.sort_values("date").reset_index(drop=True)
@@ -621,13 +610,12 @@ def plot_public_debt_sustainability(db_path=None):
     Dual axis: debt-to-GDP ratio line + budget balance bars.
     Traffic-light zones: green (<60%), yellow (60-90%), red (>90%).
     """
-    conn = _connect(db_path)
-    df = pd.read_sql(
-        "SELECT date_key, debt_to_gdp_ratio, budget_deficit "
-        "FROM fact_public_debt ORDER BY date_key",
-        conn,
-    )
-    conn.close()
+    with get_connection(db_path) as conn:
+        df = pd.read_sql(
+            "SELECT date_key, debt_to_gdp_ratio, budget_deficit "
+            "FROM fact_public_debt ORDER BY date_key",
+            conn,
+        )
 
     df["date"] = _parse_quarter_date(df["date_key"])
     df = df.sort_values("date").reset_index(drop=True)
@@ -712,23 +700,21 @@ def plot_correlation_heatmap(db_path=None):
     Correlation matrix heatmap of all monthly indicators.
     Diverging colour map (red-white-blue) with annotated cells.
     """
-    conn = _connect(db_path)
-
-    unemp = pd.read_sql(
-        "SELECT date_key, unemployment_rate FROM fact_unemployment ORDER BY date_key", conn
-    )
-    credit = pd.read_sql(
-        "SELECT date_key, total_credit, npl_ratio FROM fact_credit ORDER BY date_key", conn
-    )
-    rates = pd.read_sql(
-        "SELECT date_key, ecb_main_refinancing_rate, euribor_3m, "
-        "portugal_10y_bond_yield FROM fact_interest_rates ORDER BY date_key",
-        conn,
-    )
-    infl = pd.read_sql(
-        "SELECT date_key, hicp, core_inflation FROM fact_inflation ORDER BY date_key", conn
-    )
-    conn.close()
+    with get_connection(db_path) as conn:
+        unemp = pd.read_sql(
+            "SELECT date_key, unemployment_rate FROM fact_unemployment ORDER BY date_key", conn
+        )
+        credit = pd.read_sql(
+            "SELECT date_key, total_credit, npl_ratio FROM fact_credit ORDER BY date_key", conn
+        )
+        rates = pd.read_sql(
+            "SELECT date_key, ecb_main_refinancing_rate, euribor_3m, "
+            "portugal_10y_bond_yield FROM fact_interest_rates ORDER BY date_key",
+            conn,
+        )
+        infl = pd.read_sql(
+            "SELECT date_key, hicp, core_inflation FROM fact_inflation ORDER BY date_key", conn
+        )
 
     # Merge on monthly date_key
     merged = unemp.merge(credit, on="date_key", how="inner")
@@ -789,26 +775,24 @@ def plot_economic_dashboard(db_path=None):
     2x3 grid of sparkline mini-charts for all six pillars.
     Each cell shows the indicator sparkline, latest value, and trend arrow.
     """
-    conn = _connect(db_path)
-
-    # Load latest data for each pillar
-    gdp = pd.read_sql(
-        "SELECT date_key, nominal_gdp, gdp_growth_yoy FROM fact_gdp ORDER BY date_key", conn
-    )
-    unemp = pd.read_sql(
-        "SELECT date_key, unemployment_rate FROM fact_unemployment ORDER BY date_key", conn
-    )
-    credit = pd.read_sql(
-        "SELECT date_key, total_credit, npl_ratio FROM fact_credit ORDER BY date_key", conn
-    )
-    rates = pd.read_sql(
-        "SELECT date_key, portugal_10y_bond_yield FROM fact_interest_rates ORDER BY date_key", conn
-    )
-    infl = pd.read_sql("SELECT date_key, hicp FROM fact_inflation ORDER BY date_key", conn)
-    debt = pd.read_sql(
-        "SELECT date_key, debt_to_gdp_ratio FROM fact_public_debt ORDER BY date_key", conn
-    )
-    conn.close()
+    with get_connection(db_path) as conn:
+        gdp = pd.read_sql(
+            "SELECT date_key, nominal_gdp, gdp_growth_yoy FROM fact_gdp ORDER BY date_key", conn
+        )
+        unemp = pd.read_sql(
+            "SELECT date_key, unemployment_rate FROM fact_unemployment ORDER BY date_key", conn
+        )
+        credit = pd.read_sql(
+            "SELECT date_key, total_credit, npl_ratio FROM fact_credit ORDER BY date_key", conn
+        )
+        rates = pd.read_sql(
+            "SELECT date_key, portugal_10y_bond_yield FROM fact_interest_rates ORDER BY date_key",
+            conn,
+        )
+        infl = pd.read_sql("SELECT date_key, hicp FROM fact_inflation ORDER BY date_key", conn)
+        debt = pd.read_sql(
+            "SELECT date_key, debt_to_gdp_ratio FROM fact_public_debt ORDER BY date_key", conn
+        )
 
     # Parse dates
     gdp["date"] = _parse_quarter_date(gdp["date_key"])
@@ -908,12 +892,11 @@ def plot_phillips_curve(db_path=None):
     Scatter plot: unemployment (x) vs inflation (y), coloured by year.
     Includes a regression line.
     """
-    conn = _connect(db_path)
-    unemp = pd.read_sql(
-        "SELECT date_key, unemployment_rate FROM fact_unemployment ORDER BY date_key", conn
-    )
-    infl = pd.read_sql("SELECT date_key, hicp FROM fact_inflation ORDER BY date_key", conn)
-    conn.close()
+    with get_connection(db_path) as conn:
+        unemp = pd.read_sql(
+            "SELECT date_key, unemployment_rate FROM fact_unemployment ORDER BY date_key", conn
+        )
+        infl = pd.read_sql("SELECT date_key, hicp FROM fact_inflation ORDER BY date_key", conn)
 
     merged = unemp.merge(infl, on="date_key", how="inner")
     merged["date"] = _parse_month_date(merged["date_key"])
@@ -1019,16 +1002,17 @@ def plot_crisis_timeline(db_path=None):
     Normalised (0-100 scale) multi-line chart showing how all indicators
     moved during key events: 2012 crisis, COVID, inflation shock.
     """
-    conn = _connect(db_path)
-    unemp = pd.read_sql(
-        "SELECT date_key, unemployment_rate FROM fact_unemployment ORDER BY date_key", conn
-    )
-    credit = pd.read_sql("SELECT date_key, npl_ratio FROM fact_credit ORDER BY date_key", conn)
-    rates = pd.read_sql(
-        "SELECT date_key, portugal_10y_bond_yield FROM fact_interest_rates ORDER BY date_key", conn
-    )
-    infl = pd.read_sql("SELECT date_key, hicp FROM fact_inflation ORDER BY date_key", conn)
-    conn.close()
+    with get_connection(db_path) as conn:
+        unemp = pd.read_sql(
+            "SELECT date_key, unemployment_rate FROM fact_unemployment ORDER BY date_key", conn
+        )
+        credit = pd.read_sql("SELECT date_key, npl_ratio FROM fact_credit ORDER BY date_key", conn)
+        rates = pd.read_sql(
+            "SELECT date_key, portugal_10y_bond_yield FROM fact_interest_rates ORDER BY date_key",
+            conn,
+        )
+        infl = pd.read_sql("SELECT date_key, hicp FROM fact_inflation ORDER BY date_key", conn)
+        gdp_q = pd.read_sql("SELECT date_key, gdp_growth_yoy FROM fact_gdp ORDER BY date_key", conn)
 
     # Merge all monthly
     merged = unemp.merge(credit, on="date_key", how="inner")
@@ -1037,10 +1021,7 @@ def plot_crisis_timeline(db_path=None):
     merged["date"] = _parse_month_date(merged["date_key"])
     merged = merged.sort_values("date").reset_index(drop=True)
 
-    # Also add quarterly data interpolated to monthly
-    conn2 = _connect(db_path)
-    gdp_q = pd.read_sql("SELECT date_key, gdp_growth_yoy FROM fact_gdp ORDER BY date_key", conn2)
-    conn2.close()
+    # Add quarterly data interpolated to monthly
     gdp_q["date"] = _parse_quarter_date(gdp_q["date_key"])
     gdp_q = gdp_q.set_index("date")[["gdp_growth_yoy"]].resample("MS").mean()
     gdp_q["gdp_growth"] = gdp_q["gdp_growth_yoy"].interpolate(method="linear")
@@ -1130,6 +1111,358 @@ def plot_crisis_timeline(db_path=None):
 # =============================================================================
 
 
+# =============================================================================
+# 11. HOUSING MARKET
+# =============================================================================
+
+
+def plot_housing_trends(db_path=None):
+    """House Price Index line + YoY change bars (annual data)."""
+    with get_connection(db_path) as conn:
+        df = pd.read_sql(
+            "SELECT date_key, house_price_index, house_price_yoy_change, housing_transactions "
+            "FROM fact_housing ORDER BY date_key",
+            conn,
+        )
+
+    if df.empty:
+        return _savefig(plt.figure(figsize=(14, 7)), "housing_trends.png")
+
+    df["year"] = df["date_key"].str[:4].astype(int)
+    df = df.sort_values("year").reset_index(drop=True)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
+    _setup_fig(fig)
+
+    ax1.plot(
+        df["year"],
+        df["house_price_index"],
+        color=COLORS["primary"],
+        linewidth=2.5,
+        marker="o",
+        markersize=5,
+        label="HPI (2015=100)",
+    )
+    ax1.axhline(100, color=COLORS["neutral"], linewidth=0.8, linestyle="--", alpha=0.6)
+    ax1.set_ylabel("Index (2015=100)")
+    ax1.set_title("House Price Index", pad=10)
+    ax1.set_xticks(df["year"])
+    ax1.set_xticklabels(df["year"].astype(int), rotation=45, ha="right")
+    ax1.legend(frameon=False)
+
+    yoy = df["house_price_yoy_change"].fillna(0)
+    bar_colors = [COLORS["positive"] if v >= 0 else COLORS["negative"] for v in yoy]
+    ax2.bar(df["year"], yoy, color=bar_colors, alpha=0.85)
+    ax2.axhline(0, color=COLORS["neutral"], linewidth=0.8)
+    ax2.set_ylabel("YoY Change (%)")
+    ax2.set_title("House Price Growth (YoY)", pad=10)
+    ax2.set_xticks(df["year"])
+    ax2.set_xticklabels(df["year"].astype(int), rotation=45, ha="right")
+
+    fig.suptitle(
+        "Portugal Housing Market (2010–2025)",
+        fontsize=CHART_FONT_SIZES["suptitle"],
+        fontweight="bold",
+        y=1.03,
+    )
+    fig.tight_layout(pad=2.0, w_pad=4.0)
+    _add_source_text(fig)
+    return _savefig(fig, "housing_trends.png")
+
+
+# =============================================================================
+# 12. LABOUR MARKET DETAIL
+# =============================================================================
+
+
+def plot_labor_detail_trends(db_path=None):
+    """Employment structure stacked bars + real wage index line."""
+    with get_connection(db_path) as conn:
+        df = pd.read_sql(
+            "SELECT date_key, employment_services_pct, employment_industry_pct, "
+            "employment_agriculture_pct, real_wage_index "
+            "FROM fact_labor_detail ORDER BY date_key",
+            conn,
+        )
+
+    if df.empty:
+        return _savefig(plt.figure(figsize=(14, 7)), "labor_detail_trends.png")
+
+    df["year"] = df["date_key"].str[:4].astype(int)
+    df = df.sort_values("year").reset_index(drop=True)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
+    _setup_fig(fig)
+
+    ax1.bar(
+        df["year"],
+        df["employment_services_pct"],
+        color=COLORS["primary"],
+        alpha=0.85,
+        label="Services",
+    )
+    ax1.bar(
+        df["year"],
+        df["employment_industry_pct"],
+        bottom=df["employment_services_pct"],
+        color=COLORS["secondary"],
+        alpha=0.85,
+        label="Industry",
+    )
+    ax1.bar(
+        df["year"],
+        df["employment_agriculture_pct"],
+        bottom=df["employment_services_pct"] + df["employment_industry_pct"],
+        color=COLORS["accent"],
+        alpha=0.85,
+        label="Agriculture",
+    )
+    ax1.set_ylabel("Share (%)")
+    ax1.set_title("Employment Structure by Sector", pad=10)
+    ax1.set_xticks(df["year"])
+    ax1.set_xticklabels(df["year"].astype(int), rotation=45, ha="right")
+    ax1.legend(frameon=False, loc="upper right")
+
+    ax2.plot(
+        df["year"],
+        df["real_wage_index"],
+        color=COLORS["primary"],
+        linewidth=2.5,
+        marker="o",
+        markersize=5,
+    )
+    ax2.axhline(100, color=COLORS["neutral"], linewidth=0.8, linestyle="--", alpha=0.6)
+    ax2.set_ylabel("Index (2015=100)")
+    ax2.set_title("Real Wage Index", pad=10)
+    ax2.set_xticks(df["year"])
+    ax2.set_xticklabels(df["year"].astype(int), rotation=45, ha="right")
+
+    fig.suptitle(
+        "Portugal Labour Market Structure (2010–2025)",
+        fontsize=CHART_FONT_SIZES["suptitle"],
+        fontweight="bold",
+        y=1.03,
+    )
+    fig.tight_layout(pad=2.0, w_pad=4.0)
+    _add_source_text(fig)
+    return _savefig(fig, "labor_detail_trends.png")
+
+
+# =============================================================================
+# 13. EXTERNAL ACCOUNTS
+# =============================================================================
+
+
+def plot_external_accounts_trends(db_path=None):
+    """Current account + trade balance lines and REER index."""
+    with get_connection(db_path) as conn:
+        df = pd.read_sql(
+            "SELECT date_key, current_account_pct_gdp, trade_balance_pct_gdp, reer_index "
+            "FROM fact_external_accounts ORDER BY date_key",
+            conn,
+        )
+
+    if df.empty:
+        return _savefig(plt.figure(figsize=(14, 7)), "external_accounts_trends.png")
+
+    df["date"] = _parse_quarter_date(df["date_key"])
+    df = df.sort_values("date").reset_index(drop=True)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
+    _setup_fig(fig)
+
+    ax1.plot(
+        df["date"],
+        df["current_account_pct_gdp"],
+        color=COLORS["primary"],
+        linewidth=2,
+        label="Current Account",
+    )
+    ax1.plot(
+        df["date"],
+        df["trade_balance_pct_gdp"],
+        color=COLORS["secondary"],
+        linewidth=2,
+        linestyle="--",
+        label="Trade Balance",
+    )
+    ax1.axhline(0, color=COLORS["neutral"], linewidth=0.8)
+    _shade_periods(ax1, df["date"])
+    ax1.set_ylabel("% of GDP")
+    ax1.set_title("External Balances (% GDP)", pad=10)
+    ax1.legend(frameon=False)
+
+    ax2.plot(df["date"], df["reer_index"], color=COLORS["accent"], linewidth=2)
+    ax2.axhline(100, color=COLORS["neutral"], linewidth=0.8, linestyle="--", alpha=0.6)
+    ax2.set_ylabel("Index (2015=100)")
+    ax2.set_title("Real Effective Exchange Rate", pad=10)
+
+    fig.suptitle(
+        "Portugal External Competitiveness (2010–2025)",
+        fontsize=CHART_FONT_SIZES["suptitle"],
+        fontweight="bold",
+        y=1.03,
+    )
+    fig.tight_layout(pad=2.0, w_pad=4.0)
+    _add_source_text(fig)
+    return _savefig(fig, "external_accounts_trends.png")
+
+
+# =============================================================================
+# 14. FISCAL STRUCTURE
+# =============================================================================
+
+
+def plot_fiscal_trends(db_path=None):
+    """Government revenue vs expenditure lines + COFOG breakdown."""
+    with get_connection(db_path) as conn:
+        df = pd.read_sql(
+            "SELECT date_key, total_revenue_pct_gdp, total_expenditure_pct_gdp, "
+            "health_expenditure_pct, education_expenditure_pct, "
+            "social_protection_pct, interest_payments_pct "
+            "FROM fact_fiscal ORDER BY date_key",
+            conn,
+        )
+
+    if df.empty:
+        return _savefig(plt.figure(figsize=(14, 7)), "fiscal_trends.png")
+
+    df["year"] = df["date_key"].str[:4].astype(int)
+    df = df.sort_values("year").reset_index(drop=True)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
+    _setup_fig(fig)
+
+    ax1.plot(
+        df["year"],
+        df["total_revenue_pct_gdp"],
+        color=COLORS["positive"],
+        linewidth=2.5,
+        marker="o",
+        markersize=4,
+        label="Revenue",
+    )
+    ax1.plot(
+        df["year"],
+        df["total_expenditure_pct_gdp"],
+        color=COLORS["negative"],
+        linewidth=2.5,
+        marker="s",
+        markersize=4,
+        label="Expenditure",
+    )
+    ax1.fill_between(
+        df["year"],
+        df["total_revenue_pct_gdp"],
+        df["total_expenditure_pct_gdp"],
+        alpha=0.15,
+        color=COLORS["negative"],
+    )
+    ax1.set_ylabel("% of GDP")
+    ax1.set_title("Revenue vs Expenditure", pad=10)
+    ax1.set_xticks(df["year"])
+    ax1.set_xticklabels(df["year"].astype(int), rotation=45, ha="right")
+    ax1.legend(frameon=False)
+
+    cofog_cols = [
+        "health_expenditure_pct",
+        "education_expenditure_pct",
+        "social_protection_pct",
+        "interest_payments_pct",
+    ]
+    cofog_labels = ["Health", "Education", "Social Protection", "Interest"]
+    cofog_colors = [COLORS["primary"], COLORS["secondary"], COLORS["accent"], COLORS["negative"]]
+    bottom = np.zeros(len(df))
+    for col, lbl, clr in zip(cofog_cols, cofog_labels, cofog_colors):
+        vals = df[col].fillna(0).values
+        ax2.bar(df["year"], vals, bottom=bottom, color=clr, alpha=0.85, label=lbl)
+        bottom += vals
+    ax2.set_ylabel("% of GDP")
+    ax2.set_title("Expenditure Breakdown (COFOG)", pad=10)
+    ax2.set_xticks(df["year"])
+    ax2.set_xticklabels(df["year"].astype(int), rotation=45, ha="right")
+    ax2.legend(frameon=False, loc="upper right")
+
+    fig.suptitle(
+        "Portugal Fiscal Structure (2010–2025)",
+        fontsize=CHART_FONT_SIZES["suptitle"],
+        fontweight="bold",
+        y=1.03,
+    )
+    fig.tight_layout(pad=2.0, w_pad=4.0)
+    _add_source_text(fig)
+    return _savefig(fig, "fiscal_trends.png")
+
+
+# =============================================================================
+# 15. INEQUALITY & INCOME
+# =============================================================================
+
+
+def plot_inequality_trends(db_path=None):
+    """Gini index line + poverty risk rate bars."""
+    with get_connection(db_path) as conn:
+        df = pd.read_sql(
+            "SELECT date_key, gini_index, poverty_risk_rate, s80_s20_ratio "
+            "FROM fact_inequality ORDER BY date_key",
+            conn,
+        )
+
+    if df.empty:
+        return _savefig(plt.figure(figsize=(14, 7)), "inequality_trends.png")
+
+    df["year"] = df["date_key"].str[:4].astype(int)
+    df = df.sort_values("year").reset_index(drop=True)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
+    _setup_fig(fig)
+
+    ax1.plot(
+        df["year"],
+        df["gini_index"],
+        color=COLORS["primary"],
+        linewidth=2.5,
+        marker="o",
+        markersize=5,
+        label="Gini Index",
+    )
+    ax1_r = ax1.twinx()
+    ax1_r.plot(
+        df["year"],
+        df["s80_s20_ratio"],
+        color=COLORS["secondary"],
+        linewidth=2,
+        linestyle="--",
+        marker="s",
+        markersize=4,
+        label="S80/S20 Ratio",
+    )
+    ax1.set_ylabel("Gini Index", color=COLORS["primary"])
+    ax1_r.set_ylabel("S80/S20 Ratio", color=COLORS["secondary"])
+    ax1.set_title("Income Inequality Indicators", pad=10)
+    ax1.set_xticks(df["year"])
+    ax1.set_xticklabels(df["year"].astype(int), rotation=45, ha="right")
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax1_r.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, frameon=False, loc="upper right")
+
+    ax2.bar(df["year"], df["poverty_risk_rate"], color=COLORS["negative"], alpha=0.8)
+    ax2.set_ylabel("Population at Risk (%)")
+    ax2.set_title("At-Risk-of-Poverty Rate", pad=10)
+    ax2.set_xticks(df["year"])
+    ax2.set_xticklabels(df["year"].astype(int), rotation=45, ha="right")
+
+    fig.suptitle(
+        "Portugal Inequality & Income Distribution (2010–2025)",
+        fontsize=CHART_FONT_SIZES["suptitle"],
+        fontweight="bold",
+        y=1.03,
+    )
+    fig.tight_layout(pad=2.0, w_pad=4.0)
+    _add_source_text(fig)
+    return _savefig(fig, "inequality_trends.png")
+
+
 def generate_all_charts(db_path=None):
     """
     Generate all charts and return a list of output file paths.
@@ -1155,6 +1488,11 @@ def generate_all_charts(db_path=None):
         ("Economic Dashboard", plot_economic_dashboard),
         ("Phillips Curve", plot_phillips_curve),
         ("Crisis Timeline", plot_crisis_timeline),
+        ("Housing Trends", plot_housing_trends),
+        ("Labour Market Detail", plot_labor_detail_trends),
+        ("External Accounts", plot_external_accounts_trends),
+        ("Fiscal Structure", plot_fiscal_trends),
+        ("Inequality Trends", plot_inequality_trends),
     ]
 
     paths = []
@@ -1185,5 +1523,5 @@ if __name__ == "__main__":
     paths = generate_all_charts()
 
     print("-" * 60)
-    print(f"Generated {len(paths)} / 10 charts successfully.")
+    print(f"Generated {len(paths)} / 15 charts successfully.")
     print("=" * 60)

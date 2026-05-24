@@ -2,8 +2,8 @@
 
 ## Portugal Data Intelligence - Complete Data Dictionary
 
-**Version:** 2.0
-**Last Updated:** 26 March 2026
+**Version:** 2.1
+**Last Updated:** 24 May 2026
 **Source of truth:** `sql/ddl/create_tables.sql`
 
 ---
@@ -12,7 +12,7 @@
 
 This document defines every table, column, data type, and constraint in the Portugal
 Data Intelligence database. The schema follows a star schema design with shared dimension
-tables and six pillar-specific fact tables.
+tables and twelve pillar-specific fact tables.
 
 > **This dictionary is generated from the DDL.** If it ever diverges from `sql/ddl/create_tables.sql`, the DDL is authoritative.
 
@@ -33,7 +33,8 @@ All downstream consumers (including Power BI DAX measures) should observe these 
 The database uses **TEXT-based date keys** with mixed granularity:
 
 - **Monthly pillars** (unemployment, credit, interest_rates, inflation): `'YYYY-MM'` (e.g., `'2023-06'`)
-- **Quarterly pillars** (gdp, public_debt): `'YYYY-QN'` (e.g., `'2023-Q2'`)
+- **Quarterly pillars** (gdp, public_debt, external_accounts): `'YYYY-QN'` (e.g., `'2023-Q2'`)
+- **Annual pillars** (housing, labor_detail, fiscal, inequality, regional): `'YYYY-Q4'` (e.g., `'2023-Q4'`)
 
 When joining quarterly and monthly tables, convert quarterly keys to the quarter-end month:
 
@@ -216,6 +217,145 @@ Reference table for institutional data providers.
 **Data quality notes:**
 - `budget_deficit` contains non-annualised quarterly values with large seasonal swings (-19% to +7%). Use `budget_deficit_annual` for meaningful analysis.
 - Raw Eurostat data has 63 rows (through 2025-Q3). The transform pipeline extrapolates 1 quarter (2025-Q4) via forward-fill.
+
+---
+
+### Pillar 7: fact_housing
+
+**Granularity:** Annual (2010-Q4 to 2025-Q4 = 16 rows)
+**Primary Sources:** INE (house price index), Banco de Portugal (mortgage lending)
+
+| Column | Data Type | Nullable | Unit | Constraints | Description |
+|--------|-----------|----------|------|-------------|-------------|
+| `id` | INTEGER | No (PK) | - | AUTOINCREMENT | Surrogate key |
+| `date_key` | TEXT | No (FK) | - | FK → dim_date | Annual key in `'YYYY-Q4'` format |
+| `house_price_index` | REAL | Yes | index | > 0 | Residential property price index (2015 = 100) |
+| `house_price_yoy_change` | REAL | Yes | % | | Year-on-year change in house price index |
+| `avg_price_per_sqm` | REAL | Yes | EUR/m2 | > 0 | Average transaction price per square metre |
+| `housing_transactions` | REAL | Yes | count | >= 0 | Number of residential property transactions |
+| `mortgage_new_loans` | REAL | Yes | EUR millions | | New mortgage loan originations |
+| `is_provisional` | INTEGER | No | boolean | {0, 1} | 1 = provisional/projected, 0 = confirmed |
+| `source_key` | INTEGER | No (FK) | - | FK → dim_source | Data source reference |
+
+**Unique constraint:** (`date_key`, `source_key`)
+
+---
+
+### Pillar 8: fact_labor_detail
+
+**Granularity:** Annual (2010-Q4 to 2025-Q4 = 16 rows)
+**Primary Sources:** Eurostat (`lfsq_egana`, `earn_ses_pub2s`)
+
+| Column | Data Type | Nullable | Unit | Constraints | Description |
+|--------|-----------|----------|------|-------------|-------------|
+| `id` | INTEGER | No (PK) | - | AUTOINCREMENT | Surrogate key |
+| `date_key` | TEXT | No (FK) | - | FK → dim_date | Annual key in `'YYYY-Q4'` format |
+| `employment_services_pct` | REAL | Yes | % | [0, 100] | Share of employment in services sector |
+| `employment_industry_pct` | REAL | Yes | % | [0, 100] | Share of employment in industry |
+| `employment_agriculture_pct` | REAL | Yes | % | [0, 100] | Share of employment in agriculture |
+| `real_wage_index` | REAL | Yes | index | > 0 | Real wage index (2015 = 100) |
+| `labour_productivity_index` | REAL | Yes | index | > 0 | Labour productivity index (2015 = 100) |
+| `is_provisional` | INTEGER | No | boolean | {0, 1} | 1 = provisional/projected, 0 = confirmed |
+| `source_key` | INTEGER | No (FK) | - | FK → dim_source | Data source reference |
+
+**Unique constraint:** (`date_key`, `source_key`)
+**Note:** The three sector employment shares should sum to approximately 100%.
+
+---
+
+### Pillar 9: fact_external_accounts
+
+**Granularity:** Quarterly (2010-Q1 to 2025-Q4 = 64 rows)
+**Primary Sources:** ECB SDW (REER), Banco de Portugal (current account, trade balance)
+
+| Column | Data Type | Nullable | Unit | Constraints | Description |
+|--------|-----------|----------|------|-------------|-------------|
+| `id` | INTEGER | No (PK) | - | AUTOINCREMENT | Surrogate key |
+| `date_key` | TEXT | No (FK) | - | FK → dim_date | Quarter key (e.g., `'2023-Q2'`) |
+| `trade_balance_pct_gdp` | REAL | Yes | % GDP | | Goods and services trade balance as % of GDP (negative = deficit) |
+| `current_account_pct_gdp` | REAL | Yes | % GDP | | Current account balance as % of GDP |
+| `reer_index` | REAL | Yes | index | > 0 | Real Effective Exchange Rate index (2015 = 100; rise = appreciation) |
+| `export_growth_yoy` | REAL | Yes | % | | Year-on-year growth in exports of goods and services |
+| `is_provisional` | INTEGER | No | boolean | {0, 1} | 1 = provisional/projected, 0 = confirmed |
+| `source_key` | INTEGER | No (FK) | - | FK → dim_source | Data source reference |
+
+**Unique constraint:** (`date_key`, `source_key`)
+
+---
+
+### Pillar 10: fact_fiscal
+
+**Granularity:** Annual (2010-Q4 to 2025-Q4 = 16 rows)
+**Primary Sources:** Eurostat (`gov_10a_exp` — COFOG functional classification)
+
+| Column | Data Type | Nullable | Unit | Constraints | Description |
+|--------|-----------|----------|------|-------------|-------------|
+| `id` | INTEGER | No (PK) | - | AUTOINCREMENT | Surrogate key |
+| `date_key` | TEXT | No (FK) | - | FK → dim_date | Annual key in `'YYYY-Q4'` format |
+| `total_revenue_pct_gdp` | REAL | Yes | % GDP | [0, 100] | Total government revenue as % of GDP |
+| `total_expenditure_pct_gdp` | REAL | Yes | % GDP | [0, 100] | Total government expenditure as % of GDP |
+| `health_expenditure_pct` | REAL | Yes | % GDP | [0, 20] | Government health expenditure as % of GDP |
+| `education_expenditure_pct` | REAL | Yes | % GDP | [0, 15] | Government education expenditure as % of GDP |
+| `social_protection_pct` | REAL | Yes | % GDP | [0, 40] | Social protection expenditure as % of GDP |
+| `interest_payments_pct` | REAL | Yes | % GDP | [0, 15] | Debt interest payments as % of GDP |
+| `is_provisional` | INTEGER | No | boolean | {0, 1} | 1 = provisional/projected, 0 = confirmed |
+| `source_key` | INTEGER | No (FK) | - | FK → dim_source | Data source reference |
+
+**Unique constraint:** (`date_key`, `source_key`)
+
+---
+
+### Pillar 11: fact_inequality
+
+**Granularity:** Annual (2010-Q4 to 2025-Q4 = 16 rows)
+**Primary Sources:** Eurostat (`ilc_di12` — Gini, `ilc_peps01` — poverty risk)
+
+| Column | Data Type | Nullable | Unit | Constraints | Description |
+|--------|-----------|----------|------|-------------|-------------|
+| `id` | INTEGER | No (PK) | - | AUTOINCREMENT | Surrogate key |
+| `date_key` | TEXT | No (FK) | - | FK → dim_date | Annual key in `'YYYY-Q4'` format |
+| `gini_index` | REAL | Yes | 0-100 | [0, 100] | Gini coefficient of income inequality (higher = more unequal) |
+| `s80_s20_ratio` | REAL | Yes | ratio | > 0 | Income quintile share ratio S80/S20 (income of top 20% / bottom 20%) |
+| `poverty_risk_rate` | REAL | Yes | % | [0, 100] | Share of population at risk of poverty (income < 60% of national median) |
+| `median_income_index` | REAL | Yes | index | > 0 | Median equivalised net income index (EU27 = 100) |
+| `is_provisional` | INTEGER | No | boolean | {0, 1} | 1 = provisional/projected, 0 = confirmed |
+| `source_key` | INTEGER | No (FK) | - | FK → dim_source | Data source reference |
+
+**Unique constraint:** (`date_key`, `source_key`)
+
+---
+
+### Pillar 12: fact_regional
+
+**Granularity:** Annual per NUTS2 region (2010-Q4 to 2025-Q4 = 16 years × 7 regions = 112 rows)
+**Primary Sources:** Eurostat NUTS2 (`nama_10r_2gdp` — GDP per capita, `lfst_r_lfu3rt` — regional unemployment)
+
+| Column | Data Type | Nullable | Unit | Constraints | Description |
+|--------|-----------|----------|------|-------------|-------------|
+| `id` | INTEGER | No (PK) | - | AUTOINCREMENT | Surrogate key |
+| `date_key` | TEXT | No (FK) | - | FK → dim_date | Annual key in `'YYYY-Q4'` format |
+| `nuts2_code` | TEXT | No | - | LENGTH = 4 | NUTS2 region code (e.g., `'PT17'` for Lisboa) |
+| `nuts2_name` | TEXT | No | - | | NUTS2 region full name (e.g., `'Lisboa'`) |
+| `gdp_per_capita_pps` | REAL | Yes | PPS | > 0 | GDP per capita in Purchasing Power Standards |
+| `gdp_index_eu27` | REAL | Yes | index | > 0 | GDP per capita index (EU27 = 100) |
+| `unemployment_rate` | REAL | Yes | % | [0, 50] | Regional unemployment rate |
+| `youth_unemployment_rate` | REAL | Yes | % | [0, 80] | Regional youth (15-24) unemployment rate |
+| `is_provisional` | INTEGER | No | boolean | {0, 1} | 1 = provisional/projected, 0 = confirmed |
+| `source_key` | INTEGER | No (FK) | - | FK → dim_source | Data source reference |
+
+**Unique constraint:** (`date_key`, `nuts2_code`, `source_key`)
+
+**NUTS2 Regions covered:**
+
+| Code | Name | Notes |
+|------|------|-------|
+| PT11 | Norte | Largest region by population |
+| PT15 | Alentejo | Largest by area, lowest GDP per capita |
+| PT16 | Centro | |
+| PT17 | Lisboa | Highest GDP per capita |
+| PT18 | Algarve | Tourism-driven economy |
+| PT20 | Acores | Autonomous region |
+| PT30 | Madeira | Autonomous region |
 
 ---
 

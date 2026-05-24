@@ -8,12 +8,16 @@ Portugal Data Intelligence consolidates macroeconomic data from official Portugu
 
 ## Key Features
 
-- **6 Economic Pillars** — GDP, Unemployment, Credit, Interest Rates, Inflation, Public Debt
+- **12 Economic Pillars** — GDP, Unemployment, Credit, Interest Rates, Inflation, Public Debt, Housing, Labour Detail, External Accounts, Fiscal, Inequality, Regional (NUTS2)
 - **Real Data Ingestion** — Eurostat, ECB, and Banco de Portugal APIs with synthetic fallback
-- **Star Schema Database** — SQLite with dimension and fact tables, full referential integrity
-- **Statistical Analysis** — Correlation, SARIMAX forecasting, STL decomposition, scenario analysis
+- **Star Schema Database** — SQLite with dimension and 12 fact tables, full referential integrity
+- **Statistical Analysis** — Correlation, SARIMAX forecasting (with model cache), STL decomposition, VAR/Granger causality, nowcasting, scenario analysis
+- **Anomaly Detection** — Rolling z-score and Isolation Forest multivariate detection
+- **Regional Analysis** — NUTS2 choropleth with Plotly (7 Portuguese regions)
 - **Data Quality Framework** — 15+ automated checks with pipeline lineage tracking
 - **Interactive Dashboard** — Power BI dashboard with KPIs, drill-downs, and what-if scenarios
+- **Interactive HTML Report** — Plotly charts with zoom/hover, self-contained single file
+- **Excel Export** — Multi-sheet workbook with per-pillar data and correlation matrix
 - **Automated Alerts** — Configurable threshold monitoring for all key indicators
 - **Executive Reports** — AI-powered insight engine, interactive Streamlit dashboard, Power BI DAX measures
 
@@ -30,6 +34,8 @@ python main.py
 python main.py --mode etl        # Data fetch + ETL only
 python main.py --mode analysis   # Analysis + charts
 python main.py --mode reports    # AI insights + executive briefing
+python main.py --mode excel      # Export data to Excel workbook
+python main.py --mode quick      # ETL + analysis (skip reports)
 
 # Generate HTML report
 python dashboard/generate_report.py
@@ -79,5 +85,5 @@ portugal-data-intelligence/
 ├── reports/         # Generated charts, insights, Power BI assets
 ├── sql/             # DDL and analytical queries
 ├── src/             # Source code (ETL, analysis, insights, alerts)
-└── tests/           # Test suite (426+ tests, 75%+ coverage)
+└── tests/           # Test suite (442+ tests)
 ```

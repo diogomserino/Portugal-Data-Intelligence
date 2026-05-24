@@ -7,8 +7,9 @@ analysing relationships between macroeconomic pillars.
 Extracted from InsightEngine to keep the facade class slim.
 """
 
-import sqlite3
 from typing import Dict
+
+from src.utils.db import get_connection
 
 
 def _safe(value, fmt: str = ".1f") -> str:
@@ -234,8 +235,7 @@ def synthesise_macro_narrative(summaries: dict, relationships: list, db_path: st
     parts = []
 
     # --- Pull key data points directly from DB for accuracy ---
-    conn = sqlite3.connect(db_path)
-    try:
+    with get_connection(db_path) as conn:
 
         def _q(sql):
             r = conn.execute(sql).fetchone()
@@ -269,8 +269,6 @@ def synthesise_macro_narrative(summaries: dict, relationships: list, db_path: st
         )
         peak_unemp = _q("SELECT MAX(unemployment_rate) FROM fact_unemployment")
         peak_debt = _q("SELECT MAX(debt_to_gdp_ratio) FROM fact_public_debt")
-    finally:
-        conn.close()
 
     # --- Act 1: Crisis and Adjustment (2010-2014) ---
     parts.append(

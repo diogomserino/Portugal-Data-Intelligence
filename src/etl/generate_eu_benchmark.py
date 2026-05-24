@@ -31,7 +31,6 @@ All random operations use seed 43 for full reproducibility.
 Author: Portugal Data Intelligence
 """
 
-import sqlite3
 import sys
 from pathlib import Path
 from typing import Dict, List
@@ -54,6 +53,7 @@ from config.settings import (
     START_YEAR,
     ensure_directories,
 )
+from src.utils.db import get_connection
 from src.utils.logger import get_logger, log_section
 
 # ---------------------------------------------------------------------------
@@ -871,13 +871,10 @@ def create_benchmark_table(db_path: Path) -> None:
     with open(ddl_path, "r", encoding="utf-8") as f:
         ddl_sql = f.read()
 
-    conn = sqlite3.connect(str(db_path))
-    try:
+    with get_connection(db_path) as conn:
         conn.executescript(ddl_sql)
         conn.commit()
         logger.info(f"Created benchmark table in {db_path.name}")
-    finally:
-        conn.close()
 
 
 def load_to_database(df: pd.DataFrame, db_path: Path) -> int:
@@ -895,14 +892,11 @@ def load_to_database(df: pd.DataFrame, db_path: Path) -> int:
     int
         Number of rows inserted.
     """
-    conn = sqlite3.connect(str(db_path))
-    try:
+    with get_connection(db_path) as conn:
         df.to_sql("fact_eu_benchmark", conn, if_exists="append", index=False)
         row_count = len(df)
         logger.info(f"Loaded {row_count:,} rows into fact_eu_benchmark")
         return row_count
-    finally:
-        conn.close()
 
 
 # =============================================================================

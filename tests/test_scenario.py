@@ -20,7 +20,7 @@ def engine():
     except Exception as exc:
         pytest.skip(f"ScenarioEngine initialisation failed (schema migration): {exc}")
     yield eng
-    eng._conn.close()
+    eng.close()  # no-op: connections are per-query
 
 
 class TestScenarioEngineInit:

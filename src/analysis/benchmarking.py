@@ -21,7 +21,6 @@ Usage:
 Author: Portugal Data Intelligence
 """
 
-import sqlite3
 import sys
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -43,6 +42,7 @@ from src.reporting.shared_styles import (
     CHART_GRID_ALPHA,
     COUNTRY_COLORS,
 )
+from src.utils.db import get_connection
 from src.utils.logger import get_logger, log_section
 
 # ---------------------------------------------------------------------------
@@ -98,15 +98,12 @@ class EUBenchmark:
     def _load_data(self) -> None:
         """Load benchmark data from the database into a DataFrame."""
         logger.info(f"Loading benchmark data from {self.db_path}")
-        conn = sqlite3.connect(str(self.db_path))
-        try:
+        with get_connection(self.db_path) as conn:
             self.data = pd.read_sql_query(
                 "SELECT date_key, country_code, country_name, indicator, value "
                 "FROM fact_eu_benchmark ORDER BY date_key, country_code, indicator",
                 conn,
             )
-        finally:
-            conn.close()
 
         self.data["year"] = self.data["date_key"].astype(int)
         self.latest_year = int(self.data["year"].max())

@@ -11,7 +11,8 @@ Provides 3-year forward projections (2026-2028) using:
 Each forecast includes confidence bands at the 68 % and 95 % levels.
 """
 
-import sqlite3
+import hashlib
+import time
 import warnings
 from itertools import product
 from typing import Any, Dict, List, Optional, Tuple
@@ -21,8 +22,19 @@ import pandas as pd
 from scipy import stats
 from scipy.optimize import minimize_scalar
 
-from config.settings import DATA_PILLARS, DATABASE_PATH
+from config.settings import DATA_PILLARS, DATABASE_PATH, MODEL_CACHE_DIR
+from src.utils.db import get_connection
 from src.utils.logger import get_logger, log_section
+
+# Optional joblib for model caching
+try:
+    import joblib as _joblib
+
+    HAS_JOBLIB = True
+except ImportError:
+    HAS_JOBLIB = False
+
+_MODEL_CACHE_TTL_DAYS = 7
 
 # Optional dependency — graceful fallback if not installed.
 try:
@@ -200,6 +212,48 @@ def _mean_reversion_forecast(
     }
 
 
+def _sarimax_cache_key(
+    y: np.ndarray,
+    seasonal_period: int,
+    horizon: int,
+    max_order: tuple,
+    max_seasonal: tuple,
+) -> str:
+    """Build a deterministic cache key from data fingerprint + parameters."""
+    data_hash = hashlib.md5(y.tobytes()).hexdigest()[:12]
+    params = f"sp{seasonal_period}_h{horizon}_mo{''.join(map(str, max_order))}_ms{''.join(map(str, max_seasonal))}"
+    return f"sarimax_{data_hash}_{params}.pkl"
+
+
+def _sarimax_load_cache(cache_key: str) -> Optional[dict]:
+    """Return cached result if it exists and is within TTL, else None."""
+    if not HAS_JOBLIB:
+        return None
+    path = MODEL_CACHE_DIR / cache_key
+    if not path.exists():
+        return None
+    age_days = (time.time() - path.stat().st_mtime) / 86400
+    if age_days > _MODEL_CACHE_TTL_DAYS:
+        return None
+    try:
+        result = _joblib.load(path)
+        logger.info("SARIMAX cache hit: %s (age %.1f days)", cache_key, age_days)
+        return result
+    except Exception:
+        return None
+
+
+def _sarimax_save_cache(cache_key: str, result: dict) -> None:
+    """Persist a SARIMAX result dict to the model cache."""
+    if not HAS_JOBLIB:
+        return
+    try:
+        MODEL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        _joblib.dump(result, MODEL_CACHE_DIR / cache_key)
+    except Exception as exc:
+        logger.warning("Could not save SARIMAX cache: %s", exc)
+
+
 def _sarimax_forecast(
     y: np.ndarray,
     seasonal_period: int = 4,
@@ -231,6 +285,12 @@ def _sarimax_forecast(
     """
     if not HAS_STATSMODELS:
         return None
+
+    # Check cache before fitting
+    cache_key = _sarimax_cache_key(y, seasonal_period, horizon, max_order, max_seasonal)
+    cached = _sarimax_load_cache(cache_key)
+    if cached is not None:
+        return cached
 
     best_aic = np.inf
     best_model = None
@@ -279,7 +339,7 @@ def _sarimax_forecast(
     ci_68_raw = fc.conf_int(alpha=0.32)
 
     # conf_int() may return a DataFrame or ndarray depending on statsmodels version
-    def _ci_columns(ci):
+    def _ci_columns(ci) -> tuple:
         if hasattr(ci, "iloc"):
             return np.array(ci.iloc[:, 0]), np.array(ci.iloc[:, 1])
         ci = np.asarray(ci)
@@ -304,7 +364,7 @@ def _sarimax_forecast(
         lb_pvalue if lb_pvalue is not None else -1,
     )
 
-    return {
+    result = {
         "forecast": np.array(predicted),
         "lower_68": ci_68_lo,
         "upper_68": ci_68_hi,
@@ -317,6 +377,8 @@ def _sarimax_forecast(
         "bic": round(float(best_model.bic), 2),
         "ljung_box_pvalue": round(lb_pvalue, 4) if lb_pvalue is not None else None,
     }
+    _sarimax_save_cache(cache_key, result)
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -327,7 +389,7 @@ def _sarimax_forecast(
 class Forecaster:
     """Generate quantitative forecasts for Portuguese macroeconomic indicators."""
 
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: Optional[str] = None) -> None:
         """Load data from the SQLite database.
 
         Parameters
@@ -337,46 +399,46 @@ class Forecaster:
         """
         self.db_path = str(db_path or DATABASE_PATH)
         logger.info("Forecaster initialised — database: %s", self.db_path)
-        self._conn = sqlite3.connect(self.db_path)
         self._load_data()
 
     # ------------------------------------------------------------------
     # Internal data loading
     # ------------------------------------------------------------------
 
-    def _load_data(self):
+    def _load_data(self) -> dict:
         """Read all fact tables into DataFrames."""
         logger.info("Loading historical data from database...")
 
-        self.gdp = pd.read_sql(
-            "SELECT date_key, nominal_gdp, real_gdp, gdp_growth_yoy, gdp_per_capita "
-            "FROM fact_gdp ORDER BY date_key",
-            self._conn,
-        )
-        self.unemployment = pd.read_sql(
-            "SELECT date_key, unemployment_rate, youth_unemployment_rate "
-            "FROM fact_unemployment ORDER BY date_key",
-            self._conn,
-        )
-        self.inflation = pd.read_sql(
-            "SELECT date_key, hicp, core_inflation FROM fact_inflation ORDER BY date_key",
-            self._conn,
-        )
-        self.interest_rates = pd.read_sql(
-            "SELECT date_key, ecb_main_refinancing_rate, euribor_3m, euribor_12m, "
-            "portugal_10y_bond_yield FROM fact_interest_rates ORDER BY date_key",
-            self._conn,
-        )
-        self.credit = pd.read_sql(
-            "SELECT date_key, total_credit, credit_nfc, credit_households "
-            "FROM fact_credit ORDER BY date_key",
-            self._conn,
-        )
-        self.public_debt = pd.read_sql(
-            "SELECT date_key, total_debt, debt_to_gdp_ratio, budget_deficit, "
-            "budget_deficit_annual FROM fact_public_debt ORDER BY date_key",
-            self._conn,
-        )
+        with get_connection(self.db_path) as conn:
+            self.gdp = pd.read_sql(
+                "SELECT date_key, nominal_gdp, real_gdp, gdp_growth_yoy, gdp_per_capita "
+                "FROM fact_gdp ORDER BY date_key",
+                conn,
+            )
+            self.unemployment = pd.read_sql(
+                "SELECT date_key, unemployment_rate, youth_unemployment_rate "
+                "FROM fact_unemployment ORDER BY date_key",
+                conn,
+            )
+            self.inflation = pd.read_sql(
+                "SELECT date_key, hicp, core_inflation FROM fact_inflation ORDER BY date_key",
+                conn,
+            )
+            self.interest_rates = pd.read_sql(
+                "SELECT date_key, ecb_main_refinancing_rate, euribor_3m, euribor_12m, "
+                "portugal_10y_bond_yield FROM fact_interest_rates ORDER BY date_key",
+                conn,
+            )
+            self.credit = pd.read_sql(
+                "SELECT date_key, total_credit, credit_nfc, credit_households "
+                "FROM fact_credit ORDER BY date_key",
+                conn,
+            )
+            self.public_debt = pd.read_sql(
+                "SELECT date_key, total_debt, debt_to_gdp_ratio, budget_deficit, "
+                "budget_deficit_annual FROM fact_public_debt ORDER BY date_key",
+                conn,
+            )
 
         # Validate that we have data for each pillar
         for name, df in [
@@ -890,10 +952,9 @@ class Forecaster:
         logger.info("All forecasts complete — %d pillars", len(results))
         return results
 
-    def close(self):
-        """Close the database connection."""
-        self._conn.close()
-        logger.info("Database connection closed.")
+    def close(self) -> None:
+        """No-op: connections are managed per-query via context manager."""
+        logger.debug("Forecaster.close() called — no persistent connection to close.")
 
 
 # ---------------------------------------------------------------------------

@@ -10,7 +10,6 @@ Adds inferential statistics to complement the descriptive analysis:
 - Structural break detection (Chow test)
 """
 
-import sqlite3
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -19,6 +18,7 @@ from scipy import stats
 
 from config.settings import CHART_PERIODS as _CHART_PERIODS
 from config.settings import DATA_PILLARS, DATABASE_PATH
+from src.utils.db import get_connection
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -598,13 +598,7 @@ def run_all_significance_tests(db_path: Optional[str] = None) -> dict:
     logger.info("Running significance tests across all pillars...")
     results: Dict[str, dict] = {}
 
-    try:
-        conn = sqlite3.connect(db_path)
-    except Exception as exc:
-        logger.error(f"Cannot connect to database: {exc}")
-        return results
-
-    try:
+    with get_connection(db_path) as conn:
         for pillar, query in _PILLAR_QUERIES.items():
             try:
                 df = pd.read_sql(query, conn)
@@ -659,8 +653,6 @@ def run_all_significance_tests(db_path: Optional[str] = None) -> dict:
                 "structural_breaks": breaks,
             }
             logger.info(f"Significance tests complete for {pillar}.")
-    finally:
-        conn.close()
     logger.info("All significance tests finished.")
     return results
 

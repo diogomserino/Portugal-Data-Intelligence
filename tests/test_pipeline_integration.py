@@ -25,6 +25,12 @@ EXPECTED_PILLARS = {
     "interest_rates",
     "inflation",
     "public_debt",
+    "housing",
+    "labor_detail",
+    "external_accounts",
+    "fiscal",
+    "inequality",
+    "regional",
 }
 
 

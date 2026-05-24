@@ -74,12 +74,14 @@ jobs:
             -m "not slow" \
             --ignore=tests/test_fetch_smoke.py
 
-      - name: Upload coverage
+      - name: Upload coverage to Codecov
         if: matrix.python-version == '3.11'
-        uses: actions/upload-artifact@v4
+        uses: codecov/codecov-action@v4
         with:
-          name: coverage-report
-          path: coverage.xml
+          files: coverage.xml
+          flags: unittests
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   build:
     name: Build Check

@@ -1,0 +1,17 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 60%
+        threshold: 5%
+    patch:
+      default:
+        target: 50%
+
+ignore:
+  - "tests/"
+  - "notebooks/"
+  - "docs/"
+  - "dashboard/generate_report.py"
+  - "src/etl/generate_data.py"
+  - "src/etl/generate_eu_benchmark.py"

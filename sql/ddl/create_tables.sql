@@ -35,6 +35,11 @@ DROP TABLE IF EXISTS fact_credit;
 DROP TABLE IF EXISTS fact_interest_rates;
 DROP TABLE IF EXISTS fact_inflation;
 DROP TABLE IF EXISTS fact_public_debt;
+DROP TABLE IF EXISTS fact_housing;
+DROP TABLE IF EXISTS fact_labor_detail;
+DROP TABLE IF EXISTS fact_external_accounts;
+DROP TABLE IF EXISTS fact_fiscal;
+DROP TABLE IF EXISTS fact_inequality;
 
 -- =============================================================================
 -- DIMENSION TABLES
@@ -237,6 +242,162 @@ CREATE TABLE fact_public_debt (
 
 CREATE INDEX idx_fact_public_debt_date_key   ON fact_public_debt (date_key);
 CREATE INDEX idx_fact_public_debt_source_key ON fact_public_debt (source_key);
+
+-- -----------------------------------------------------------------------------
+-- fact_housing  -  Annual House Price and Mortgage Statistics
+-- Granularity: annual (2010-Q4 to 2025-Q4, 16 rows expected).
+-- Primary sources: INE, Eurostat.
+-- -----------------------------------------------------------------------------
+
+CREATE TABLE fact_housing (
+    id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+    date_key               TEXT    NOT NULL,                                        -- FK to dim_date (YYYY-Q4)
+    house_price_index      REAL    CHECK(house_price_index > 0),                   -- HPI (2015=100)
+    house_price_yoy_change REAL    CHECK(house_price_yoy_change BETWEEN -30 AND 80), -- HPI YoY change (%)
+    housing_transactions   REAL    CHECK(housing_transactions >= 0),               -- Number of transactions
+    avg_price_per_sqm      REAL    CHECK(avg_price_per_sqm > 0),                  -- Average price (EUR/m²)
+    mortgage_new_loans     REAL    CHECK(mortgage_new_loans >= 0),                -- New mortgage loans (EUR millions)
+    is_provisional         INTEGER NOT NULL DEFAULT 0 CHECK(is_provisional IN (0, 1)),
+    source_key             INTEGER NOT NULL,
+    created_at             TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (date_key)   REFERENCES dim_date   (date_key),
+    FOREIGN KEY (source_key) REFERENCES dim_source (source_key),
+    UNIQUE (date_key, source_key)
+);
+
+CREATE INDEX idx_fact_housing_date_key ON fact_housing (date_key);
+
+-- -----------------------------------------------------------------------------
+-- fact_labor_detail  -  Annual Employment Structure and Wages
+-- Granularity: annual (2010-Q4 to 2025-Q4, 16 rows expected).
+-- Primary source: Eurostat.
+-- -----------------------------------------------------------------------------
+
+CREATE TABLE fact_labor_detail (
+    id                          INTEGER PRIMARY KEY AUTOINCREMENT,
+    date_key                    TEXT    NOT NULL,                                             -- FK to dim_date (YYYY-Q4)
+    employment_services_pct     REAL    CHECK(employment_services_pct BETWEEN 0 AND 100),    -- % employed in services
+    employment_industry_pct     REAL    CHECK(employment_industry_pct BETWEEN 0 AND 100),    -- % employed in industry
+    employment_agriculture_pct  REAL    CHECK(employment_agriculture_pct BETWEEN 0 AND 100), -- % employed in agriculture
+    real_wage_index             REAL    CHECK(real_wage_index > 0),                          -- Real wage index (2015=100)
+    labour_productivity_index   REAL    CHECK(labour_productivity_index > 0),                -- Labour productivity index (2015=100)
+    is_provisional              INTEGER NOT NULL DEFAULT 0 CHECK(is_provisional IN (0, 1)),
+    source_key                  INTEGER NOT NULL,
+    created_at                  TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (date_key)   REFERENCES dim_date   (date_key),
+    FOREIGN KEY (source_key) REFERENCES dim_source (source_key),
+    UNIQUE (date_key, source_key)
+);
+
+CREATE INDEX idx_fact_labor_detail_date_key ON fact_labor_detail (date_key);
+
+-- -----------------------------------------------------------------------------
+-- fact_external_accounts  -  Quarterly External Competitiveness
+-- Granularity: quarterly (2010-Q1 to 2025-Q4, 64 rows expected).
+-- Primary sources: ECB, Banco de Portugal, Eurostat.
+-- -----------------------------------------------------------------------------
+
+CREATE TABLE fact_external_accounts (
+    id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+    date_key               TEXT    NOT NULL,                                             -- FK to dim_date (YYYY-QN)
+    trade_balance_pct_gdp  REAL    CHECK(trade_balance_pct_gdp BETWEEN -30 AND 30),    -- Trade balance % GDP
+    current_account_pct_gdp REAL   CHECK(current_account_pct_gdp BETWEEN -30 AND 30), -- Current account % GDP
+    reer_index             REAL    CHECK(reer_index > 0),                               -- REER (2015=100)
+    export_growth_yoy      REAL    CHECK(export_growth_yoy BETWEEN -50 AND 80),        -- Export growth YoY (%)
+    is_provisional         INTEGER NOT NULL DEFAULT 0 CHECK(is_provisional IN (0, 1)),
+    source_key             INTEGER NOT NULL,
+    created_at             TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (date_key)   REFERENCES dim_date   (date_key),
+    FOREIGN KEY (source_key) REFERENCES dim_source (source_key),
+    UNIQUE (date_key, source_key)
+);
+
+CREATE INDEX idx_fact_external_accounts_date_key ON fact_external_accounts (date_key);
+
+-- -----------------------------------------------------------------------------
+-- fact_fiscal  -  Annual Fiscal Composition (COFOG)
+-- Granularity: annual (2010-Q4 to 2025-Q4, 16 rows expected).
+-- Primary source: Eurostat (gov_10a_exp).
+-- All values expressed as % of GDP.
+-- -----------------------------------------------------------------------------
+
+CREATE TABLE fact_fiscal (
+    id                          INTEGER PRIMARY KEY AUTOINCREMENT,
+    date_key                    TEXT    NOT NULL,                                                   -- FK to dim_date (YYYY-Q4)
+    total_revenue_pct_gdp       REAL    CHECK(total_revenue_pct_gdp BETWEEN 0 AND 80),             -- Total revenue % GDP
+    total_expenditure_pct_gdp   REAL    CHECK(total_expenditure_pct_gdp BETWEEN 0 AND 80),         -- Total expenditure % GDP
+    health_expenditure_pct      REAL    CHECK(health_expenditure_pct BETWEEN 0 AND 20),            -- Health % GDP
+    education_expenditure_pct   REAL    CHECK(education_expenditure_pct BETWEEN 0 AND 15),         -- Education % GDP
+    social_protection_pct       REAL    CHECK(social_protection_pct BETWEEN 0 AND 40),             -- Social protection % GDP
+    interest_payments_pct       REAL    CHECK(interest_payments_pct BETWEEN 0 AND 15),             -- Interest payments % GDP
+    is_provisional              INTEGER NOT NULL DEFAULT 0 CHECK(is_provisional IN (0, 1)),
+    source_key                  INTEGER NOT NULL,
+    created_at                  TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (date_key)   REFERENCES dim_date   (date_key),
+    FOREIGN KEY (source_key) REFERENCES dim_source (source_key),
+    UNIQUE (date_key, source_key)
+);
+
+CREATE INDEX idx_fact_fiscal_date_key ON fact_fiscal (date_key);
+
+-- -----------------------------------------------------------------------------
+-- fact_inequality  -  Annual Inequality and Income Indicators
+-- Granularity: annual (2010-Q4 to 2025-Q4, 16 rows expected).
+-- Primary source: Eurostat (EU-SILC).
+-- -----------------------------------------------------------------------------
+
+CREATE TABLE fact_inequality (
+    id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+    date_key             TEXT    NOT NULL,                                               -- FK to dim_date (YYYY-Q4)
+    gini_index           REAL    CHECK(gini_index BETWEEN 0 AND 100),                  -- Gini coefficient (0-100)
+    s80_s20_ratio        REAL    CHECK(s80_s20_ratio > 0),                             -- Income quintile share ratio
+    poverty_risk_rate    REAL    CHECK(poverty_risk_rate BETWEEN 0 AND 100),           -- At-risk-of-poverty rate (%)
+    median_income_index  REAL    CHECK(median_income_index > 0),                       -- Median equivalised income index (EU27=100)
+    is_provisional       INTEGER NOT NULL DEFAULT 0 CHECK(is_provisional IN (0, 1)),
+    source_key           INTEGER NOT NULL,
+    created_at           TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (date_key)   REFERENCES dim_date   (date_key),
+    FOREIGN KEY (source_key) REFERENCES dim_source (source_key),
+    UNIQUE (date_key, source_key)
+);
+
+CREATE INDEX idx_fact_inequality_date_key ON fact_inequality (date_key);
+
+-- -----------------------------------------------------------------------------
+-- fact_regional  -  NUTS2 Regional Macroeconomic Indicators
+-- Granularity: annual (YYYY-Q4), one row per NUTS2 region per year.
+-- Primary source: Eurostat (nama_10r_2gdp, lfst_r_lfu3rt).
+-- NUTS2 regions: PT11 Norte, PT15 Alentejo, PT16 Centro, PT17 Lisboa,
+--                PT18 Algarve, PT20 Açores, PT30 Madeira.
+-- -----------------------------------------------------------------------------
+
+DROP TABLE IF EXISTS fact_regional;
+
+CREATE TABLE fact_regional (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    date_key                TEXT    NOT NULL,                                           -- FK to dim_date (YYYY-Q4)
+    nuts2_code              TEXT    NOT NULL CHECK(LENGTH(nuts2_code) = 4),            -- e.g. 'PT17'
+    nuts2_name              TEXT    NOT NULL,                                           -- e.g. 'Lisboa'
+    gdp_per_capita_pps      REAL    CHECK(gdp_per_capita_pps > 0),                    -- GDP per capita in PPS (EUR)
+    gdp_index_eu27          REAL    CHECK(gdp_index_eu27 > 0),                        -- GDP per capita as % of EU27=100
+    unemployment_rate       REAL    CHECK(unemployment_rate BETWEEN 0 AND 50),        -- Regional unemployment rate (%)
+    youth_unemployment_rate REAL    CHECK(youth_unemployment_rate BETWEEN 0 AND 80),  -- Youth unemployment rate (%)
+    is_provisional          INTEGER NOT NULL DEFAULT 0 CHECK(is_provisional IN (0, 1)),
+    source_key              INTEGER NOT NULL,
+    created_at              TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (date_key)   REFERENCES dim_date   (date_key),
+    FOREIGN KEY (source_key) REFERENCES dim_source (source_key),
+    UNIQUE (date_key, nuts2_code, source_key)
+);
+
+CREATE INDEX idx_fact_regional_date_key  ON fact_regional (date_key);
+CREATE INDEX idx_fact_regional_nuts2     ON fact_regional (nuts2_code);
 
 -- =============================================================================
 -- END OF DDL

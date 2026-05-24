@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from config.settings import DATABASE_PATH, DDL_DIR
+from src.utils.db import get_connection
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -174,8 +175,7 @@ class PipelineTracker:
         """Write run metadata and lineage records to the database."""
         try:
             self.db_path.parent.mkdir(parents=True, exist_ok=True)
-            conn = sqlite3.connect(str(self.db_path))
-            try:
+            with get_connection(self.db_path) as conn:
                 self._ensure_tables(conn)
 
                 completed_at = datetime.now(timezone.utc).isoformat()
@@ -218,7 +218,5 @@ class PipelineTracker:
                 logger.info(
                     "Lineage persisted: %d records for run %s", len(self.records), self.run_id
                 )
-            finally:
-                conn.close()
         except Exception as exc:
             logger.error("Failed to persist lineage data: %s", exc)

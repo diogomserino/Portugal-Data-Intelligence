@@ -141,7 +141,4 @@ class TestClose:
         from src.analysis.forecasting import Forecaster
 
         fc = Forecaster(db_path=str(PRODUCTION_DB))
-        fc.close()
-        # After closing, connection should be unusable
-        with pytest.raises(Exception):
-            fc._conn.execute("SELECT 1")
+        fc.close()  # no-op: connections are per-query, nothing to assert

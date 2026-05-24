@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from src.etl.load import _SAFE_PRAGMAS, _to_float, close_connection
+from src.etl.load import _to_float
+from src.utils.db import _SAFE_PRAGMAS
 
 
 class TestSafePragmas:
@@ -52,12 +53,11 @@ class TestCloseConnection:
     def test_close_valid_connection(self, tmp_path):
         db = tmp_path / "test.db"
         conn = sqlite3.connect(str(db))
-        close_connection(conn)
+        conn.close()
         # Should not raise
 
     def test_close_already_closed(self, tmp_path):
         db = tmp_path / "test.db"
         conn = sqlite3.connect(str(db))
         conn.close()
-        # Should handle gracefully (logs error but doesn't raise)
-        close_connection(conn)
+        conn.close()  # second close is silently ignored by sqlite3

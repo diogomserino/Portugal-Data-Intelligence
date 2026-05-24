@@ -8,7 +8,6 @@ Usage:
     streamlit run dashboard/app.py
 """
 
-import sqlite3
 import sys
 from pathlib import Path
 
@@ -24,12 +23,13 @@ from plotly.subplots import make_subplots
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from config.settings import DATABASE_PATH
-
 # ---------------------------------------------------------------------------
 # Streamlit config (must be first st call)
 # ---------------------------------------------------------------------------
 import streamlit as st
+
+from config.settings import DATABASE_PATH
+from src.utils.db import get_connection
 
 st.set_page_config(
     page_title="Portugal Data Intelligence",
@@ -56,10 +56,22 @@ COLORS = {
 # Data loading (cached)
 # ---------------------------------------------------------------------------
 
-_VALID_TABLES = frozenset({
-    "fact_gdp", "fact_unemployment", "fact_credit",
-    "fact_interest_rates", "fact_inflation", "fact_public_debt",
-})
+_VALID_TABLES = frozenset(
+    {
+        "fact_gdp",
+        "fact_unemployment",
+        "fact_credit",
+        "fact_interest_rates",
+        "fact_inflation",
+        "fact_public_debt",
+        "fact_housing",
+        "fact_labor_detail",
+        "fact_external_accounts",
+        "fact_fiscal",
+        "fact_inequality",
+        "fact_regional",
+    }
+)
 _VALID_DATE_COLS = frozenset({"date_key"})
 
 
@@ -70,33 +82,48 @@ def load_data(table: str, date_col: str = "date_key") -> pd.DataFrame:
         raise ValueError(f"Invalid table: {table}")
     if date_col not in _VALID_DATE_COLS:
         raise ValueError(f"Invalid date column: {date_col}")
-    db_path = str(DATABASE_PATH)
-    conn = sqlite3.connect(db_path)
-    try:
-        df = pd.read_sql(f"SELECT d.*, f.* FROM {table} f JOIN dim_date d ON f.date_key = d.date_key ORDER BY d.year, d.month", conn)
-    except sqlite3.OperationalError:
-        df = pd.read_sql(f"SELECT * FROM {table} ORDER BY {date_col}", conn)
-    finally:
-        conn.close()
+    with get_connection() as conn:
+        try:
+            df = pd.read_sql(
+                f"SELECT d.*, f.* FROM {table} f JOIN dim_date d ON f.date_key = d.date_key"
+                f" ORDER BY d.year, d.month",
+                conn,
+            )
+        except Exception:
+            df = pd.read_sql(f"SELECT * FROM {table} ORDER BY {date_col}", conn)
     return df
 
 
 @st.cache_data(ttl=300)
 def load_all_pillars() -> dict:
-    """Load all six pillar datasets."""
-    return {
-        "GDP": load_data("fact_gdp"),
-        "Unemployment": load_data("fact_unemployment"),
-        "Credit": load_data("fact_credit"),
-        "Interest Rates": load_data("fact_interest_rates"),
-        "Inflation": load_data("fact_inflation"),
-        "Public Debt": load_data("fact_public_debt"),
+    """Load all pillar datasets. Returns only tables that exist in the DB."""
+    candidates = {
+        "GDP": "fact_gdp",
+        "Unemployment": "fact_unemployment",
+        "Credit": "fact_credit",
+        "Interest Rates": "fact_interest_rates",
+        "Inflation": "fact_inflation",
+        "Public Debt": "fact_public_debt",
+        "Housing": "fact_housing",
+        "Labour Market Detail": "fact_labor_detail",
+        "External Accounts": "fact_external_accounts",
+        "Fiscal": "fact_fiscal",
+        "Inequality": "fact_inequality",
+        "Regional (NUTS2)": "fact_regional",
     }
+    result = {}
+    for label, table in candidates.items():
+        try:
+            result[label] = load_data(table)
+        except Exception:
+            pass  # table not yet populated — skip silently
+    return result
 
 
 # ---------------------------------------------------------------------------
 # Helper functions
 # ---------------------------------------------------------------------------
+
 
 def parse_date_key(df: pd.DataFrame) -> pd.DataFrame:
     """Add a proper datetime column from date_key."""
@@ -109,6 +136,7 @@ def parse_date_key(df: pd.DataFrame) -> pd.DataFrame:
             year, q = int(parts[0]), int(parts[1])
             month = (q - 1) * 3 + 1
             return pd.Timestamp(year=year, month=month, day=1)
+
         df["date"] = df["date_key"].apply(to_date)
     else:
         # Monthly: "2010-01" -> datetime
@@ -132,6 +160,7 @@ def fmt(val, decimals=1, suffix=""):
 # Page: Executive Overview
 # ---------------------------------------------------------------------------
 
+
 def page_overview():
     st.title("Portugal Economic Dashboard")
     st.markdown("**Macroeconomic Intelligence Platform** — Data from 2010 to 2025")
@@ -146,15 +175,24 @@ def page_overview():
     if not gdp.empty:
         latest_gdp = gdp["nominal_gdp"].iloc[-1]
         prev_gdp = gdp["nominal_gdp"].iloc[-5] if len(gdp) > 5 else gdp["nominal_gdp"].iloc[0]
-        gdp_change = ((latest_gdp - prev_gdp) / prev_gdp * 100)
+        gdp_change = (latest_gdp - prev_gdp) / prev_gdp * 100
         col1.metric("GDP (EUR M)", fmt(latest_gdp, 0), f"{gdp_change:+.1f}%")
 
     # Unemployment
     unemp = data["Unemployment"]
     if not unemp.empty:
         latest_u = unemp["unemployment_rate"].iloc[-1]
-        prev_u = unemp["unemployment_rate"].iloc[-13] if len(unemp) > 13 else unemp["unemployment_rate"].iloc[0]
-        col2.metric("Unemployment", fmt(latest_u, 1, "%"), f"{latest_u - prev_u:+.1f}pp", delta_color="inverse")
+        prev_u = (
+            unemp["unemployment_rate"].iloc[-13]
+            if len(unemp) > 13
+            else unemp["unemployment_rate"].iloc[0]
+        )
+        col2.metric(
+            "Unemployment",
+            fmt(latest_u, 1, "%"),
+            f"{latest_u - prev_u:+.1f}pp",
+            delta_color="inverse",
+        )
 
     # Credit
     credit = data["Credit"]
@@ -202,7 +240,9 @@ def page_overview():
         df = parse_date_key(df)
         with all_cols[idx]:
             fig = px.line(
-                df, x="date", y=col,
+                df,
+                x="date",
+                y=col,
                 title=title,
                 labels={col: unit, "date": ""},
                 color_discrete_sequence=[COLORS["primary"]],
@@ -221,6 +261,7 @@ def page_overview():
 # Page: Pillar Deep Dive
 # ---------------------------------------------------------------------------
 
+
 def page_pillar_detail():
     st.title("Pillar Deep Dive")
 
@@ -237,7 +278,12 @@ def page_pillar_detail():
         },
         "Unemployment": {
             "table": "fact_unemployment",
-            "columns": ["unemployment_rate", "youth_unemployment_rate", "long_term_unemployment_rate", "labour_force_participation_rate"],
+            "columns": [
+                "unemployment_rate",
+                "youth_unemployment_rate",
+                "long_term_unemployment_rate",
+                "labour_force_participation_rate",
+            ],
             "labels": {
                 "unemployment_rate": "Total (%)",
                 "youth_unemployment_rate": "Youth (%)",
@@ -257,7 +303,12 @@ def page_pillar_detail():
         },
         "Interest Rates": {
             "table": "fact_interest_rates",
-            "columns": ["ecb_main_refinancing_rate", "euribor_3m", "euribor_12m", "portugal_10y_bond_yield"],
+            "columns": [
+                "ecb_main_refinancing_rate",
+                "euribor_3m",
+                "euribor_12m",
+                "portugal_10y_bond_yield",
+            ],
             "labels": {
                 "ecb_main_refinancing_rate": "ECB Main Rate (%)",
                 "euribor_3m": "Euribor 3M (%)",
@@ -276,8 +327,12 @@ def page_pillar_detail():
         },
         "Public Debt": {
             "table": "fact_public_debt",
-            "columns": ["debt_to_gdp_ratio", "budget_deficit", "budget_deficit_annual",
-                         "external_debt_share_estimated"],
+            "columns": [
+                "debt_to_gdp_ratio",
+                "budget_deficit",
+                "budget_deficit_annual",
+                "external_debt_share_estimated",
+            ],
             "labels": {
                 "debt_to_gdp_ratio": "Debt/GDP (%)",
                 "budget_deficit": "Budget Deficit Quarterly (% GDP)",
@@ -324,13 +379,15 @@ def page_pillar_detail():
     fig = go.Figure()
     colors = [COLORS["primary"], COLORS["secondary"], COLORS["accent"], COLORS["neutral"]]
     for i, col in enumerate(selected_cols):
-        fig.add_trace(go.Scatter(
-            x=df["date"],
-            y=df[col],
-            name=config["labels"].get(col, col),
-            line=dict(color=colors[i % len(colors)], width=2),
-            hovertemplate="%{x|%Y-%m}<br>%{y:.2f}<extra></extra>",
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=df["date"],
+                y=df[col],
+                name=config["labels"].get(col, col),
+                line=dict(color=colors[i % len(colors)], width=2),
+                hovertemplate="%{x|%Y-%m}<br>%{y:.2f}<extra></extra>",
+            )
+        )
 
     fig.update_layout(
         title=f"{selected_pillar} — Detailed View ({year_range[0]}-{year_range[1]})",
@@ -363,6 +420,7 @@ def page_pillar_detail():
 # Page: Correlation Matrix
 # ---------------------------------------------------------------------------
 
+
 def page_correlation():
     st.title("Cross-Pillar Correlation Analysis")
 
@@ -373,23 +431,33 @@ def page_correlation():
 
     gdp = data["GDP"]
     if not gdp.empty:
-        annual_data["GDP Growth"] = gdp.groupby(parse_date_key(gdp)["date"].dt.year)["gdp_growth_yoy"].mean()
+        annual_data["GDP Growth"] = gdp.groupby(parse_date_key(gdp)["date"].dt.year)[
+            "gdp_growth_yoy"
+        ].mean()
 
     unemp = data["Unemployment"]
     if not unemp.empty:
-        annual_data["Unemployment"] = unemp.groupby(parse_date_key(unemp)["date"].dt.year)["unemployment_rate"].mean()
+        annual_data["Unemployment"] = unemp.groupby(parse_date_key(unemp)["date"].dt.year)[
+            "unemployment_rate"
+        ].mean()
 
     infl = data["Inflation"]
     if not infl.empty:
-        annual_data["Inflation (HICP)"] = infl.groupby(parse_date_key(infl)["date"].dt.year)["hicp"].mean()
+        annual_data["Inflation (HICP)"] = infl.groupby(parse_date_key(infl)["date"].dt.year)[
+            "hicp"
+        ].mean()
 
     rates = data["Interest Rates"]
     if not rates.empty:
-        annual_data["10Y Bond Yield"] = rates.groupby(parse_date_key(rates)["date"].dt.year)["portugal_10y_bond_yield"].mean()
+        annual_data["10Y Bond Yield"] = rates.groupby(parse_date_key(rates)["date"].dt.year)[
+            "portugal_10y_bond_yield"
+        ].mean()
 
     debt = data["Public Debt"]
     if not debt.empty:
-        annual_data["Debt/GDP"] = debt.groupby(parse_date_key(debt)["date"].dt.year)["debt_to_gdp_ratio"].mean()
+        annual_data["Debt/GDP"] = debt.groupby(parse_date_key(debt)["date"].dt.year)[
+            "debt_to_gdp_ratio"
+        ].mean()
 
     if len(annual_data) < 2:
         st.warning("Insufficient data for correlation analysis.")
@@ -403,7 +471,8 @@ def page_correlation():
         corr,
         text_auto=".2f",
         color_continuous_scale=["#9B2226", "#FFFFFF", "#386641"],
-        zmin=-1, zmax=1,
+        zmin=-1,
+        zmax=1,
         title="Pearson Correlation Matrix (Annual Averages)",
     )
     fig.update_layout(height=500)
@@ -415,7 +484,9 @@ def page_correlation():
         scatter_df = merged[["Unemployment", "Inflation (HICP)"]].copy()
         scatter_df["Year"] = scatter_df.index
         fig2 = px.scatter(
-            scatter_df, x="Unemployment", y="Inflation (HICP)",
+            scatter_df,
+            x="Unemployment",
+            y="Inflation (HICP)",
             text="Year",
             color_discrete_sequence=[COLORS["primary"]],
             trendline="ols",
@@ -429,6 +500,7 @@ def page_correlation():
 # ---------------------------------------------------------------------------
 # Page: Data Explorer
 # ---------------------------------------------------------------------------
+
 
 def page_data_explorer():
     st.title("Raw Data Explorer")
@@ -460,6 +532,7 @@ def page_data_explorer():
 # ---------------------------------------------------------------------------
 # Main app with navigation
 # ---------------------------------------------------------------------------
+
 
 def main():
     # Sidebar navigation

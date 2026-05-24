@@ -2,13 +2,15 @@
 
 **A comprehensive macroeconomic analytics platform for the Portuguese economy (2010-2025)**
 
+[![CI](https://github.com/diogomserino/Portugal-Data-Intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/diogomserino/Portugal-Data-Intelligence/actions/workflows/ci.yml)
+[![Data Refresh](https://github.com/diogomserino/Portugal-Data-Intelligence/actions/workflows/data_refresh.yml/badge.svg)](https://github.com/diogomserino/Portugal-Data-Intelligence/actions/workflows/data_refresh.yml)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
 ![SQL](https://img.shields.io/badge/SQL-SQLite3-003B57?logo=sqlite&logoColor=white)
 ![DAX](https://img.shields.io/badge/DAX-Power_BI-F2C811?logo=powerbi&logoColor=black)
 ![Jupyter](https://img.shields.io/badge/Jupyter-Notebook-F37626?logo=jupyter&logoColor=white)
 ![License](https://img.shields.io/badge/Licence-MIT-green)
 ![Tests](https://img.shields.io/badge/Tests-passing-brightgreen?logo=pytest&logoColor=white)
-![Coverage](https://img.shields.io/badge/Coverage-tracked-blue?logo=codecov&logoColor=white)
+[![Coverage](https://codecov.io/gh/diogomserino/Portugal-Data-Intelligence/branch/main/graph/badge.svg)](https://codecov.io/gh/diogomserino/Portugal-Data-Intelligence)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
 
 
@@ -19,7 +21,7 @@
 
 ## Executive Summary
 
-Portugal Data Intelligence is an end-to-end data analytics solution that examines the structural evolution of the Portuguese economy across six fundamental macroeconomic pillars. The platform ingests data from authoritative national and European statistical sources, applies rigorous ETL processes, and delivers AI-augmented insights through interactive dashboards and executive-grade reports.
+Portugal Data Intelligence is an end-to-end data analytics solution that examines the structural evolution of the Portuguese economy across **twelve macroeconomic pillars** plus regional NUTS2 analysis. The platform ingests data from authoritative national and European statistical sources, applies rigorous ETL processes, and delivers AI-augmented insights through interactive dashboards and executive-grade reports.
 
 Designed to demonstrate professional-grade data engineering, analytical rigour, and business intelligence delivery, this project follows methodologies consistent with Big Four consulting engagements in economic advisory and public sector analytics.
 
@@ -125,20 +127,23 @@ Four-page interactive dashboard with real-time KPI cards, pillar deep-dive with 
 +------------------+    +--------------------+    +----------------------+    +------------------+
 |  INE             |    |                    |    |                      |    |  Power BI        |
 |  Banco de        |--->|  Extract (CSV/API) |--->|  Statistical         |--->|  Dashboards      |
-|  Portugal        |    |  Transform (Clean) |    |  Analysis            |    |                  |
+|  Portugal        |    |  Transform (Clean) |    |  Analysis (12 pilars)|    |                  |
 |  PORDATA         |    |  Load (SQLite)     |    |                      |    |  Streamlit       |
 |  Eurostat        |    |  Data Quality Gate |    |  AI Insight          |    |  Dashboard       |
 |  ECB             |    |  Lineage Tracking  |    |  Generation          |    |                  |
 +------------------+    +--------------------+    |                      |    |  HTML Report     |
-                                                  |  STL Decomposition   |    |  (self-contained)|
-                                                  |  Forecasting (ARIMA) |    |                  |
-                                                  |  Backtesting         |    |  REST API        |
-                                                  |  Alert Engine        |    |  (FastAPI)       |
+                                                  |  STL Decomposition   |    |  (Plotly interac)|
+                                                  |  SARIMAX + Cache     |    |                  |
+                                                  |  VAR / Granger       |    |  REST API        |
+                                                  |  Nowcasting          |    |  (FastAPI)       |
+                                                  |  Anomaly Detection   |    |                  |
+                                                  |  Backtesting         |    |  Excel Export    |
+                                                  |  Alert Engine        |    |  Regional NUTS2  |
                                                   +----------------------+    +------------------+
                                                            |
                                                   +--------v---------+
                                                   |  SQLite Database  |
-                                                  |  (Central Store)  |
+                                                  |  12 fact tables   |
                                                   +------------------+
 ```
 
@@ -154,6 +159,12 @@ Four-page interactive dashboard with real-time KPI cards, pillar deep-dive with 
 | 4 | Interest Rates | Monthly | Jan 2010 - Dec 2025 | Banco de Portugal / ECB |
 | 5 | Inflation (HICP / CPI estimated) | Monthly | Jan 2010 - Dec 2025 | INE / Eurostat |
 | 6 | Public Debt | Quarterly | 2010 Q1 - 2025 Q4 | Banco de Portugal / PORDATA |
+| 7 | Housing Market | Annual | 2010 - 2025 | INE / Banco de Portugal |
+| 8 | Labour Market Detail | Annual | 2010 - 2025 | Eurostat |
+| 9 | External Accounts | Quarterly | 2010 Q1 - 2025 Q4 | ECB / Banco de Portugal |
+| 10 | Fiscal Structure | Annual | 2010 - 2025 | Eurostat |
+| 11 | Inequality & Income | Annual | 2010 - 2025 | Eurostat |
+| 12 | Regional (NUTS2) | Annual | 2010 - 2025 | Eurostat |
 
 **Schema notes:**
 
@@ -162,6 +173,7 @@ Four-page interactive dashboard with real-time KPI cards, pillar deep-dive with 
 - `cpi_estimated` (in `fact_inflation`): CPI is estimated from HICP, not sourced directly from INE.
 - `external_debt_share_estimated` (in `fact_public_debt`): this field is an estimate, not fetched from an API.
 - `budget_deficit_annual` (in `fact_public_debt`): rolling 4-quarter average of the budget balance.
+- Regional data covers 7 NUTS2 regions: Norte, Centro, Lisboa, Alentejo, Algarve, Açores, and Madeira.
 
 ---
 
@@ -236,19 +248,30 @@ portugal-data-intelligence/
 │   │   ├── backtesting.py      # Expanding-window forecast validation
 │   │   ├── decomposition.py    # STL seasonal-trend decomposition
 │   │   ├── ensemble_forecast.py # Multi-model ensemble forecasting
-│   │   ├── forecasting.py      # SARIMAX forecasting with AIC selection
+│   │   ├── forecasting.py      # SARIMAX forecasting with AIC + model cache
+│   │   ├── var_analysis.py     # VAR, IRF, FEVD, Granger causality
+│   │   ├── nowcasting.py       # Bridge-equation GDP nowcast
+│   │   ├── anomaly_detection.py # Z-score + Isolation Forest detection
+│   │   ├── housing_analysis.py # Housing market pillar
+│   │   ├── labor_analysis.py   # Labour market detail pillar
+│   │   ├── external_analysis.py # External accounts pillar
+│   │   ├── fiscal_analysis.py  # Fiscal structure pillar
+│   │   ├── inequality_analysis.py # Inequality & income pillar
+│   │   ├── regional_analysis.py # NUTS2 regional analysis
 │   │   └── ...                 # Correlation, benchmarking, scenarios
 │   ├── etl/                    # Extract, Transform, Load pipeline
 │   │   ├── api_cache.py        # Disk-based API response cache
 │   │   ├── data_quality.py     # 15+ validation checks with JSON reports
 │   │   ├── lineage.py          # Batch tracking and data provenance
 │   │   └── ...                 # Extract, transform, load, fetch
-│   ├── reporting/              # Shared visual styling
+│   ├── reporting/              # Report generation
+│   │   ├── excel_export.py     # Multi-sheet Excel workbook export
 │   │   └── shared_styles.py    # Chart colours, fonts, matplotlib config
 │   └── utils/
 │       ├── db.py               # Centralised database connection manager
+│       ├── exceptions.py       # Custom exception hierarchy (PDIBaseError)
 │       └── logger.py           # JSON logging with correlation IDs
-├── tests/                      # 34 test files
+├── tests/                      # 35 test files, 442+ tests
 ├── Dockerfile                  # Container image for pipeline execution
 ├── docker-compose.yml          # Docker Compose orchestration
 ├── Makefile                    # Task automation (make run, make test, etc.)
@@ -271,6 +294,7 @@ python main.py --mode etl        # Data fetch from APIs + ETL pipeline
 python main.py --mode analysis   # Statistical analysis + chart generation
 python main.py --mode reports    # AI insights + executive briefing
 python main.py --mode quick      # ETL + Analysis (skip reports)
+python main.py --mode excel      # Export all pillar data to Excel workbook
 python main.py --list            # Show all available modes
 
 # Generate self-contained HTML report
@@ -345,32 +369,44 @@ pytest
 
 ## Key Features
 
+### 12 Data Pillars + Regional NUTS2 Analysis
+Twelve pillars: GDP, unemployment, credit, interest rates, inflation, public debt, housing market, labour detail, external accounts, fiscal structure, inequality, and regional NUTS2 analysis covering all 7 Portuguese regions.
+
 ### EU Benchmarking
 Compares Portugal against EU-27 averages across GDP growth, unemployment, inflation, debt-to-GDP, and interest rates — with radar charts and small multiples for visual comparison.
 
 ### Cross-Pillar Correlation Analysis
-Pearson correlation matrix across all six pillars, revealing structural relationships like the unemployment-bond yield link and the inflation-NPL inverse dynamic.
+Pearson correlation matrix across all pillars, revealing structural relationships like the unemployment-bond yield link and the inflation-NPL inverse dynamic.
 
 ### AI-Powered Insights
 Rule-based insight engine with optional OpenAI GPT-4 integration for automated executive briefings, anomaly detection, and narrative commentary. Modular architecture with separate pillar, cross-pillar, and AI narrator components.
 
-### Self-Contained HTML Report
-Big4 consulting-style HTML briefing with all charts embedded as base64 data URIs — fully portable, single-file output requiring no external dependencies.
+### Interactive HTML Report with Plotly
+Big4 consulting-style HTML briefing with interactive Plotly charts (zoom, hover, tooltips) and base64-embedded PNG fallback — fully portable, single-file output requiring no external dependencies.
+
+### Excel Export
+Multi-sheet Excel workbook (`python main.py --mode excel`) with one sheet per pillar, a correlation matrix sheet, and formatted KPI summaries.
+
+### VAR / Granger Causality Analysis
+Vector Autoregression (VAR) model for cross-pillar dynamics: impulse response functions (IRF), forecast error variance decomposition (FEVD), and Granger causality tests between GDP, unemployment, inflation, and public debt.
+
+### Nowcasting
+Bridge equation nowcasting for GDP: uses monthly industrial production and credit data to estimate the current quarter's GDP growth before official release.
+
+### Anomaly Detection
+Rolling z-score (24-month window) and Isolation Forest multivariate anomaly detection across all pillars, with integration into the alert engine.
 
 ### STL Decomposition
 Seasonal-trend decomposition (STL) for unemployment, inflation, and GDP series with 3-panel diagnostic charts isolating trend, seasonal, and residual components.
 
 ### Forecasting & Backtesting
-SARIMAX forecasting with automatic order selection via AIC and Ljung-Box residual diagnostics. Expanding-window backtesting with MAE, RMSE, MAPE, and directional accuracy metrics.
+SARIMAX forecasting with automatic order selection via AIC, model-cache persistence (7-day TTL via joblib), and Ljung-Box residual diagnostics. Expanding-window backtesting with MAE, RMSE, MAPE, and directional accuracy metrics.
 
 ### Data Quality & Lineage
-15+ automated validation checks (schema, ranges, completeness, consistency, freshness) with JSON reports. Full batch tracking with UUID-based `run_id`, SHA-256 file checksums, and provenance metadata. All fact tables carry an `is_provisional` flag to distinguish confirmed data from projected or preliminary values. Estimated columns are named explicitly (e.g., `cpi_estimated`, `external_debt_share_estimated`) to maintain transparency about data provenance.
+15+ automated validation checks (schema, ranges, completeness, consistency, freshness) with JSON reports. Full batch tracking with UUID-based `run_id`, SHA-256 file checksums, and provenance metadata.
 
 ### Alert Engine
-Configurable threshold monitoring with warning/critical severity levels across all six economic pillars. JSON output for integration with external notification systems.
-
-### Drift Detection
-Statistical monitoring of data distribution shifts to flag anomalous changes in incoming data.
+Configurable threshold monitoring with warning/critical severity levels across all twelve economic pillars. JSON output for integration with external notification systems.
 
 ### 39 DAX Measures
 Complete Power BI analytical layer with KPI measures, year-on-year growth calculations, moving averages, derived cross-pillar metrics, period comparisons, and conditional formatting.

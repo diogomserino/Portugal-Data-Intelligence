@@ -111,6 +111,15 @@ EXPECTED_FACT_ROWS = {
     "fact_interest_rates": EXPECTED_MONTHLY_ROWS,
     "fact_inflation": EXPECTED_MONTHLY_ROWS,
     "fact_public_debt": EXPECTED_QUARTERLY_ROWS,
+    # New pillars (annual = 16 rows for 2010-2025)
+    "fact_housing": EXPECTED_YEARS,
+    "fact_labor_detail": EXPECTED_YEARS,
+    "fact_fiscal": EXPECTED_YEARS,
+    "fact_inequality": EXPECTED_YEARS,
+    # External accounts is quarterly
+    "fact_external_accounts": EXPECTED_QUARTERLY_ROWS,
+    # Regional: 7 NUTS2 regions × 16 years
+    "fact_regional": EXPECTED_YEARS * 7,
 }
 
 # EU Benchmark: 7 countries × 5 indicators × 16 years = 560

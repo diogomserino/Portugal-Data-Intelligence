@@ -19,7 +19,6 @@ from src.etl.load import (
     _resolve_source_key,
     _source_key_cache,
     _to_float,
-    close_connection,
     initialise_database,
 )
 
@@ -56,20 +55,26 @@ class TestInitialiseDatabase:
             "dim_source",
             "fact_credit",
             "fact_eu_benchmark",
+            "fact_external_accounts",
+            "fact_fiscal",
             "fact_gdp",
+            "fact_housing",
+            "fact_inequality",
             "fact_inflation",
             "fact_interest_rates",
+            "fact_labor_detail",
             "fact_public_debt",
+            "fact_regional",
             "fact_unemployment",
         ]
         assert tables == expected
-        close_connection(conn)
+        conn.close()
 
     def test_dim_source_seeded(self, tmp_path):
         conn = _make_conn(tmp_path)
         cursor = conn.execute("SELECT COUNT(*) FROM dim_source")
         assert cursor.fetchone()[0] == 5
-        close_connection(conn)
+        conn.close()
 
     def test_dim_date_seeded(self, tmp_path):
         conn = _make_conn(tmp_path)
@@ -77,7 +82,7 @@ class TestInitialiseDatabase:
         count = cursor.fetchone()[0]
         # 192 monthly + 64 quarterly = 256
         assert count == 256
-        close_connection(conn)
+        conn.close()
 
 
 class TestGetSourceKey:
@@ -89,20 +94,20 @@ class TestGetSourceKey:
         key = _get_source_key(conn, "INE")
         assert isinstance(key, int)
         assert key >= 1
-        close_connection(conn)
+        conn.close()
 
     def test_unknown_source_returns_none(self, tmp_path):
         _source_key_cache.clear()
         conn = _make_conn(tmp_path)
         assert _get_source_key(conn, "DOES_NOT_EXIST") is None
-        close_connection(conn)
+        conn.close()
 
     def test_cache_populated(self, tmp_path):
         _source_key_cache.clear()
         conn = _make_conn(tmp_path)
         _get_source_key(conn, "Eurostat")
         assert "Eurostat" in _source_key_cache
-        close_connection(conn)
+        conn.close()
 
 
 class TestResolveSourceKey:
@@ -113,14 +118,14 @@ class TestResolveSourceKey:
         conn = _make_conn(tmp_path)
         key = _resolve_source_key(conn, "gdp")
         assert isinstance(key, int)
-        close_connection(conn)
+        conn.close()
 
     def test_credit_resolves(self, tmp_path):
         _source_key_cache.clear()
         conn = _make_conn(tmp_path)
         key = _resolve_source_key(conn, "credit")
         assert isinstance(key, int)
-        close_connection(conn)
+        conn.close()
 
 
 class TestToFloat:
@@ -164,13 +169,13 @@ class TestInsertOrReplace:
 
         cursor = conn.execute("SELECT nominal_gdp FROM fact_gdp WHERE date_key='2020-Q1'")
         assert cursor.fetchone()[0] == 50000.0
-        close_connection(conn)
+        conn.close()
 
     def test_empty_rows_returns_zero(self, tmp_path):
         conn = _make_conn(tmp_path)
         count = _insert_or_replace(conn, "fact_gdp", ["date_key"], [], "gdp")
         assert count == 0
-        close_connection(conn)
+        conn.close()
 
 
 class TestLoadPillar:
@@ -201,7 +206,7 @@ class TestLoadPillar:
 
         cursor = conn.execute("SELECT COUNT(*) FROM fact_gdp")
         assert cursor.fetchone()[0] == 2
-        close_connection(conn)
+        conn.close()
 
     def test_load_missing_column_raises_error(self, tmp_path):
         _source_key_cache.clear()
@@ -216,7 +221,7 @@ class TestLoadPillar:
                 table_name=cfg["table_name"],
                 value_columns=cfg["value_columns"],
             )
-        close_connection(conn)
+        conn.close()
 
 
 class TestLoadAll:
@@ -231,7 +236,6 @@ class TestLoadAll:
         monkeypatch.setattr(settings, "DATABASE_PATH", db_path)
         monkeypatch.setattr(settings, "DATABASE_DIR", tmp_path)
         monkeypatch.setattr(load_mod, "DATABASE_PATH", db_path)
-        monkeypatch.setattr(load_mod, "DATABASE_DIR", tmp_path)
         _source_key_cache.clear()
 
         processed = {

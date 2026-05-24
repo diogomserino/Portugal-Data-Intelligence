@@ -21,6 +21,7 @@ import pandas as pd
 from scipy import stats as sp_stats
 
 from config.settings import DATA_PILLARS, DATABASE_PATH
+from src.utils.db import get_connection
 from src.utils.logger import get_logger, log_section
 
 logger = get_logger(__name__)
@@ -212,8 +213,7 @@ def build_correlation_matrix(db_path: Optional[str] = None) -> pd.DataFrame:
     db_path = db_path or str(DATABASE_PATH)
     logger.info("Building cross-pillar correlation matrix...")
 
-    conn = sqlite3.connect(db_path)
-    try:
+    with get_connection(db_path) as conn:
         monthly_pillars = {
             "unemp": "fact_unemployment",
             "credit": "fact_credit",
@@ -284,9 +284,6 @@ def build_correlation_matrix(db_path: Optional[str] = None) -> pd.DataFrame:
         )
         return corr_matrix
 
-    finally:
-        conn.close()
-
 
 def analyse_phillips_curve(db_path: Optional[str] = None) -> dict:
     """
@@ -303,12 +300,9 @@ def analyse_phillips_curve(db_path: Optional[str] = None) -> dict:
     db_path = db_path or str(DATABASE_PATH)
     logger.info("Analysing Phillips curve (unemployment vs inflation)...")
 
-    conn = sqlite3.connect(db_path)
-    try:
+    with get_connection(db_path) as conn:
         unemp = _load_monthly_pillar(conn, "fact_unemployment", "unemp")
         infl = _load_monthly_pillar(conn, "fact_inflation", "infl")
-    finally:
-        conn.close()
 
     if unemp.empty or infl.empty:
         return {
@@ -400,13 +394,10 @@ def analyse_interest_rate_transmission(db_path: Optional[str] = None) -> dict:
     db_path = db_path or str(DATABASE_PATH)
     logger.info("Analysing interest rate transmission mechanism...")
 
-    conn = sqlite3.connect(db_path)
-    try:
+    with get_connection(db_path) as conn:
         ir = _load_monthly_pillar(conn, "fact_interest_rates", "ir")
         credit = _load_monthly_pillar(conn, "fact_credit", "credit")
         infl = _load_monthly_pillar(conn, "fact_inflation", "infl")
-    finally:
-        conn.close()
 
     if ir.empty:
         return {
@@ -531,12 +522,9 @@ def analyse_debt_gdp_dynamics(db_path: Optional[str] = None) -> dict:
     db_path = db_path or str(DATABASE_PATH)
     logger.info("Analysing debt-GDP dynamics...")
 
-    conn = sqlite3.connect(db_path)
-    try:
+    with get_connection(db_path) as conn:
         debt = _load_quarterly_pillar(conn, "fact_public_debt", "debt")
         gdp = _load_quarterly_pillar(conn, "fact_gdp", "gdp")
-    finally:
-        conn.close()
 
     if debt.empty or gdp.empty:
         return {

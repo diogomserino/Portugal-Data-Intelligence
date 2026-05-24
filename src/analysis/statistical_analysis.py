@@ -13,6 +13,12 @@ import pandas as pd
 
 from config.settings import CRISIS_PERIODS as _CRISIS_CFG
 from config.settings import DATA_PILLARS, DATABASE_PATH, END_YEAR, START_YEAR
+from src.analysis.external_analysis import analyse_external_accounts
+from src.analysis.fiscal_analysis import analyse_fiscal
+from src.analysis.housing_analysis import analyse_housing
+from src.analysis.inequality_analysis import analyse_inequality
+from src.analysis.labor_analysis import analyse_labor_detail
+from src.utils.db import get_connection
 from src.utils.logger import get_logger, log_section
 
 logger = get_logger(__name__)
@@ -643,6 +649,11 @@ PILLAR_FUNCTIONS = {
     "interest_rates": analyse_interest_rates,
     "inflation": analyse_inflation,
     "public_debt": analyse_public_debt,
+    "housing": analyse_housing,
+    "labor_detail": analyse_labor_detail,
+    "external_accounts": analyse_external_accounts,
+    "fiscal": analyse_fiscal,
+    "inequality": analyse_inequality,
 }
 
 
@@ -665,23 +676,22 @@ def run_all_analyses(db_path: Optional[str] = None) -> dict:
     results = {}
 
     try:
-        conn = sqlite3.connect(db_path)
-        logger.info(f"Connected to database: {db_path}")
+        with get_connection(db_path) as conn:
+            logger.info(f"Connected to database: {db_path}")
 
-        for pillar_key, analyse_fn in PILLAR_FUNCTIONS.items():
-            try:
-                results[pillar_key] = analyse_fn(conn)
-                logger.info(f"Completed analysis for: {pillar_key}")
-            except Exception as exc:
-                logger.error(f"Error analysing {pillar_key}: {exc}")
-                results[pillar_key] = {
-                    "summary": f"Analysis failed: {exc}",
-                    "statistics": {},
-                    "notable_findings": [],
-                }
+            for pillar_key, analyse_fn in PILLAR_FUNCTIONS.items():
+                try:
+                    results[pillar_key] = analyse_fn(conn)
+                    logger.info(f"Completed analysis for: {pillar_key}")
+                except Exception as exc:
+                    logger.error(f"Error analysing {pillar_key}: {exc}")
+                    results[pillar_key] = {
+                        "summary": f"Analysis failed: {exc}",
+                        "statistics": {},
+                        "notable_findings": [],
+                    }
 
-        conn.close()
-        logger.info("All statistical analyses complete.")
+            logger.info("All statistical analyses complete.")
     except Exception as exc:
         logger.error(f"Database connection failed: {exc}")
 
@@ -712,9 +722,6 @@ def run_single_analysis(pillar: str, db_path: Optional[str] = None) -> dict:
         )
 
     log_section(logger, f"STATISTICAL ANALYSIS - {pillar.upper()}")
-    conn = sqlite3.connect(db_path)
-    try:
+    with get_connection(db_path) as conn:
         result = analyse_fn(conn)
-    finally:
-        conn.close()
     return result

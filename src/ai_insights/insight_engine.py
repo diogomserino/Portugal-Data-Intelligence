@@ -17,7 +17,6 @@ Usage:
 """
 
 import os
-import sqlite3
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -46,6 +45,8 @@ except ImportError:
     REPORT_AUTHOR = "Portugal Data Intelligence"
     REPORT_DATE_FORMAT = "%d %B %Y"
 
+from src.utils.db import get_connection
+
 try:
     from src.utils.logger import get_logger, log_section
 except ImportError:
@@ -68,14 +69,7 @@ logger = get_logger(__name__)
 # ---------------------------------------------------------------------------
 # Crisis periods used in commentary (from central config)
 # ---------------------------------------------------------------------------
-try:
-    from config.settings import CRISIS_PERIODS
-except ImportError:
-    CRISIS_PERIODS = {
-        "sovereign_debt_crisis": {"years": (2011, 2014), "label": "Sovereign Debt Crisis"},
-        "covid_pandemic": {"years": (2020, 2021), "label": "COVID-19 Pandemic"},
-        "energy_crisis": {"years": (2022, 2023), "label": "Energy and Inflation Crisis"},
-    }
+from config.settings import CRISIS_PERIODS
 
 # ---------------------------------------------------------------------------
 # Pillar display names and DB queries
@@ -156,7 +150,7 @@ class InsightEngine:
     macroeconomic pillar, and produces executive-quality narrative commentary.
     """
 
-    def __init__(self, db_path: Optional[str] = None, use_ai: bool = False):
+    def __init__(self, db_path: Optional[str] = None, use_ai: bool = False) -> None:
         """
         Initialise the engine.
 
@@ -194,19 +188,13 @@ class InsightEngine:
     # Database helpers
     # ------------------------------------------------------------------
 
-    def _get_connection(self) -> sqlite3.Connection:
-        return sqlite3.connect(self.db_path)
-
     def _fetch_pillar_data(self, pillar: str) -> pd.DataFrame:
         """Fetch raw data for a pillar and return a DataFrame."""
         cfg = PILLAR_QUERIES.get(pillar)
         if cfg is None:
             raise ValueError(f"Unknown pillar: '{pillar}'. Valid: {list(PILLAR_QUERIES.keys())}")
-        conn = self._get_connection()
-        try:
+        with get_connection(self.db_path) as conn:
             df = pd.read_sql(cfg["query"], conn)
-        finally:
-            conn.close()
         return df
 
     @staticmethod

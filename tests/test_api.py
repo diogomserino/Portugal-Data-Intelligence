@@ -174,7 +174,7 @@ class TestRootEndpoint:
     def test_root_contains_pillars(self, client):
         data = client.get("/").json()
         assert "pillars" in data
-        assert len(data["pillars"]) == 6
+        assert len(data["pillars"]) == 12
 
     def test_root_contains_endpoints(self, client):
         data = client.get("/").json()
@@ -197,7 +197,7 @@ class TestPillarsEndpoint:
         assert resp.status_code == 200
         data = resp.json()
         assert "pillars" in data
-        assert len(data["pillars"]) == 6
+        assert len(data["pillars"]) == 12
 
     def test_get_pillar_gdp(self, client):
         resp = client.get("/api/v1/pillars/gdp")
