@@ -245,7 +245,7 @@ def _make_plotly_timeseries(pillar_key: str, title: str, primary_col: str) -> st
         yaxis={"title": col_label, "showgrid": True, "gridcolor": "#E8E8E8"},
         plot_bgcolor="white",
         paper_bgcolor="white",
-        font={"family": "Inter, 'Segoe UI', sans-serif", "size": 12},
+        font={"family": "DM Sans, 'Segoe UI', sans-serif", "size": 12},
         margin={"l": 60, "r": 20, "t": 20, "b": 60},
         height=320,
         hovermode="x unified",
@@ -271,25 +271,25 @@ def _make_plotly_timeseries(pillar_key: str, title: str, primary_col: str) -> st
 # =============================================================================
 
 CSS = """
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
 
 :root {
-  --navy: #1A1A2E;
-  --dark-slate: #3D3D5C;
+  --navy: #1C1C1E;
+  --dark-slate: #2C2C2C;
   --deep-red: #9B2226;
-  --forest-green: #386641;
+  --forest-green: #2D7A40;
   --warm-gold: #D4A373;
-  --steel-blue: #4A6FA5;
+  --steel-blue: #1D7A43;
   --off-white: #FFFFFF;
   --light-gray: #F5F5F5;
   --border: #D0D0D0;
   --medium-gray: #888;
-  --risk-low: #386641;
+  --risk-low: #2D7A40;
   --risk-moderate: #D4A373;
   --risk-elevated: #E65100;
   --risk-high: #9B2226;
-  --font-heading: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  --font-body: 'Inter', 'Segoe UI', -apple-system, sans-serif;
+  --font-heading: 'DM Sans', 'Segoe UI', -apple-system, sans-serif;
+  --font-body: 'DM Sans', 'Segoe UI', -apple-system, sans-serif;
   --max-width: 1100px;
 }
 
@@ -307,7 +307,7 @@ body {
 
 /* --- HERO --- */
 .hero {
-  background: linear-gradient(135deg, var(--navy) 0%, #2D2D4E 100%);
+  background: linear-gradient(135deg, var(--navy) 0%, #282828 100%);
   color: #fff;
   padding: 4rem 2rem 3.5rem;
   text-align: center;
@@ -373,7 +373,7 @@ body {
   color: #fff;
   letter-spacing: 0.02em;
 }
-.hm-pill.positive { background: rgba(56, 102, 65, 0.5); border-color: rgba(56,102,65,0.7); }
+.hm-pill.positive { background: rgba(45, 122, 64, 0.5); border-color: rgba(45,122,64,0.7); }
 .hm-pill.negative { background: rgba(155, 34, 38, 0.5); border-color: rgba(155,34,38,0.7); }
 .hm-pill.moderate { background: rgba(212, 163, 115, 0.3); border-color: rgba(212,163,115,0.5); }
 .hm-pill .pill-label { opacity: 0.75; font-size: 0.72rem; }
@@ -1443,9 +1443,9 @@ def render_forecasting() -> str:
         table_rows.append(
             f"<tr>"
             f"<td><strong>{_esc(indicator)}</strong></td>"
-            f"<td style='text-align:center'>{latest.get('period','—')}</td>"
+            f"<td style='text-align:center'>{_esc(str(latest.get('period', '—')))}</td>"
             f"<td style='text-align:center'>{lv_str}</td>"
-            f"<td style='text-align:center'>{last_fc['period']}</td>"
+            f"<td style='text-align:center'>{_esc(str(last_fc['period']))}</td>"
             f"<td style='text-align:center'>{cv:.1f}</td>"
             f"<td style='text-align:center;color:{dir_color};font-weight:700'>{direction}</td>"
             f"</tr>"
@@ -1610,7 +1610,7 @@ def render_footer() -> str:
     return f"""
 <footer>
   <div class="author">Portugal Data Intelligence v2.2</div>
-  <p>dms1996 &middot; Portfolio 2026 &middot; Power BI &middot; Streamlit &middot; FastAPI &middot; HTML</p>
+  <p>Diogo Serino &middot; Portfolio 2026 &middot; Power BI &middot; Streamlit &middot; FastAPI &middot; HTML</p>
   <p style="font-size:0.75rem; color:var(--medium-gray); margin-top:0.25rem;">Report generated: {generated}</p>
 </footer>
 """

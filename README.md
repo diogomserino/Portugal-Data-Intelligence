@@ -3,15 +3,10 @@
 **A comprehensive macroeconomic analytics platform for the Portuguese economy (2010-2025)**
 
 [![CI](https://github.com/diogomserino/Portugal-Data-Intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/diogomserino/Portugal-Data-Intelligence/actions/workflows/ci.yml)
-[![Data Refresh](https://github.com/diogomserino/Portugal-Data-Intelligence/actions/workflows/data_refresh.yml/badge.svg)](https://github.com/diogomserino/Portugal-Data-Intelligence/actions/workflows/data_refresh.yml)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
 ![SQL](https://img.shields.io/badge/SQL-SQLite3-003B57?logo=sqlite&logoColor=white)
 ![DAX](https://img.shields.io/badge/DAX-Power_BI-F2C811?logo=powerbi&logoColor=black)
-![Jupyter](https://img.shields.io/badge/Jupyter-Notebook-F37626?logo=jupyter&logoColor=white)
 ![License](https://img.shields.io/badge/Licence-MIT-green)
-![Tests](https://img.shields.io/badge/Tests-passing-brightgreen?logo=pytest&logoColor=white)
-[![Coverage](https://codecov.io/gh/diogomserino/Portugal-Data-Intelligence/branch/main/graph/badge.svg)](https://codecov.io/gh/diogomserino/Portugal-Data-Intelligence)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
 
 
 **[View Live Report →](https://diogomserino.github.io/Portugal-Data-Intelligence/)**
@@ -40,7 +35,7 @@ Designed to demonstrate professional-grade data engineering, analytical rigour, 
 
 ### Economic Dashboard
 
-A single-view summary of all six macroeconomic pillars — GDP, unemployment, credit, interest rates, inflation, and public debt — spanning 2010 to 2025.
+A single-view summary of the six core macroeconomic pillars — GDP, unemployment, credit, interest rates, inflation, and public debt — spanning 2010 to 2025.
 
 ![Economic Dashboard](reports/powerbi/charts/economic_dashboard.png)
 
@@ -127,7 +122,7 @@ Four-page interactive dashboard with real-time KPI cards, pillar deep-dive with 
 +------------------+    +--------------------+    +----------------------+    +------------------+
 |  INE             |    |                    |    |                      |    |  Power BI        |
 |  Banco de        |--->|  Extract (CSV/API) |--->|  Statistical         |--->|  Dashboards      |
-|  Portugal        |    |  Transform (Clean) |    |  Analysis (12 pilars)|    |                  |
+|  Portugal        |    |  Transform (Clean) |    |  Analysis (12 pillars)|   |                  |
 |  PORDATA         |    |  Load (SQLite)     |    |                      |    |  Streamlit       |
 |  Eurostat        |    |  Data Quality Gate |    |  AI Insight          |    |  Dashboard       |
 |  ECB             |    |  Lineage Tracking  |    |  Generation          |    |                  |
@@ -271,7 +266,7 @@ portugal-data-intelligence/
 │       ├── db.py               # Centralised database connection manager
 │       ├── exceptions.py       # Custom exception hierarchy (PDIBaseError)
 │       └── logger.py           # JSON logging with correlation IDs
-├── tests/                      # 35 test files, 442+ tests
+├── tests/                      # 36 test files, 489+ tests
 ├── Dockerfile                  # Container image for pipeline execution
 ├── docker-compose.yml          # Docker Compose orchestration
 ├── Makefile                    # Task automation (make run, make test, etc.)
@@ -336,8 +331,8 @@ docker-compose up    # Run full pipeline in container
 
 ```bash
 # Clone the repository
-git clone https://github.com/dms1996/portugal-data-intelligence.git
-cd portugal-data-intelligence
+git clone https://github.com/diogomserino/Portugal-Data-Intelligence.git
+cd Portugal-Data-Intelligence
 
 # Create a virtual environment
 python -m venv venv
@@ -426,4 +421,4 @@ Built as a professional portfolio project demonstrating end-to-end data analytic
 
 ---
 
-2026 © dms1996
+2026 © Diogo Serino

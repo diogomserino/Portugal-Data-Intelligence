@@ -11,7 +11,7 @@
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/dms1996/portugal-data-intelligence.git
+git clone https://github.com/diogomserino/Portugal-Data-Intelligence.git
 cd portugal-data-intelligence
 ```
 

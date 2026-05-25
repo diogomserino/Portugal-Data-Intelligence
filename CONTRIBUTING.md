@@ -11,7 +11,7 @@ Thank you for your interest in contributing to this project.
 
 ```bash
 # Clone and enter the project
-git clone https://github.com/dms1996/portugal-data-intelligence.git
+git clone https://github.com/diogomserino/Portugal-Data-Intelligence.git
 cd portugal-data-intelligence
 
 # Create a virtual environment
