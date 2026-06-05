@@ -111,3 +111,7 @@ htmlcov/
 
 # API cache
 .api_cache/
+
+# Local audit / validation working notes (not for publication)
+AUDIT_FINDINGS.md
+DATA_VALIDATION.md
