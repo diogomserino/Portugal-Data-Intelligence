@@ -46,6 +46,7 @@ from config.settings import (
     PROCESSED_DATA_DIR,
     REPORTS_DIR,
     START_YEAR,
+    VERSION,
     ensure_directories,
 )
 from src.utils.logger import get_logger
@@ -1522,7 +1523,7 @@ def render_platform() -> str:
     return f"""
 <section id="platform" class="analysis-section">
   <h2>Platform & Tools</h2>
-  <p>Portugal Data Intelligence v2.1 delivers insights through multiple complementary channels,
+  <p>Portugal Data Intelligence v{VERSION} delivers insights through multiple complementary channels,
   each tailored to a different audience and use case.</p>
   <div class="chart-grid">
     <div style="background:#fff; border:1px solid var(--border); border-radius:6px; padding:1.2rem;">
@@ -1599,7 +1600,7 @@ def render_methodology() -> str:
     <strong>Analysis Engine:</strong> Python (pandas, statsmodels, scipy) with
     SQLite storage, ensemble forecasting, and automated reporting.<br>
     <strong>Delivery:</strong> Power BI, Streamlit dashboard, self-contained HTML, REST API (FastAPI).<br>
-    <strong>Version:</strong> 2.2.0 &mdash; Generated {datetime.now().strftime("%d %B %Y")}
+    <strong>Version:</strong> {VERSION} &mdash; Generated {datetime.now().strftime("%d %B %Y")}
   </p>
 </section>
 """
@@ -1609,7 +1610,7 @@ def render_footer() -> str:
     generated = datetime.now().strftime("%d %B %Y, %H:%M")
     return f"""
 <footer>
-  <div class="author">Portugal Data Intelligence v2.2</div>
+  <div class="author">Portugal Data Intelligence v{VERSION}</div>
   <p>Diogo Serino &middot; Portfolio 2026 &middot; Power BI &middot; Streamlit &middot; FastAPI &middot; HTML</p>
   <p style="font-size:0.75rem; color:var(--medium-gray); margin-top:0.25rem;">Report generated: {generated}</p>
 </footer>

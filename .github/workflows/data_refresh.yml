@@ -5,6 +5,9 @@ on:
     - cron: '0 6 * * 1'   # Every Monday at 06:00 UTC
   workflow_dispatch:        # Allow manual trigger
 
+permissions:
+  contents: write
+
 jobs:
   refresh:
     runs-on: ubuntu-latest
@@ -28,10 +31,13 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-      - name: Commit refreshed data and reports
+      - name: Commit refreshed charts and HTML report
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add reports/ data/processed/ data/database/ || true
+          # Only tracked outputs change on a refresh: the chart PNGs and the
+          # published HTML report. Processed CSVs / the SQLite DB are gitignored,
+          # so staging them here would be a silent no-op.
+          git add reports/powerbi/charts docs/index.html || true
           git diff --staged --quiet || git commit -m "data: weekly refresh $(date +%Y-%m-%d)"
           git push

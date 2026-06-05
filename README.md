@@ -41,7 +41,7 @@ A single-view summary of the six core macroeconomic pillars — GDP, unemploymen
 
 ### Cross-Pillar Correlation Analysis
 
-Pearson correlation matrix revealing how Portugal's key economic indicators interact — from the unemployment-bond yield link (0.80) to the inflation-NPL inverse relationship (-0.53).
+Pearson correlation matrix revealing how Portugal's key economic indicators interact — from the unemployment-bond yield link (0.74) to the inflation-NPL inverse relationship (-0.53).
 
 ![Correlation Heatmap](reports/powerbi/charts/correlation_heatmap.png)
 
@@ -59,7 +59,7 @@ Real GDP trajectory from 2010 to 2025, capturing the sovereign debt crisis, the 
 
 ### Unemployment Trends
 
-Monthly unemployment rate with structural trend overlay — from the 17.5% crisis peak to the current historic lows near 6.1%.
+Monthly unemployment rate with structural trend overlay — from the 18.3% crisis peak to the current historic lows near 5.6%.
 
 ![Unemployment Trends](reports/powerbi/charts/unemployment_trends.png)
 
@@ -83,7 +83,7 @@ HICP inflation and estimated CPI with trend decomposition, capturing the 2022 en
 
 ### Public Debt Sustainability
 
-Debt-to-GDP ratio evolution with budget balance dynamics — from the 132.9% peak to the ongoing consolidation path.
+Debt-to-GDP ratio evolution with budget balance dynamics — from the 137.5% peak to the ongoing consolidation path.
 
 ![Public Debt Sustainability](reports/powerbi/charts/public_debt_sustainability.png)
 

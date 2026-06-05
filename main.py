@@ -9,7 +9,7 @@ Usage:
     python main.py --mode full        # Same as above
     python main.py --mode etl         # Data generation + ETL only
     python main.py --mode analysis    # Analysis + visualisations only
-    python main.py --mode reports     # Reports + insights only
+    python main.py --mode reports     # Insights, briefing + HTML report
     python main.py --mode quick       # ETL + analysis (no reports)
     python main.py --list             # Show available modes
 """
@@ -28,15 +28,10 @@ from typing import List
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from config.settings import DATABASE_PATH, REPORTS_DIR, ensure_directories
+from config.settings import DATABASE_PATH, REPORTS_DIR, VERSION, ensure_directories
 from src.utils.logger import get_logger, log_section
 
 logger = get_logger("main")
-
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-VERSION = "2.1.0"
 
 BANNER = r"""
  ____            _                   _   ____        _
@@ -222,24 +217,47 @@ def _run_reports() -> StepResult:
     return result
 
 
+def _run_report_html() -> StepResult:
+    """Generate the self-contained HTML report from the latest briefing + data.
+
+    Runs immediately after the briefing step so the narrative (from the briefing
+    JSON) and the KPI cards (from the processed CSVs) are always rendered from the
+    same pipeline run, keeping the report internally consistent.
+    """
+    result = StepResult("HTML Report")
+
+    log_section(logger, "STEP 6 / REPORTS: HTML Report Generation")
+    try:
+        from dashboard.generate_report import generate_report
+
+        output_path = generate_report()
+        result.files.append(str(output_path))
+        logger.info("HTML report generated: %s", output_path)
+    except Exception as exc:
+        logger.error("HTML report generation failed: %s", exc)
+        result.errors.append(f"HTML report generation failed: {exc}")
+
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Mode → step registry
 # ---------------------------------------------------------------------------
 
 _MODE_STEPS = {
-    "full":     [_run_etl, _run_analysis, _run_reports],
+    "full":     [_run_etl, _run_analysis, _run_reports, _run_report_html],
     "etl":      [_run_etl],
     "analysis": [_run_analysis],
-    "reports":  [_run_reports],
+    "reports":  [_run_reports, _run_report_html],
     "quick":    [_run_etl, _run_analysis],
     "excel":    [_run_excel_export],
 }
 
 _MODE_DESCRIPTIONS = {
-    "full":     "Run the complete pipeline: ETL -> Analysis -> Reports",
+    "full":     "Run the complete pipeline: ETL -> Analysis -> Reports -> HTML report",
     "etl":      "Fetch real data from APIs and run the ETL pipeline",
     "analysis": "Run statistical analysis and generate visualisations",
-    "reports":  "Generate AI insights and executive briefing",
+    "reports":  "Generate AI insights, executive briefing, and HTML report",
     "quick":    "ETL + Analysis (skip report generation)",
     "excel":    "Export all pillar data to an Excel workbook",
 }
@@ -298,7 +316,7 @@ def _parse_args() -> argparse.Namespace:
             "  python main.py                   # Run the full pipeline\n"
             "  python main.py --mode etl        # Data generation + ETL only\n"
             "  python main.py --mode analysis   # Analysis + charts only\n"
-            "  python main.py --mode reports    # AI insights + executive briefing\n"
+            "  python main.py --mode reports    # AI insights, briefing + HTML report\n"
             "  python main.py --mode excel      # Export data to Excel workbook\n"
             "  python main.py --mode quick      # ETL + analysis (no reports)\n"
             "  python main.py --list            # Show available modes\n"

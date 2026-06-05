@@ -250,11 +250,28 @@ class InsightEngine:
         earliest_matches = annual.loc[annual["year"] == earliest_year, primary_col]
         if latest_matches.empty or earliest_matches.empty:
             return {"status": "insufficient_data"}
-        latest_val = float(latest_matches.values[0])
+        # Use the most recent actual observation (rows are ordered by date in the
+        # pillar queries) rather than the latest year's average, so headline
+        # figures match the "latest value" KPI cards in the HTML report. Falls
+        # back to the annual figure if the series has no usable observations.
+        _primary_series = df[primary_col].dropna()
+        latest_val = (
+            float(_primary_series.iloc[-1])
+            if not _primary_series.empty
+            else float(latest_matches.values[0])
+        )
         earliest_val = float(earliest_matches.values[0])
 
-        peak_row = annual.loc[annual[primary_col].idxmax()]
-        trough_row = annual.loc[annual[primary_col].idxmin()]
+        # Extremes from actual observations (not annual averages) so the
+        # peak/trough reported in the narrative match the real data points used
+        # elsewhere in the report (KPI cards, cross-pillar narrative, README).
+        _obs = df[[primary_col, "year"]].dropna(subset=[primary_col])
+        if not _obs.empty:
+            peak_row = _obs.loc[_obs[primary_col].idxmax()]
+            trough_row = _obs.loc[_obs[primary_col].idxmin()]
+        else:
+            peak_row = annual.loc[annual[primary_col].idxmax()]
+            trough_row = annual.loc[annual[primary_col].idxmin()]
 
         # Trend classification
         half = len(annual) // 2

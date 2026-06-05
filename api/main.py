@@ -37,13 +37,19 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from config.settings import API_ALLOWED_ORIGINS, API_KEY, DATA_PILLARS, DATABASE_PATH
+from config.settings import (
+    API_ALLOWED_ORIGINS,
+    API_KEY,
+    DATA_PILLARS,
+    DATABASE_PATH,
+    VERSION,
+)
 from src.utils.db import get_connection as _get_db_connection
 
 app = FastAPI(
     title="Portugal Data Intelligence API",
     description="Macroeconomic data and analytics for Portugal (2010-2025)",
-    version="2.0.0",
+    version=VERSION,
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -119,7 +125,7 @@ def root():
     """API information and available endpoints."""
     return {
         "name": "Portugal Data Intelligence API",
-        "version": "2.0.0",
+        "version": VERSION,
         "data_period": "2010-2025",
         "pillars": sorted(VALID_PILLARS),
         "endpoints": {

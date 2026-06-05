@@ -9,6 +9,15 @@ import os
 from pathlib import Path
 
 # =============================================================================
+# PROJECT METADATA
+# =============================================================================
+
+# Single source of truth for the project version. Imported by main.py, the API,
+# and the HTML report generator so the version is reported consistently.
+# Keep in sync with [project].version in pyproject.toml.
+VERSION = "2.2.0"
+
+# =============================================================================
 # PATH DEFINITIONS
 # =============================================================================
 
