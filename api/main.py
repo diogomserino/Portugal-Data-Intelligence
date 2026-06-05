@@ -16,6 +16,7 @@ Endpoints:
     GET /api/v1/health              → Health check
 """
 
+import hmac
 import json
 import sys
 from pathlib import Path
@@ -68,7 +69,7 @@ async def check_api_key(request: Request, call_next):
     """Require X-API-Key header when API_KEY is configured."""
     if API_KEY and request.url.path not in ("/", "/docs", "/redoc", "/openapi.json"):
         provided = request.headers.get("X-API-Key", "")
-        if provided != API_KEY:
+        if not hmac.compare_digest(provided, API_KEY):
             return JSONResponse(status_code=401, content={"detail": "Invalid or missing API key"})
     return await call_next(request)
 
@@ -186,7 +187,9 @@ def get_pillar_latest(pillar: str):
         if df.empty:
             raise HTTPException(status_code=404, detail=f"No data for pillar '{pillar}'.")
 
-        df_all = pd.read_sql(f"SELECT * FROM {table}", conn)
+        # ORDER BY date_key (uniform format per table) so the per-column
+        # "latest" statistic below reliably reflects the most recent row.
+        df_all = pd.read_sql(f"SELECT * FROM {table} ORDER BY date_key", conn)
         numeric_cols = df_all.select_dtypes(include=[np.number]).columns.tolist()
         numeric_cols = [c for c in numeric_cols if c not in ("date_key", "source_key", "id")]
 

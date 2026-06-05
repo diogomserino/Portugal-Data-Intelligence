@@ -315,11 +315,15 @@ def _get_nuts2_geojson() -> Optional[dict]:
         return None
 
 
-def build_choropleth_div(db_path: Optional[str] = None) -> str:
+def build_choropleth_div(db_path: Optional[str] = None, include_plotlyjs: object = "cdn") -> str:
     """Build an interactive Plotly choropleth of Portuguese NUTS2 regions.
 
     Returns an HTML <div> string for embedding in reports, or empty string
     if plotly or the GeoJSON are unavailable.
+
+    ``include_plotlyjs`` is forwarded to ``plotly.offline.plot`` so callers
+    that already embed plotly.js elsewhere can pass ``False`` to avoid
+    duplicating the library.
     """
     try:
         import plotly.express as px
@@ -387,7 +391,7 @@ def build_choropleth_div(db_path: Optional[str] = None) -> str:
         return pyo.plot(
             fig,
             output_type="div",
-            include_plotlyjs="cdn",
+            include_plotlyjs=include_plotlyjs,
             config={
                 "displayModeBar": True,
                 "displaylogo": False,

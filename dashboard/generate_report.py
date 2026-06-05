@@ -30,6 +30,18 @@ try:
 except ImportError:
     _HAS_PLOTLY = False
 
+# Tracks whether plotly.js has already been embedded, so the library is included
+# from the CDN only once across the whole report; later charts reference it.
+_PLOTLY_STATE = {"included": False}
+
+
+def _plotly_include_arg():
+    """Return "cdn" the first time plotly.js is needed, then False afterwards."""
+    if _PLOTLY_STATE["included"]:
+        return False
+    _PLOTLY_STATE["included"] = True
+    return "cdn"
+
 # ---------------------------------------------------------------------------
 # Project imports
 # ---------------------------------------------------------------------------
@@ -256,7 +268,7 @@ def _make_plotly_timeseries(pillar_key: str, title: str, primary_col: str) -> st
         return pyo.plot(
             fig,
             output_type="div",
-            include_plotlyjs="cdn",
+            include_plotlyjs=_plotly_include_arg(),
             config={
                 "displayModeBar": True,
                 "displaylogo": False,
@@ -854,11 +866,12 @@ def render_hero(briefing: Dict, kpis: Optional[Dict] = None) -> str:
 
 
 def render_toc() -> str:
-    links = []
+    links = ['<a href="#key-indicators">Key Indicators</a>']
     for key, title, _, icon in _PILLAR_CONFIG:
-        links.append(f'<a href="#{key}">{title}</a>')
+        links.append(f'<a href="#{key}">{_esc(title)}</a>')
     links.extend(
         [
+            '<a href="#executive-dashboard">Executive Dashboard</a>',
             '<a href="#cross-pillar">Cross-Pillar Analysis</a>',
             '<a href="#stl-decomposition">STL Decomposition</a>',
             '<a href="#forecasting">SARIMAX Forecasting</a>',
@@ -866,7 +879,7 @@ def render_toc() -> str:
             '<a href="#regional">Regional Analysis (NUTS2)</a>',
             '<a href="#risk-matrix">Risk Matrix</a>',
             '<a href="#recommendations">Strategic Recommendations</a>',
-            '<a href="#platform">Platform & Tools</a>',
+            '<a href="#platform">Platform &amp; Tools</a>',
             '<a href="#methodology">Methodology</a>',
         ]
     )
@@ -1165,7 +1178,11 @@ def render_regional_section() -> str:
 
     db_path = str(DATABASE_PATH)
     regional = run_regional_analysis(db_path)
-    choropleth_div = build_choropleth_div(db_path) if _HAS_PLOTLY else ""
+    choropleth_div = (
+        build_choropleth_div(db_path, include_plotlyjs=_plotly_include_arg())
+        if _HAS_PLOTLY
+        else ""
+    )
 
     gdp_block = regional.get("gdp_per_capita_pps", {})
     unemp_block = regional.get("unemployment_rate", {})
@@ -1315,7 +1332,6 @@ def render_forecasting() -> str:
     }
 
     charts_html: list = []
-    first_chart = True
 
     for pillar, fc_data in forecasts.items():
         if "error" in fc_data:
@@ -1404,14 +1420,12 @@ def render_forecasting() -> str:
             legend={"orientation": "h", "y": -0.28, "x": 0, "font": {"size": 10}},
         )
         try:
-            include_js = "cdn" if first_chart else False
             div = pyo.plot(
                 fig,
                 output_type="div",
-                include_plotlyjs=include_js,
+                include_plotlyjs=_plotly_include_arg(),
                 config={"displayModeBar": True, "displaylogo": False},
             )
-            first_chart = False
             charts_html.append(
                 f'<div style="margin-bottom:1.2rem;">'
                 f'<h4 style="color:var(--navy);font-size:0.95rem;margin-bottom:0.4rem;">'
@@ -1585,16 +1599,17 @@ def render_methodology() -> str:
     return f"""
 <section id="methodology" class="methodology-section">
   <h2>Methodology & Data Sources</h2>
-  <p>This report analyses the Portuguese economy across six macroeconomic pillars
-  using data from {START_YEAR} to {END_YEAR}. All data is sourced from authoritative
-  national and European statistical institutions.</p>
+  <p>This report analyses the Portuguese economy across twelve macroeconomic pillars
+  plus regional NUTS2 analysis, using data from {START_YEAR} to {END_YEAR}. All data is
+  sourced from authoritative national and European statistical institutions.</p>
   <table class="source-table">
     <thead><tr><th>Source</th><th>URL</th></tr></thead>
     <tbody>{"".join(source_rows)}</tbody>
   </table>
   <p style="margin-top:1rem; font-size:0.85rem; color:var(--medium-gray);">
-    <strong>Granularity:</strong> GDP and Public Debt are quarterly; Unemployment,
-    Credit, Interest Rates, and Inflation are monthly.<br>
+    <strong>Granularity:</strong> GDP, Public Debt, and External Accounts are quarterly;
+    Unemployment, Credit, Interest Rates, and Inflation are monthly; Housing, Labour
+    Detail, Fiscal, Inequality, and Regional are annual.<br>
     <strong>Data Quality:</strong> All data passes a 7-layer validation framework
     (schema, nulls, ranges, outliers, drift, consistency, freshness).<br>
     <strong>Analysis Engine:</strong> Python (pandas, statsmodels, scipy) with
@@ -1625,6 +1640,10 @@ def render_footer() -> str:
 def generate_report(output_path: Optional[Path] = None) -> Path:
     """Generate the full HTML report and write to disk."""
     ensure_directories()
+
+    # Reset so plotly.js is embedded exactly once per report (matters when
+    # generate_report() is called more than once in the same process).
+    _PLOTLY_STATE["included"] = False
 
     if output_path is None:
         output_path = PROJECT_ROOT / "docs" / "index.html"
@@ -1727,7 +1746,7 @@ if __name__ == "__main__":
         "-o",
         type=Path,
         default=None,
-        help="Output path (default: dashboard/pages/portugal_economic_report.html)",
+        help="Output path (default: docs/index.html)",
     )
     args = parser.parse_args()
     path = generate_report(output_path=args.output)

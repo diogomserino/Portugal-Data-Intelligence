@@ -19,6 +19,7 @@ nav:
   - User Guide: user-guide.md
   - Tutorial: tutorial.md
   - Architecture: architecture.md
+  - Architecture Review v2: architecture_review_v2.md
   - Data Dictionary: data_dictionary.md
   - Data Quality Report: data_quality_report.md
   - API Reference: api-reference.md

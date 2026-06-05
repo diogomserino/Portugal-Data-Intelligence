@@ -163,7 +163,7 @@ Four-page interactive dashboard with real-time KPI cards, pillar deep-dive with 
 
 **Schema notes:**
 
-- All fact tables include an `is_provisional` flag to mark projected or preliminary data rows.
+- All fact tables include an `is_provisional` flag for marking projected or preliminary rows; in the current synthetic dataset every row is final (the flag is reserved for live-data refreshes).
 - GDP growth rates (`gdp_growth_yoy`, `gdp_growth_qoq`) are derived from `real_gdp` during the transform step (not from API nominal growth figures).
 - `cpi_estimated` (in `fact_inflation`): CPI is estimated from HICP, not sourced directly from INE.
 - `external_debt_share_estimated` (in `fact_public_debt`): this field is an estimate, not fetched from an API.
@@ -231,7 +231,7 @@ portugal-data-intelligence/
 │   └── ad_hoc/                 # Ad-hoc analysis outputs
 ├── sql/
 │   ├── ddl/                    # CREATE TABLE, seed scripts
-│   └── queries/                # Analytical SQL queries (7 pillars)
+│   └── queries/                # Analytical SQL queries (13 query files)
 ├── src/
 │   ├── alerts/                 # Configurable threshold alert engine
 │   ├── ai_insights/            # AI-powered insight generation (modular)
@@ -266,7 +266,7 @@ portugal-data-intelligence/
 │       ├── db.py               # Centralised database connection manager
 │       ├── exceptions.py       # Custom exception hierarchy (PDIBaseError)
 │       └── logger.py           # JSON logging with correlation IDs
-├── tests/                      # 36 test files, 489+ tests
+├── tests/                      # 38 test files, 489 tests
 ├── Dockerfile                  # Container image for pipeline execution
 ├── docker-compose.yml          # Docker Compose orchestration
 ├── Makefile                    # Task automation (make run, make test, etc.)
@@ -377,7 +377,7 @@ Pearson correlation matrix across all pillars, revealing structural relationship
 Rule-based insight engine with optional OpenAI GPT-4 integration for automated executive briefings, anomaly detection, and narrative commentary. Modular architecture with separate pillar, cross-pillar, and AI narrator components.
 
 ### Interactive HTML Report with Plotly
-Big4 consulting-style HTML briefing with interactive Plotly charts (zoom, hover, tooltips) and base64-embedded PNG fallback — fully portable, single-file output requiring no external dependencies.
+Big4 consulting-style HTML briefing with interactive Plotly charts (zoom, hover, tooltips) and base64-embedded PNG charts. All images are embedded in a single HTML file; the interactive Plotly charts and the web font load from a CDN, so full interactivity requires an internet connection (embedded content renders offline).
 
 ### Excel Export
 Multi-sheet Excel workbook (`python main.py --mode excel`) with one sheet per pillar, a correlation matrix sheet, and formatted KPI summaries.
