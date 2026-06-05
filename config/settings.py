@@ -115,7 +115,7 @@ DATA_PILLARS = {
         "table_name": "fact_credit",
         "granularity": "monthly",
         "unit": "EUR millions",
-        "description": "Bank lending to non-financial corporations and households",
+        "description": "Total financing to the non-financial sector (households, corporations, government)",
         "primary_sources": ["Banco de Portugal"],
     },
     "interest_rates": {

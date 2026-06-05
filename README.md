@@ -165,6 +165,7 @@ Four-page interactive dashboard with real-time KPI cards, pillar deep-dive with 
 
 - All fact tables include an `is_provisional` flag for marking projected or preliminary rows; in the current synthetic dataset every row is final (the flag is reserved for live-data refreshes).
 - GDP growth rates (`gdp_growth_yoy`, `gdp_growth_qoq`) are derived from `real_gdp` during the transform step (not from API nominal growth figures).
+- `total_credit` (in `fact_credit`): total financing to the non-financial sector (households, corporations, and general government), so it is larger than `credit_nfc` + `credit_households` (which exclude government).
 - `cpi_estimated` (in `fact_inflation`): CPI is estimated from HICP, not sourced directly from INE.
 - `external_debt_share_estimated` (in `fact_public_debt`): this field is an estimate, not fetched from an API.
 - `budget_deficit_annual` (in `fact_public_debt`): rolling 4-quarter average of the budget balance.
