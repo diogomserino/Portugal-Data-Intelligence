@@ -182,6 +182,8 @@ Four-page interactive dashboard with real-time KPI cards, pillar deep-dive with 
 | **PORDATA** | Contemporary Portugal database | [pordata.pt](https://www.pordata.pt) | Excel / CSV |
 | **Eurostat** | European statistical office | [ec.europa.eu/eurostat](https://ec.europa.eu/eurostat) | CSV / JSON API |
 
+> **Data note.** The six core pillars (GDP, unemployment, inflation, interest rates, credit, public debt) are fetched from the official Eurostat, ECB, and Banco de Portugal open APIs. The extended pillars (housing, labour detail, external accounts, fiscal, inequality, regional) and the EU benchmark use **modelled estimates** calibrated to published trends where granular data is not available via an open API. The committed dataset is deterministic and reproducible. See [docs/data_provenance.md](docs/data_provenance.md) for the full breakdown.
+
 ---
 
 ## Tech Stack

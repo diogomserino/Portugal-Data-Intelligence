@@ -1,6 +1,13 @@
 # Data Provenance
 
-This document records the results of real data ingestion from official APIs.
+This document records data ingestion for the project.
+
+> **Scope note.** The six core pillars (GDP, unemployment, inflation, interest
+> rates, credit, public debt) are fetched from official open APIs, as documented
+> below. The six **extended** pillars and the EU benchmark are **modelled
+> estimates** calibrated to published trends — see
+> [Modelled / Estimated Series](#modelled--estimated-series). When an API is
+> unavailable, the pipeline falls back to a deterministic synthetic series.
 
 ## Last Successful Fetch
 
@@ -19,6 +26,23 @@ This document records the results of real data ingestion from official APIs.
 | Credit | Banco de Portugal | BPStat API (`12457932`, `12559924`, `12457924`, `12504544`) | 180 | 2010-01 - 2024-12 | OK |
 | Public Debt | Eurostat | SDMX 2.1 (`gov_10q_ggdebt`, `gov_10q_ggnfa`, `gov_10dd_ggd`) | 63 | 2010 Q1 - 2025 Q3 | OK |
 | EU Benchmark | Eurostat + ECB | Synthetic benchmark, 7 countries | 560 | 2010 - 2025 | OK |
+
+## Modelled / Estimated Series
+
+The six core pillars above are fetched from official open APIs. The following
+**extended pillars are modelled estimates**, calibrated to published Eurostat /
+INE / Banco de Portugal trends where granular series are not readily available
+via an open API. They are deterministic and intended to demonstrate the analytical
+pipeline end to end — not to serve as an authoritative source for those indicators.
+
+| Pillar | Basis | Status |
+|--------|-------|--------|
+| Housing Market | INE / Eurostat HPI trend | Estimated |
+| Labour Market Detail | Eurostat sector / wage / productivity trends | Estimated |
+| External Accounts | ECB / Eurostat BoP trend | Estimated (current account fetched when available) |
+| Fiscal Structure | Eurostat `gov_10a_main` trend | Estimated |
+| Inequality & Income | Eurostat EU-SILC trend | Estimated (Gini fetched when available) |
+| Regional (NUTS2) | Eurostat regional trend | Estimated (fetched when available) |
 
 ## Data Integrity
 
