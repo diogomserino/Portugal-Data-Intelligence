@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - EU benchmarking (radar + small multiples) and cross-pillar correlation analysis.
 - Self-contained interactive HTML report (Plotly) wired into the pipeline.
 - FastAPI REST API, data-quality validation framework, and configurable alert engine.
+- Deterministic, committed raw data snapshot — the pipeline rebuilds offline by
+  default (`--refresh` re-fetches live data).
+- CI security scanning (`bandit`, `pip-audit`), `mypy` type-checking, and a
+  `SECURITY.md` policy.
 
 ### Changed
 - HTML report generation is now a pipeline step (`--mode reports` / `--mode full`),
