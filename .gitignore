@@ -43,7 +43,8 @@ api_keys.json
 *.ipynb_checkpoints
 
 # Data Files (large files - keep structure, ignore content)
-data/raw/*.csv
+# NB: data/raw/*.csv is the committed, deterministic raw snapshot (tracked on purpose
+# so `python main.py` rebuilds the same dataset offline; use --refresh to re-fetch).
 data/raw/*.xlsx
 data/raw/*.xls
 data/raw/*.json

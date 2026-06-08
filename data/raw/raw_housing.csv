@@ -1,0 +1,17 @@
+date_key,year,quarter,house_price_index,house_price_yoy_change,avg_price_per_sqm,housing_transactions,mortgage_new_loans,source,country_code
+2010-Q4,2010,4,96,,1200,85000,7200,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT
+2011-Q4,2011,4,92,-4.2,1150,72000,4800,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT
+2012-Q4,2012,4,84,-8.7,1080,64000,3200,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT
+2013-Q4,2013,4,83,-1.2,1050,68000,3500,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT
+2014-Q4,2014,4,88,6.0,1040,80000,4200,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT
+2015-Q4,2015,4,100,13.6,1060,95000,5500,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT
+2016-Q4,2016,4,108,8.0,1130,115000,7100,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT
+2017-Q4,2017,4,121,12.0,1280,142000,9800,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT
+2018-Q4,2018,4,132,9.1,1450,166000,12400,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT
+2019-Q4,2019,4,142,7.6,1600,175000,14200,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT
+2020-Q4,2020,4,151,6.3,1650,145000,11800,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT
+2021-Q4,2021,4,164,8.6,1750,172000,15200,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT
+2022-Q4,2022,4,188,14.6,1900,185000,18500,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT
+2023-Q4,2023,4,198,5.3,2050,162000,17800,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT
+2024-Q4,2024,4,234,18.2,2180,155000,16500,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT
+2025-Q4,2025,4,270,15.4,2280,158000,17200,Eurostat (prc_hpi_q) + INE/BdP synthetic,PT

@@ -28,7 +28,13 @@ from typing import List
 PROJECT_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from config.settings import DATABASE_PATH, REPORTS_DIR, VERSION, ensure_directories
+from config.settings import (
+    DATABASE_PATH,
+    RAW_DATA_DIR,
+    REPORTS_DIR,
+    VERSION,
+    ensure_directories,
+)
 from src.utils.logger import get_logger, log_section
 
 logger = get_logger("main")
@@ -51,6 +57,7 @@ BANNER = r"""
 # ---------------------------------------------------------------------------
 # Step result dataclass
 # ---------------------------------------------------------------------------
+
 
 class StepResult:
     """Holds the outcome of a single pipeline step."""
@@ -75,8 +82,14 @@ class StepResult:
 # Step runners
 # ---------------------------------------------------------------------------
 
-def _run_etl() -> StepResult:
-    """Fetch real data from APIs and run the ETL pipeline."""
+
+def _raw_snapshot_present() -> bool:
+    """True if the committed raw data snapshot is available for offline rebuilds."""
+    return (RAW_DATA_DIR / "raw_gdp.csv").exists()
+
+
+def _run_etl(refresh: bool = False) -> StepResult:
+    """Build the database from the committed raw snapshot (or fetch live with refresh)."""
     result = StepResult("ETL")
 
     # Clean database for fresh load
@@ -84,29 +97,38 @@ def _run_etl() -> StepResult:
         DATABASE_PATH.unlink()
         logger.info("Removed existing database for clean rebuild.")
 
-    # 1. Fetch real data (with synthetic fallback)
-    log_section(logger, "STEP 1 / ETL: Fetch Real Data from APIs")
-    try:
-        from src.etl.fetch_real_data import fetch_all
-        fetch_all()
-        logger.info("Real data fetch completed.")
-    except (ImportError, OSError, ValueError) as exc:
-        logger.error("Real data fetch failed: %s", exc)
-        result.errors.append(f"Real data fetch failed: {exc}")
-
-        logger.warning("Falling back to synthetic data generation...")
+    # 1. Data acquisition. By default we rebuild from the committed raw snapshot so
+    #    the pipeline is deterministic and works offline; only hit the network when
+    #    asked (--refresh) or when no snapshot is present.
+    if refresh or not _raw_snapshot_present():
+        log_section(logger, "STEP 1 / ETL: Fetch Real Data from APIs")
         try:
-            from src.etl.generate_data import main as generate_data
-            generate_data()
-            logger.info("Synthetic data generation completed (fallback).")
-        except Exception as exc2:
-            logger.error("Synthetic fallback also failed: %s", exc2)
-            result.errors.append(f"Synthetic fallback also failed: {exc2}")
+            from src.etl.fetch_real_data import fetch_all
+
+            fetch_all()
+            logger.info("Real data fetch completed.")
+        except (ImportError, OSError, ValueError) as exc:
+            logger.error("Real data fetch failed: %s", exc)
+            result.errors.append(f"Real data fetch failed: {exc}")
+
+            logger.warning("Falling back to synthetic data generation...")
+            try:
+                from src.etl.generate_data import main as generate_data
+
+                generate_data()
+                logger.info("Synthetic data generation completed (fallback).")
+            except Exception as exc2:
+                logger.error("Synthetic fallback also failed: %s", exc2)
+                result.errors.append(f"Synthetic fallback also failed: {exc2}")
+    else:
+        log_section(logger, "STEP 1 / ETL: Using committed raw data snapshot")
+        logger.info("Using committed raw snapshot (pass --refresh to fetch live data).")
 
     # 2. Run ETL pipeline (extract -> transform -> load)
     log_section(logger, "STEP 2 / ETL: Extract -> Transform -> Load")
     try:
         from src.etl.pipeline import run_pipeline
+
         run_pipeline(step="all")
         result.files.append(str(DATABASE_PATH))
         logger.info("ETL pipeline completed.")
@@ -118,6 +140,7 @@ def _run_etl() -> StepResult:
     log_section(logger, "STEP 2b / ETL: EU Benchmark Data")
     try:
         from src.etl.generate_eu_benchmark import run_pipeline as run_benchmark
+
         run_benchmark()
         logger.info("EU benchmark data loaded.")
     except Exception as exc:
@@ -245,27 +268,28 @@ def _run_report_html() -> StepResult:
 # ---------------------------------------------------------------------------
 
 _MODE_STEPS = {
-    "full":     [_run_etl, _run_analysis, _run_reports, _run_report_html],
-    "etl":      [_run_etl],
+    "full": [_run_etl, _run_analysis, _run_reports, _run_report_html],
+    "etl": [_run_etl],
     "analysis": [_run_analysis],
-    "reports":  [_run_reports, _run_report_html],
-    "quick":    [_run_etl, _run_analysis],
-    "excel":    [_run_excel_export],
+    "reports": [_run_reports, _run_report_html],
+    "quick": [_run_etl, _run_analysis],
+    "excel": [_run_excel_export],
 }
 
 _MODE_DESCRIPTIONS = {
-    "full":     "Run the complete pipeline: ETL -> Analysis -> Reports -> HTML report",
-    "etl":      "Fetch real data from APIs and run the ETL pipeline",
+    "full": "Run the complete pipeline: ETL -> Analysis -> Reports -> HTML report",
+    "etl": "Fetch real data from APIs and run the ETL pipeline",
     "analysis": "Run statistical analysis and generate visualisations",
-    "reports":  "Generate AI insights, executive briefing, and HTML report",
-    "quick":    "ETL + Analysis (skip report generation)",
-    "excel":    "Export all pillar data to an Excel workbook",
+    "reports": "Generate AI insights, executive briefing, and HTML report",
+    "quick": "ETL + Analysis (skip report generation)",
+    "excel": "Export all pillar data to an Excel workbook",
 }
 
 
 # ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
+
 
 def _print_summary(results: List[StepResult], elapsed: float) -> None:
     """Log a final summary table of generated artefacts and any errors."""
@@ -306,6 +330,7 @@ def _print_summary(results: List[StepResult], elapsed: float) -> None:
 # CLI
 # ---------------------------------------------------------------------------
 
+
 def _parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
@@ -319,6 +344,7 @@ def _parse_args() -> argparse.Namespace:
             "  python main.py --mode reports    # AI insights, briefing + HTML report\n"
             "  python main.py --mode excel      # Export data to Excel workbook\n"
             "  python main.py --mode quick      # ETL + analysis (no reports)\n"
+            "  python main.py --refresh         # Re-fetch live data (default uses snapshot)\n"
             "  python main.py --list            # Show available modes\n"
         ),
     )
@@ -327,6 +353,12 @@ def _parse_args() -> argparse.Namespace:
         choices=list(_MODE_STEPS.keys()),
         default="full",
         help="Pipeline mode to execute (default: full).",
+    )
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        default=False,
+        help="Re-fetch live data from APIs instead of the committed raw snapshot.",
     )
     parser.add_argument(
         "--list",
@@ -340,6 +372,7 @@ def _parse_args() -> argparse.Namespace:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main() -> int:
     """Orchestrate the Portugal Data Intelligence pipeline."""
@@ -368,7 +401,10 @@ def main() -> int:
 
     try:
         for step_fn in _MODE_STEPS[args.mode]:
-            all_results.append(step_fn())
+            if step_fn is _run_etl:
+                all_results.append(step_fn(refresh=args.refresh))
+            else:
+                all_results.append(step_fn())
     except KeyboardInterrupt:
         logger.warning("Pipeline interrupted by user.")
         _print_summary(all_results, time.time() - start_time)

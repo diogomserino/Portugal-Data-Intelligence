@@ -284,15 +284,16 @@ portugal-data-intelligence/
 ## Quick Start
 
 ```bash
-# One command to run everything
+# One command to run everything (rebuilds from the committed raw snapshot — offline & deterministic)
 python main.py
 
 # Or run specific stages
-python main.py --mode etl        # Data fetch from APIs + ETL pipeline
+python main.py --mode etl        # Rebuild the database from the raw snapshot
 python main.py --mode analysis   # Statistical analysis + chart generation
-python main.py --mode reports    # AI insights + executive briefing
+python main.py --mode reports    # AI insights, briefing + HTML report
 python main.py --mode quick      # ETL + Analysis (skip reports)
 python main.py --mode excel      # Export all pillar data to Excel workbook
+python main.py --refresh         # Re-fetch live data from the APIs (instead of the snapshot)
 python main.py --list            # Show all available modes
 
 # Generate self-contained HTML report

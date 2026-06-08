@@ -1,0 +1,17 @@
+year,employment_services_pct,employment_industry_pct,employment_agriculture_pct,real_wage_index,labour_productivity_index,date_key,quarter,source,country_code
+2010,62.5,26.5,11.0,99.0,97.0,2010-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
+2011,63.2,26.3,10.5,96.0,97.0,2011-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
+2012,63.8,26.0,10.2,92.0,98.0,2012-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
+2013,64.4,25.8,9.8,92.0,99.0,2013-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
+2014,65.9,25.6,8.5,96.0,99.0,2014-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
+2015,67.1,25.4,7.5,100.0,100.0,2015-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
+2016,68.3,25.2,6.5,101.0,101.0,2016-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
+2017,69.1,25.1,5.8,101.0,102.0,2017-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
+2018,69.8,25.0,5.2,102.0,102.0,2018-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
+2019,70.3,24.9,4.8,104.0,103.0,2019-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
+2020,70.7,24.8,4.5,106.0,101.0,2020-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
+2021,70.9,24.9,4.2,105.0,104.0,2021-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
+2022,71.4,24.8,3.8,102.0,106.0,2022-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
+2023,71.8,24.8,3.4,103.0,106.0,2023-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
+2024,72.3,24.7,3.0,107.0,107.0,2024-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
+2025,72.5,24.7,2.8,110.0,108.0,2025-Q4,4,"Eurostat (lfsa_egana, nama_10_lp_ulc) synthetic",PT
