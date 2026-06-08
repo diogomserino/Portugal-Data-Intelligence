@@ -220,7 +220,8 @@ def _sarimax_cache_key(
     max_seasonal: tuple,
 ) -> str:
     """Build a deterministic cache key from data fingerprint + parameters."""
-    data_hash = hashlib.md5(y.tobytes()).hexdigest()[:12]
+    # Non-cryptographic: a short fingerprint of the series for the model cache key.
+    data_hash = hashlib.md5(y.tobytes(), usedforsecurity=False).hexdigest()[:12]
     params = f"sp{seasonal_period}_h{horizon}_mo{''.join(map(str, max_order))}_ms{''.join(map(str, max_seasonal))}"
     return f"sarimax_{data_hash}_{params}.pkl"
 

@@ -23,7 +23,7 @@ jobs:
           cache: pip
 
       - name: Install dev dependencies
-        run: pip install black isort flake8
+        run: pip install black isort flake8 mypy
 
       - name: Check formatting (black)
         run: black --check --line-length 100 src/ config/ tests/
@@ -33,6 +33,9 @@ jobs:
 
       - name: Lint (flake8)
         run: flake8 src/ config/ --max-line-length 120 --extend-ignore E501,W503,F401,F541,F841,E402,E203
+
+      - name: Type check (mypy)
+        run: mypy config src/utils
 
   test:
     name: Test (Python ${{ matrix.python-version }})
@@ -103,3 +106,23 @@ jobs:
 
       - name: Verify main entry point
         run: python main.py --list
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install security tools
+        run: pip install bandit pip-audit
+
+      - name: Static security scan (bandit)
+        run: bandit -r src api dashboard config --severity-level high
+
+      - name: Dependency vulnerability audit (pip-audit)
+        run: pip-audit -r requirements.txt

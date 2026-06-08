@@ -299,7 +299,8 @@ def _get_nuts2_geojson() -> Optional[dict]:
             _GEOJSON_CACHE.unlink(missing_ok=True)
 
     try:
-        with urllib.request.urlopen(_GEOJSON_URL, timeout=30) as resp:
+        # _GEOJSON_URL is a hardcoded HTTPS Eurostat GISCO URL, not user input
+        with urllib.request.urlopen(_GEOJSON_URL, timeout=30) as resp:  # nosec B310
             full_geo = json.loads(resp.read().decode("utf-8"))
         pt_features = [
             f
