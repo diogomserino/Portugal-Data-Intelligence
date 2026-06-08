@@ -42,6 +42,7 @@ def _plotly_include_arg():
     _PLOTLY_STATE["included"] = True
     return "cdn"
 
+
 # ---------------------------------------------------------------------------
 # Project imports
 # ---------------------------------------------------------------------------
@@ -210,13 +211,33 @@ def load_dq_baseline() -> Dict[str, Dict[str, Dict[str, float]]]:
         return json.load(f)
 
 
-def encode_chart(filename: str) -> str:
-    """Read a chart PNG and return a base64 data URI."""
+def encode_chart(filename: str, max_width: int = 1200) -> str:
+    """Read a chart PNG and return a base64 data URI.
+
+    The 300-DPI source charts are large; for the self-contained report we
+    downscale the *embedded* copy to a web-friendly width and re-compress it so
+    the HTML stays lightweight. The PNGs on disk (used by the README and Power
+    BI) are left untouched. Falls back to the raw bytes if Pillow is missing.
+    """
     path = CHARTS_DIR / filename
     if not path.exists():
         logger.warning("Chart not found: %s", path)
         return ""
     data = path.read_bytes()
+    try:
+        from io import BytesIO
+
+        from PIL import Image
+
+        with Image.open(BytesIO(data)) as img:
+            if img.width > max_width:
+                height = round(img.height * max_width / img.width)
+                img = img.resize((max_width, height), Image.LANCZOS)
+            buf = BytesIO()
+            img.save(buf, format="PNG", optimize=True)
+            data = buf.getvalue()
+    except Exception:  # pragma: no cover - graceful fallback
+        pass
     b64 = base64.b64encode(data).decode("ascii")
     return f"data:image/png;base64,{b64}"
 
@@ -1179,9 +1200,7 @@ def render_regional_section() -> str:
     db_path = str(DATABASE_PATH)
     regional = run_regional_analysis(db_path)
     choropleth_div = (
-        build_choropleth_div(db_path, include_plotlyjs=_plotly_include_arg())
-        if _HAS_PLOTLY
-        else ""
+        build_choropleth_div(db_path, include_plotlyjs=_plotly_include_arg()) if _HAS_PLOTLY else ""
     )
 
     gdp_block = regional.get("gdp_per_capita_pps", {})
