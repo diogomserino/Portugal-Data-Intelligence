@@ -64,13 +64,15 @@ Let's walk through each stage.
 
 ---
 
-### Step 1: Generate Synthetic Data
+### Step 1: Acquire Data (committed snapshot, live fetch, or synthetic fallback)
 
-**Files:** `src/etl/generate_data.py`, `src/etl/generate_eu_benchmark.py`
+**Files:** `src/etl/fetch_real_data.py`, `src/etl/generate_data.py`, `src/etl/generate_eu_benchmark.py`
 
-Since we can't redistribute real data from INE or Banco de Portugal, the project generates **realistic synthetic data** instead. This isn't random noise — it's built from actual reference points (e.g., Portugal's real GDP trajectory, the 2011–2014 sovereign debt crisis, the 2020 COVID shock) and interpolated to monthly or quarterly resolution with controlled noise and seasonal patterns.
+By default the pipeline rebuilds from the **committed raw snapshot** in `data/raw/` — real data for the six core pillars fetched from the official Eurostat, ECB, and Banco de Portugal open APIs (run `python main.py --refresh` to re-fetch live). The extended pillars (housing, labour detail, external accounts, fiscal, inequality, regional) are **deterministic estimates calibrated to published official values** — see `docs/data_provenance.md` for the full breakdown.
 
-The generator creates data for **six macroeconomic pillars**:
+When no snapshot is present and the APIs are unreachable, `generate_data.py` provides a **synthetic fallback**. This isn't random noise — it's built from actual reference points (e.g., Portugal's real GDP trajectory, the 2011–2014 sovereign debt crisis, the 2020 COVID shock) and interpolated to monthly or quarterly resolution with controlled noise and seasonal patterns.
+
+The fallback generator covers the **six core macroeconomic pillars**:
 
 | Pillar | Granularity | What It Covers |
 |--------|-------------|----------------|

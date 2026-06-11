@@ -39,18 +39,9 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# Colour palette (consistent with shared_styles)
+# Colour palette — single source of truth in src/reporting/shared_styles.py
 # ---------------------------------------------------------------------------
-COLORS = {
-    "primary": "#9B2226",
-    "secondary": "#386641",
-    "accent": "#D4A373",
-    "positive": "#386641",
-    "negative": "#9B2226",
-    "neutral": "#3D3D5C",
-    "background": "#FFFFFF",
-    "light_text": "#6B7280",
-}
+from src.reporting.shared_styles import CHART_COLORS as COLORS  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Data loading (cached)
@@ -470,7 +461,7 @@ def page_correlation():
     fig = px.imshow(
         corr,
         text_auto=".2f",
-        color_continuous_scale=["#9B2226", "#FFFFFF", "#386641"],
+        color_continuous_scale=["#2E5FA3", "#FFFFFF", "#C03434"],
         zmin=-1,
         zmax=1,
         title="Pearson Correlation Matrix (Annual Averages)",

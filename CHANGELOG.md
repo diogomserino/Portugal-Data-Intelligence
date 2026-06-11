@@ -5,6 +5,28 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.4.0] - 2026-06-11
+
+### Changed
+- **HTML report redesigned** as an editorial consulting publication: Source
+  Serif 4 / Inter typography, a single electric-blue accent with green/red
+  reserved for data semantics, editorial cover with KPI ticker, sticky
+  numbered contents rail with scroll-spy, a numbered "Exhibit N" system for
+  every chart, hairline KPI grid and tables, tinted risk badges, and an
+  updated print stylesheet.
+- **Matplotlib chart suite aligned** with the same design language via the
+  central `shared_styles` palette (blue / deep navy / cyan series; Portugal
+  carries the brand blue in benchmark charts; muted crisis-period shading).
+- Streamlit dashboard imports the shared palette instead of duplicating hex
+  values; its correlation heatmap now uses the standard blue-white-red
+  diverging scale.
+- Tutorial updated to describe snapshot-first data acquisition (real API
+  data committed; synthetic generation only as offline fallback).
+
+### Fixed
+- Test suite no longer overwrites committed artefacts (STL chart PNGs and
+  the raw data snapshot) when it runs.
+
 ## [2.3.0] - 2026-06-11
 
 ### Fixed
@@ -72,6 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Power BI dashboard with DAX measures and CI (lint / test / build) across
   Python 3.10–3.12.
 
+[2.4.0]: https://github.com/diogomserino/Portugal-Data-Intelligence/releases/tag/v2.4.0
 [2.3.0]: https://github.com/diogomserino/Portugal-Data-Intelligence/releases/tag/v2.3.0
 [2.2.0]: https://github.com/diogomserino/Portugal-Data-Intelligence/releases/tag/v2.2.0
 [1.0.0]: https://github.com/diogomserino/Portugal-Data-Intelligence/releases/tag/v1.0.0
