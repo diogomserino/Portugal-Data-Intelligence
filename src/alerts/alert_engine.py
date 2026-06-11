@@ -35,6 +35,11 @@ _VALID_TABLES = frozenset(
         "fact_public_debt",
         "fact_credit",
         "fact_interest_rates",
+        "fact_housing",
+        "fact_labor_detail",
+        "fact_external_accounts",
+        "fact_fiscal",
+        "fact_inequality",
     }
 )
 _VALID_COLUMNS = frozenset(
@@ -64,6 +69,15 @@ _VALID_COLUMNS = frozenset(
         "budget_deficit",
         "budget_deficit_annual",
         "external_debt_share_estimated",
+        "house_price_yoy_change",
+        "house_price_index",
+        "current_account_pct_gdp",
+        "trade_balance_pct_gdp",
+        "total_revenue_pct_gdp",
+        "total_expenditure_pct_gdp",
+        "gini_index",
+        "poverty_risk_rate",
+        "real_wage_index",
     }
 )
 
@@ -157,6 +171,11 @@ class AlertEngine:
         alerts = []
         now = datetime.now(timezone.utc).isoformat()
 
+        # Report only the highest severity per direction: a critical breach
+        # necessarily also breaches the warning threshold, and emitting both
+        # would duplicate the signal.
+        fired_directions: set = set()
+
         for severity in ("critical", "warning"):
             rules = config.get(severity, {})
             if not isinstance(rules, dict):
@@ -173,7 +192,8 @@ class AlertEngine:
             if "below" in rules and not isinstance(rules["below"], (int, float)):
                 logger.warning("Non-numeric 'below' threshold for %s/%s", indicator_key, severity)
                 continue
-            if "above" in rules and value > rules["above"]:
+            if "above" in rules and value > rules["above"] and "above" not in fired_directions:
+                fired_directions.add("above")
                 alerts.append(
                     Alert(
                         indicator=indicator_key,
@@ -186,7 +206,8 @@ class AlertEngine:
                         timestamp=now,
                     )
                 )
-            if "below" in rules and value < rules["below"]:
+            if "below" in rules and value < rules["below"] and "below" not in fired_directions:
+                fired_directions.add("below")
                 alerts.append(
                     Alert(
                         indicator=indicator_key,

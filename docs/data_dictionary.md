@@ -339,7 +339,7 @@ Reference table for institutional data providers.
 | `gdp_per_capita_pps` | REAL | Yes | PPS | > 0 | GDP per capita in Purchasing Power Standards |
 | `gdp_index_eu27` | REAL | Yes | index | > 0 | GDP per capita index (EU27 = 100) |
 | `unemployment_rate` | REAL | Yes | % | [0, 50] | Regional unemployment rate |
-| `youth_unemployment_rate` | REAL | Yes | % | [0, 80] | Regional youth (15-24) unemployment rate |
+| `youth_unemployment_rate` | REAL | Yes | % | [0, 80] | Regional youth (15-24) unemployment rate. **Currently NULL for all rows** — Eurostat suppresses the 15-24 series for several PT regions (small samples: Açores/Madeira have ≤3 published observations since 2010), so the column is reserved rather than filled with estimates |
 | `is_provisional` | INTEGER | No | boolean | {0, 1} | 1 = provisional/projected, 0 = confirmed |
 | `source_key` | INTEGER | No (FK) | - | FK → dim_source | Data source reference |
 
@@ -429,3 +429,5 @@ The raw file (`raw_gdp.csv`) contains **nominal** GDP growth rates (`nominal_gdp
 ### Benchmark vs Quarterly Data Discrepancies
 
 The EU benchmark file uses annual averages which may differ from Q4 end-of-year readings in the quarterly data. Example: debt-to-GDP 2023 benchmark = 98.49% vs Q4 2023 quarterly = 96.9% (difference of 1.6 pp). This is expected when comparing annual averages with point-in-time quarterly readings.
+
+Note on keys: `fact_eu_benchmark.date_key` holds a bare year (`'2010'`…`'2025'`) and intentionally does **not** join to `dim_date` (which carries monthly/quarterly keys). Consumers read the year directly from `date_key`.

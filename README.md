@@ -405,7 +405,7 @@ SARIMAX forecasting with automatic order selection via AIC, model-cache persiste
 15+ automated validation checks (schema, ranges, completeness, consistency, freshness) with JSON reports. Full batch tracking with UUID-based `run_id`, SHA-256 file checksums, and provenance metadata.
 
 ### Alert Engine
-Configurable threshold monitoring with warning/critical severity levels across all twelve economic pillars. JSON output for integration with external notification systems.
+Configurable threshold monitoring with warning/critical severity levels across 11 indicators — from GDP growth, unemployment, and inflation to house-price growth, the current account, and the budget balance. JSON output for integration with external notification systems.
 
 ### 39 DAX Measures
 Complete Power BI analytical layer with KPI measures, year-on-year growth calculations, moving averages, derived cross-pillar metrics, period comparisons, and conditional formatting.

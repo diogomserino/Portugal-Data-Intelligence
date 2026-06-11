@@ -40,5 +40,33 @@
         "description": "Portugal 10Y Bond Yield (%)",
         "warning": {"above": 4.0},
         "critical": {"above": 7.0}
+    },
+    "house_price_yoy": {
+        "table": "fact_housing",
+        "column": "house_price_yoy_change",
+        "description": "House Price Growth YoY (%)",
+        "warning": {"above": 10.0, "below": -5.0},
+        "critical": {"above": 15.0, "below": -10.0}
+    },
+    "current_account": {
+        "table": "fact_external_accounts",
+        "column": "current_account_pct_gdp",
+        "description": "Current Account Balance (% of GDP)",
+        "warning": {"below": -3.0},
+        "critical": {"below": -6.0}
+    },
+    "budget_balance_annual": {
+        "table": "fact_public_debt",
+        "column": "budget_deficit_annual",
+        "description": "Budget Balance, rolling annual (% of GDP)",
+        "warning": {"below": -3.0},
+        "critical": {"below": -6.0}
+    },
+    "youth_unemployment_rate": {
+        "table": "fact_unemployment",
+        "column": "youth_unemployment_rate",
+        "description": "Youth Unemployment Rate (%)",
+        "warning": {"above": 25.0},
+        "critical": {"above": 35.0}
     }
 }

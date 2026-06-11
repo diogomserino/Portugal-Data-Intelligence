@@ -1783,7 +1783,7 @@ def render_platform() -> str:
   </div>
   <p style="margin-top:1.2rem; font-size:0.9rem;">
     Additionally, the platform includes a configurable <strong>alert engine</strong> with
-    warning/critical thresholds for all six pillars, an <strong>API response cache</strong>
+    warning/critical thresholds for 11 indicators across the economic pillars, an <strong>API response cache</strong>
     to reduce redundant HTTP calls to Eurostat, ECB, and Banco de Portugal, and a
     comprehensive <strong>CI/CD pipeline</strong> (GitHub Actions) with linting, testing
     across Python 3.10&ndash;3.12, and automated coverage reporting.
