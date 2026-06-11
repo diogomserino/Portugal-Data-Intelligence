@@ -14,32 +14,34 @@ import matplotlib as mpl
 logger = logging.getLogger(__name__)
 
 # =============================================================================
-# DESIGN SYSTEM COLOUR PALETTE
-# 60-30-10 Rule: 60% neutrals, 30% primary/secondary, 10% accent
+# DESIGN SYSTEM COLOUR PALETTE — editorial "consulting research" look
+# One brand hue (electric blue) supported by ink/cyan/grey for series;
+# green/red are reserved for semantics (gains/losses, risk) only.
+# Mirrors the HTML report design system (dashboard/generate_report.py).
 # =============================================================================
 
-_PRIMARY = "#9B2226"  # Deep red — risk, decline, critical
-_SECONDARY = "#386641"  # Forest green — growth, success, positive
-_ACCENT = "#D4A373"  # Warm gold — highlight, key insight
+_PRIMARY = "#2251FF"  # Electric blue — primary data series / brand accent
+_SECONDARY = "#051C2C"  # Deep navy ink — second series
+_ACCENT = "#00A9F4"  # Cyan — third series / highlight
 
 _BG = "#FFFFFF"  # Pure white background
-_TEXT_PRIMARY = "#1A1A2E"  # Dark navy — body text (high contrast)
-_TEXT_SECONDARY = "#3D3D5C"  # Dark slate — captions, labels (readable)
-_BORDER = "#D0D0D0"  # Medium grey — grid lines, dividers
-_MUTED_BG = "#F5F5F5"  # Very light grey — table headers, cards
+_TEXT_PRIMARY = "#15191E"  # Near-black ink — body text (high contrast)
+_TEXT_SECONDARY = "#3D4754"  # Slate — captions, labels (readable)
+_BORDER = "#E4E7EB"  # Hairline grey — grid lines, dividers
+_MUTED_BG = "#F6F7F8"  # Very light grey — table headers, cards
 
-_PRIMARY_LIGHT = "#C4494D"  # Lighter red for secondary elements
-_PRIMARY_FAINT = "#F2D5D6"  # Very light red for backgrounds
-_SECONDARY_LIGHT = "#5A8F62"  # Lighter green
-_SECONDARY_FAINT = "#D6E8D4"  # Very light green for backgrounds
-_ACCENT_LIGHT = "#E8C9A0"  # Lighter gold
-_ACCENT_FAINT = "#F5EBD9"  # Very light gold for backgrounds
+_PRIMARY_LIGHT = "#6E8FFF"  # Lighter blue for secondary elements
+_PRIMARY_FAINT = "#E6EBFF"  # Very light blue for backgrounds
+_SECONDARY_LIGHT = "#2E4456"  # Lighter navy
+_SECONDARY_FAINT = "#DCE3E9"  # Very light navy for backgrounds
+_ACCENT_LIGHT = "#66C9F8"  # Lighter cyan
+_ACCENT_FAINT = "#DFF4FE"  # Very light cyan for backgrounds
 
-_NEGATIVE = _PRIMARY  # Declines, losses, risks
-_POSITIVE = _SECONDARY  # Growth, gains, success
-_NEUTRAL = _TEXT_SECONDARY  # Baseline, unchanged
+_NEGATIVE = "#C03434"  # Declines, losses, risks (muted red)
+_POSITIVE = "#0E7C3F"  # Growth, gains, success (muted green)
+_NEUTRAL = "#6A737F"  # Baseline, unchanged (cool grey)
 
-_PALETTE_FULL = [_PRIMARY, _SECONDARY, _ACCENT, "#4A6FA5"]
+_PALETTE_FULL = [_PRIMARY, _SECONDARY, _ACCENT, "#6E7B8A"]
 
 # =============================================================================
 # MATPLOTLIB RC PARAMS
@@ -67,13 +69,13 @@ _DS_RC = {
     "axes.prop_cycle": mpl.cycler(color=_PALETTE_FULL),  # type: ignore[attr-defined]
     "axes.spines.top": False,
     "axes.spines.right": False,
-    # Grid
+    # Grid — solid hairlines (editorial style), horizontal only
     "axes.grid": True,
     "axes.grid.axis": "y",
     "grid.color": _BORDER,
-    "grid.linewidth": 0.4,
-    "grid.alpha": 0.6,
-    "grid.linestyle": "--",
+    "grid.linewidth": 0.6,
+    "grid.alpha": 0.9,
+    "grid.linestyle": "-",
     # Ticks
     "xtick.labelsize": 10,
     "ytick.labelsize": 10,
@@ -95,7 +97,7 @@ _DS_RC = {
     "legend.labelcolor": _TEXT_PRIMARY,
     # Font
     "font.family": "sans-serif",
-    "font.sans-serif": ["Segoe UI", "Helvetica Neue", "Arial", "sans-serif"],
+    "font.sans-serif": ["Inter", "Segoe UI", "Helvetica Neue", "Arial", "sans-serif"],
     "font.size": 10,
     "text.color": _TEXT_PRIMARY,
     # Savefig
@@ -114,12 +116,12 @@ CHART_SECONDARY = _SECONDARY
 CHART_ACCENT = _ACCENT
 CHART_POSITIVE = _POSITIVE
 CHART_NEGATIVE = _NEGATIVE
-CHART_NEUTRAL = _TEXT_SECONDARY
+CHART_NEUTRAL = _NEUTRAL
 CHART_BACKGROUND = _BG
 CHART_DARK_TEXT = _TEXT_PRIMARY
 CHART_LIGHT_TEXT = _TEXT_SECONDARY
 CHART_GRID = _BORDER
-CHART_PURPLE = "#4A6FA5"  # Steel blue — additional series
+CHART_PURPLE = "#6E7B8A"  # Cool grey — additional series
 
 CHART_COLORS = {
     "primary": CHART_PRIMARY,
@@ -138,39 +140,40 @@ CHART_COLORS = {
 # =============================================================================
 
 PERIOD_COLORS = {
-    "Pre-crisis": "#C8E6C9",  # Soft green
-    "Troika": "#FFCDD2",  # Soft red
-    "Recovery": "#BBDEFB",  # Soft blue
-    "COVID": "#FFF9C4",  # Soft yellow
-    "Post-COVID": "#E1BEE7",  # Soft purple
+    "Pre-crisis": "#D9E2EC",  # Cool blue-grey
+    "Troika": "#F3D8D8",  # Muted red — crisis
+    "Recovery": "#D6E4F7",  # Soft blue
+    "COVID": "#F5E5C8",  # Muted amber
+    "Post-COVID": "#DEF0E4",  # Muted green
 }
 
-ZONE_CAUTION = "#FFF3CD"  # Light yellow — caution zone
-ZONE_THRESHOLD = "#F0B27A"  # Orange — threshold line
+ZONE_CAUTION = "#F5E9C9"  # Muted amber — caution zone
+ZONE_THRESHOLD = "#D9A441"  # Amber — threshold line
 
 # =============================================================================
 # BENCHMARK / COUNTRY COLOURS
+# Portugal carries the brand blue; peers stay in restrained supporting hues.
 # =============================================================================
 
 COUNTRY_COLORS = {
-    "PT": _PRIMARY,  # Deep red — Portugal (always emphasised)
-    "DE": "#1A1A2E",  # Dark navy — Germany
-    "ES": "#E65100",  # Deep orange — Spain
-    "FR": "#1565C0",  # Strong blue — France
-    "IT": "#2E7D32",  # Green — Italy
-    "EU_AVG": "#757575",  # Medium grey — EU average
-    "EA_AVG": "#757575",  # Medium grey — Euro Area average
+    "PT": _PRIMARY,  # Electric blue — Portugal (always emphasised)
+    "DE": "#051C2C",  # Deep navy — Germany
+    "ES": "#D9A441",  # Amber — Spain
+    "FR": "#00A9F4",  # Cyan — France
+    "IT": "#6E7B8A",  # Cool grey — Italy
+    "EU_AVG": "#9AA3AE",  # Light grey — EU average
+    "EA_AVG": "#9AA3AE",  # Light grey — Euro Area average
 }
 
 # =============================================================================
 # CHART TYPOGRAPHY
 # =============================================================================
 
-FONT_HEADING = "Segoe UI"
-FONT_BODY = "Segoe UI"
+FONT_HEADING = "Inter"
+FONT_BODY = "Inter"
 
 CHART_FONT_FAMILY = "sans-serif"
-CHART_FONT_FALLBACK = ["Segoe UI", "Helvetica Neue", "Arial", "sans-serif"]
+CHART_FONT_FALLBACK = ["Inter", "Segoe UI", "Helvetica Neue", "Arial", "sans-serif"]
 
 CHART_FONT_SIZES = {
     "suptitle": 20,

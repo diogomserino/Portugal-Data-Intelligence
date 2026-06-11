@@ -348,7 +348,7 @@ def plot_unemployment_trends(db_path=None):
     ax.plot(
         df["date"],
         df["long_term_unemployment_rate"],
-        color=COLORS["positive"],
+        color=CHART_PURPLE,
         linewidth=2,
         label="Long-term Unemployment",
         zorder=3,
@@ -358,7 +358,7 @@ def plot_unemployment_trends(db_path=None):
     for col, color in [
         ("unemployment_rate", COLORS["primary"]),
         ("youth_unemployment_rate", COLORS["accent"]),
-        ("long_term_unemployment_rate", COLORS["positive"]),
+        ("long_term_unemployment_rate", CHART_PURPLE),
     ]:
         ma = df[col].rolling(12, min_periods=6).mean()
         ax.plot(df["date"], ma, color=color, linewidth=1.2, linestyle="--", alpha=0.5, zorder=2)
@@ -1038,11 +1038,12 @@ def plot_crisis_timeline(db_path=None):
         "GDP Growth": "gdp_growth",
     }
 
+    # Non-semantic series colours only (green/red stay reserved for gains/losses)
     line_colors = [
         COLORS["primary"],
         COLORS["accent"],
         COLORS["secondary"],
-        COLORS["positive"],
+        "#D9A441",
         CHART_PURPLE,
     ]
 
@@ -1336,7 +1337,7 @@ def plot_fiscal_trends(db_path=None):
     ax1.plot(
         df["year"],
         df["total_revenue_pct_gdp"],
-        color=COLORS["positive"],
+        color=COLORS["primary"],
         linewidth=2.5,
         marker="o",
         markersize=4,
@@ -1345,12 +1346,13 @@ def plot_fiscal_trends(db_path=None):
     ax1.plot(
         df["year"],
         df["total_expenditure_pct_gdp"],
-        color=COLORS["negative"],
+        color=COLORS["secondary"],
         linewidth=2.5,
         marker="s",
         markersize=4,
         label="Expenditure",
     )
+    # Deficit gap shaded in semantic red
     ax1.fill_between(
         df["year"],
         df["total_revenue_pct_gdp"],
@@ -1371,7 +1373,7 @@ def plot_fiscal_trends(db_path=None):
         "interest_payments_pct",
     ]
     cofog_labels = ["Health", "Education", "Social Protection", "Interest"]
-    cofog_colors = [COLORS["primary"], COLORS["secondary"], COLORS["accent"], COLORS["negative"]]
+    cofog_colors = [COLORS["primary"], COLORS["secondary"], COLORS["accent"], "#D9A441"]
     bottom = np.zeros(len(df))
     for col, lbl, clr in zip(cofog_cols, cofog_labels, cofog_colors):
         vals = df[col].fillna(0).values

@@ -20,6 +20,13 @@ pytestmark = pytest.mark.skipif(
 
 
 class TestRunDecomposition:
+    @pytest.fixture(autouse=True)
+    def _no_chart_writes(self, monkeypatch):
+        """Keep the suite from overwriting the committed STL chart PNGs."""
+        import src.analysis.decomposition as decomposition
+
+        monkeypatch.setattr(decomposition, "plot_decomposition", lambda *a, **k: None)
+
     def test_returns_dict_with_expected_keys(self):
         from src.analysis.decomposition import run_decomposition
 

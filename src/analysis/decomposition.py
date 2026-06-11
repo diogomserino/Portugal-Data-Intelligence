@@ -108,7 +108,8 @@ def plot_decomposition(
 
     labels = ["Observed", "Trend", "Seasonal", "Residual"]
     keys = ["observed", "trend", "seasonal", "residual"]
-    colors = ["#2c3e50", "#2980b9", "#27ae60", "#e74c3c"]
+    # Editorial palette: ink, brand blue, cyan, muted red (see shared_styles)
+    colors = ["#15191E", "#2251FF", "#00A9F4", "#C03434"]
 
     for ax, label, key, color in zip(axes, labels, keys, colors):
         ax.plot(components[key], color=color, linewidth=1.0)
