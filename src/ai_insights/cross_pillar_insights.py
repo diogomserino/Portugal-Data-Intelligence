@@ -251,10 +251,18 @@ def synthesise_macro_narrative(summaries: dict, relationships: list, db_path: st
             "JOIN dim_date d ON f.date_key=d.date_key "
             "ORDER BY d.year DESC, d.quarter DESC LIMIT 1"
         )
+        # Annual balance (rolling 4-quarter), not the single-quarter figure,
+        # so the narrative matches the official annual budget balance.
         latest_deficit = _q(
-            "SELECT budget_deficit FROM fact_public_debt f "
+            "SELECT budget_deficit_annual FROM fact_public_debt f "
             "JOIN dim_date d ON f.date_key=d.date_key "
             "ORDER BY d.year DESC, d.quarter DESC LIMIT 1"
+        )
+        # First year-end below the 100%-of-GDP mark after the crisis build-up
+        first_sub100_year = _q(
+            "SELECT MIN(d.year) FROM fact_public_debt f "
+            "JOIN dim_date d ON f.date_key=d.date_key "
+            "WHERE d.quarter = 4 AND d.year > 2011 AND f.debt_to_gdp_ratio < 100"
         )
         latest_npl = _q(
             "SELECT npl_ratio FROM fact_credit f "
@@ -292,13 +300,20 @@ def synthesise_macro_narrative(summaries: dict, relationships: list, db_path: st
     )
 
     # --- Act 3: Resilience and Convergence (2020-2025) ---
+    sub100_text = (
+        f"below the 100% mark since {int(first_sub100_year)}"
+        if first_sub100_year is not None
+        else "back below the 100% mark"
+    )
+    balance_word = "deficit" if (latest_deficit is not None and latest_deficit < 0) else "surplus"
+    balance_value = abs(latest_deficit) if latest_deficit is not None else None
     parts.append(
         "ACT 3 - RESILIENCE AND CONVERGENCE (2020-2025): "
         "The COVID shock caused a sharp but temporary contraction. "
         "The recovery was swift: real GDP surpassed pre-pandemic levels by 2022. "
         f"By 2025, unemployment stands at {s(latest_unemp)}% (near EU average), "
-        f"debt-to-GDP has fallen to {s(latest_debt)}% (below 100% for the first time "
-        f"since 2011), and the budget balance shows a surplus of {s(latest_deficit)}% of GDP. "
+        f"debt-to-GDP has fallen to {s(latest_debt)}% ({sub100_text}), "
+        f"and the annual budget balance shows a {balance_word} of {s(balance_value)}% of GDP. "
         f"The NPL ratio at {s(latest_npl)}% confirms a clean banking system."
     )
 
@@ -310,7 +325,10 @@ def synthesise_macro_narrative(summaries: dict, relationships: list, db_path: st
         risk_signals.append(
             f"inflation persistence ({s(latest_hicp)}% still above the ECB 2% target)"
         )
-    risk_signals.append("the productivity gap (GDP per capita remains ~70% of the EU average)")
+    risk_signals.append(
+        "the productivity gap (GDP per capita remains ~82% of the EU average "
+        "in purchasing-power terms)"
+    )
 
     parts.append(
         "FORWARD RISKS: Despite the structural improvement, Portugal faces "

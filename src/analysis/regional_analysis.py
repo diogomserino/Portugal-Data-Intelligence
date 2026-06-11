@@ -4,9 +4,9 @@ Portugal Data Intelligence - NUTS2 Regional Analysis
 Analyses regional macroeconomic disparities across Portugal's NUTS2 regions
 using Eurostat data on GDP per capita and unemployment rates.
 
-NUTS2 regions covered:
-    PT11 — Norte       PT15 — Alentejo    PT16 — Centro
-    PT17 — Lisboa      PT18 — Algarve     PT20 — Açores
+NUTS2 regions covered (NUTS 2016 codes):
+    PT11 — Norte       PT15 — Algarve     PT16 — Centro
+    PT17 — Lisboa      PT18 — Alentejo    PT20 — Açores
     PT30 — Madeira
 
 Usage:
@@ -30,10 +30,10 @@ logger = get_logger(__name__)
 
 _NUTS2_REGIONS: Dict[str, str] = {
     "PT11": "Norte",
-    "PT15": "Alentejo",
+    "PT15": "Algarve",
     "PT16": "Centro",
     "PT17": "Lisboa",
-    "PT18": "Algarve",
+    "PT18": "Alentejo",
     "PT20": "Açores",
     "PT30": "Madeira",
 }
@@ -119,23 +119,25 @@ def _top_bottom(values: Dict[str, float], region_names: Dict[str, str]) -> Dict:
 
 def _synthetic_fallback() -> Dict:
     """Return synthetic NUTS2 data based on Eurostat estimates when DB table is absent."""
+    # Official Eurostat values for 2022 (nama_10r_2gdp PPS / lfst_r_lfu3rt);
+    # Centro/Lisboa/Alentejo are weighted aggregates of the NUTS-2024 successors.
     gdp_pps_2022 = {
-        "PT11": 17_800,
-        "PT15": 14_100,
-        "PT16": 15_200,
-        "PT17": 26_500,
-        "PT18": 19_800,
-        "PT20": 15_900,
-        "PT30": 18_200,
+        "PT11": 23_900,
+        "PT15": 30_200,
+        "PT16": 23_600,
+        "PT17": 36_600,
+        "PT18": 24_700,
+        "PT20": 24_200,
+        "PT30": 29_500,
     }
     unemp_2023 = {
-        "PT11": 6.8,
-        "PT15": 8.2,
-        "PT16": 7.1,
-        "PT17": 6.2,
-        "PT18": 9.1,
-        "PT20": 10.4,
-        "PT30": 8.7,
+        "PT11": 7.0,
+        "PT15": 5.7,
+        "PT16": 5.4,
+        "PT17": 7.2,
+        "PT18": 5.8,
+        "PT20": 6.5,
+        "PT30": 6.0,
     }
     gdp_dispersion = _regional_dispersion(gdp_pps_2022)
     unemp_dispersion = _regional_dispersion(unemp_2023)

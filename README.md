@@ -41,7 +41,7 @@ A single-view summary of the six core macroeconomic pillars — GDP, unemploymen
 
 ### Cross-Pillar Correlation Analysis
 
-Pearson correlation matrix revealing how Portugal's key economic indicators interact — from the unemployment-bond yield link (0.74) to the inflation-NPL inverse relationship (-0.53).
+Pearson correlation matrix revealing how Portugal's key economic indicators interact — from the unemployment-bond yield link (0.71) to the inflation-NPL inverse relationship (-0.48).
 
 ![Correlation Heatmap](reports/powerbi/charts/correlation_heatmap.png)
 

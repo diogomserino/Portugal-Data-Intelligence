@@ -110,10 +110,10 @@ _QUARTERS = [f"{y}-Q4" for y in _YEARS]
 _QUARTERLY_ALL = [f"{y}-Q{q}" for y in _YEARS for q in range(1, 5)]
 _NUTS2 = [
     ("PT11", "Norte"),
-    ("PT15", "Alentejo"),
+    ("PT15", "Algarve"),
     ("PT16", "Centro"),
     ("PT17", "Lisboa"),
-    ("PT18", "Algarve"),
+    ("PT18", "Alentejo"),
     ("PT20", "Açores"),
     ("PT30", "Madeira"),
 ]

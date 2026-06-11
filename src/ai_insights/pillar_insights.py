@@ -830,11 +830,20 @@ def _insight_interest_rates(d: dict) -> dict:
             )
             break
 
-    para2 = (
-        f"Rates peaked at {s(peak)}% in {peak_y}, reflecting crisis-era risk premia, "
-        f"before declining to {s(trough)}% in {trough_y} under ECB accommodative "
-        f"measures.{spread_text}"
-    )
+    # Keep the peak/trough sentence chronologically coherent: the trough of the
+    # ECB cycle (2016-2021 zero-rate era) came before the 2023 tightening peak.
+    if peak_y is not None and trough_y is not None and int(trough_y) < int(peak_y):
+        para2 = (
+            f"Rates fell to a low of {s(trough)}% in {trough_y} under the ECB's "
+            f"accommodative measures, then climbed to a peak of {s(peak)}% in {peak_y} "
+            f"as policy tightened against the post-pandemic inflation surge."
+            f"{spread_text}"
+        )
+    else:
+        para2 = (
+            f"Rates peaked at {s(peak)}% in {peak_y}, before declining to {s(trough)}% "
+            f"in {trough_y} under ECB accommodative measures.{spread_text}"
+        )
 
     para3 = (
         f"The current rate of {s(latest)}% must be assessed in the context of the ECB's "

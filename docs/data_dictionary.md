@@ -350,10 +350,10 @@ Reference table for institutional data providers.
 | Code | Name | Notes |
 |------|------|-------|
 | PT11 | Norte | Largest region by population |
-| PT15 | Alentejo | Largest by area, lowest GDP per capita |
+| PT15 | Algarve | Tourism-driven economy |
 | PT16 | Centro | |
 | PT17 | Lisboa | Highest GDP per capita |
-| PT18 | Algarve | Tourism-driven economy |
+| PT18 | Alentejo | Largest by area |
 | PT20 | Acores | Autonomous region |
 | PT30 | Madeira | Autonomous region |
 

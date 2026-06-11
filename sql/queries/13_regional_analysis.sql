@@ -4,8 +4,8 @@
 -- Database : portugal_data_intelligence.db (SQLite)
 -- Table    : fact_regional joined with dim_date
 -- Period   : 2010 to 2025 (annual per NUTS2 region, YYYY-Q4 keys)
--- NUTS2    : PT11 Norte | PT15 Alentejo | PT16 Centro | PT17 Lisboa
---            PT18 Algarve | PT20 Acores | PT30 Madeira
+-- NUTS2    : PT11 Norte | PT15 Algarve | PT16 Centro | PT17 Lisboa
+--            PT18 Alentejo | PT20 Acores | PT30 Madeira
 -- =============================================================================
 
 

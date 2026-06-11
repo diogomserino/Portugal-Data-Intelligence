@@ -302,12 +302,18 @@ class InsightEngine:
         growth_valid = annual["growth_pct"].dropna()
         latest_growth = float(growth_valid.iloc[-1]) if len(growth_valid) > 0 else None
 
-        # Crisis period impacts
+        # Crisis period impacts. Means use the annual aggregation, but the
+        # extremes come from the actual observations (monthly/quarterly) so a
+        # window "peak" matches the headline peak elsewhere in the report
+        # (e.g. unemployment peaked at 18.3% during the debt crisis, not the
+        # 17.2% maximum of the annual averages).
         crisis_impacts = {}
         for crisis_key, crisis_info in CRISIS_PERIODS.items():
             start_y, end_y = crisis_info["years"]
             mask = (annual["year"] >= start_y) & (annual["year"] <= end_y)
             subset = annual.loc[mask]
+            obs_subset = _obs.loc[(_obs["year"] >= start_y) & (_obs["year"] <= end_y)]
+            extremes = obs_subset if not obs_subset.empty else subset
             if not subset.empty:
                 crisis_impacts[crisis_key] = {
                     "label": crisis_info["label"],
@@ -317,8 +323,8 @@ class InsightEngine:
                         if subset["growth_pct"].notna().any()
                         else None
                     ),
-                    "min_value": float(subset[primary_col].min()),
-                    "max_value": float(subset[primary_col].max()),
+                    "min_value": float(extremes[primary_col].min()),
+                    "max_value": float(extremes[primary_col].max()),
                 }
 
         # Volatility

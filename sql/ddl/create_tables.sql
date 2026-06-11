@@ -372,8 +372,8 @@ CREATE INDEX idx_fact_inequality_date_key ON fact_inequality (date_key);
 -- fact_regional  -  NUTS2 Regional Macroeconomic Indicators
 -- Granularity: annual (YYYY-Q4), one row per NUTS2 region per year.
 -- Primary source: Eurostat (nama_10r_2gdp, lfst_r_lfu3rt).
--- NUTS2 regions: PT11 Norte, PT15 Alentejo, PT16 Centro, PT17 Lisboa,
---                PT18 Algarve, PT20 Açores, PT30 Madeira.
+-- NUTS2 regions: PT11 Norte, PT15 Algarve, PT16 Centro, PT17 Lisboa,
+--                PT18 Alentejo, PT20 Açores, PT30 Madeira.
 -- -----------------------------------------------------------------------------
 
 DROP TABLE IF EXISTS fact_regional;

@@ -69,11 +69,20 @@ class TestBPStatAPIs:
 
 
 class TestFetchAll:
-    def test_fetch_all_returns_multiple_pillars(self):
-        from src.etl.fetch_real_data import fetch_all
+    def test_fetch_all_returns_multiple_pillars(self, tmp_path, monkeypatch):
+        import src.etl.fetch_real_data as frd
+
+        # Redirect save_csv to a temp dir: the smoke test must never overwrite
+        # the committed raw snapshot (data/raw) with a fresh fetch.
+        def _save_to_tmp(df, filename):
+            path = tmp_path / filename
+            df.to_csv(path, index=False)
+            return path
+
+        monkeypatch.setattr(frd, "save_csv", _save_to_tmp)
 
         try:
-            results = fetch_all()
+            results = frd.fetch_all()
         except Exception as exc:
             pytest.skip(f"APIs unavailable: {exc}")
         assert len(results) >= 4, f"Only {len(results)} pillars fetched"
