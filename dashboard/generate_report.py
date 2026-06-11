@@ -267,20 +267,31 @@ def _make_plotly_timeseries(pillar_key: str, title: str, primary_col: str) -> st
         go.Scatter(
             x=df[x_col],
             y=df[primary_col],
-            mode="lines+markers",
+            mode="lines",
             name=col_label,
-            line={"color": "#1A1A2E", "width": 2},
-            marker={"size": 4, "color": "#1A1A2E"},
+            line={"color": "#2251FF", "width": 2.25},
             hovertemplate=f"<b>%{{x}}</b><br>{col_label}: %{{y:.2f}}<extra></extra>",
         )
     )
     fig.update_layout(
-        xaxis={"title": "Period", "showgrid": True, "gridcolor": "#E8E8E8", "tickangle": -30},
-        yaxis={"title": col_label, "showgrid": True, "gridcolor": "#E8E8E8"},
+        xaxis={
+            "showgrid": False,
+            "tickangle": 0,
+            "nticks": 8,
+            "linecolor": "#E4E7EB",
+            "ticks": "outside",
+            "tickcolor": "#E4E7EB",
+        },
+        yaxis={
+            "title": col_label,
+            "showgrid": True,
+            "gridcolor": "#ECEEF1",
+            "zerolinecolor": "#D6DAE0",
+        },
         plot_bgcolor="white",
         paper_bgcolor="white",
-        font={"family": "DM Sans, 'Segoe UI', sans-serif", "size": 12},
-        margin={"l": 60, "r": 20, "t": 20, "b": 60},
+        font={"family": "Inter, 'Segoe UI', sans-serif", "size": 12, "color": "#3D4754"},
+        margin={"l": 60, "r": 12, "t": 12, "b": 40},
         height=320,
         hovermode="x unified",
         showlegend=False,
@@ -291,7 +302,7 @@ def _make_plotly_timeseries(pillar_key: str, title: str, primary_col: str) -> st
             output_type="div",
             include_plotlyjs=_plotly_include_arg(),
             config={
-                "displayModeBar": True,
+                "displayModeBar": "hover",
                 "displaylogo": False,
                 "modeBarButtonsToRemove": ["lasso2d", "select2d"],
             },
@@ -305,26 +316,44 @@ def _make_plotly_timeseries(pillar_key: str, title: str, primary_col: str) -> st
 # =============================================================================
 
 CSS = """
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --navy: #1C1C1E;
-  --dark-slate: #2C2C2C;
-  --deep-red: #9B2226;
-  --forest-green: #2D7A40;
-  --warm-gold: #D4A373;
-  --steel-blue: #1D7A43;
-  --off-white: #FFFFFF;
-  --light-gray: #F5F5F5;
-  --border: #D0D0D0;
-  --medium-gray: #888;
-  --risk-low: #2D7A40;
-  --risk-moderate: #D4A373;
-  --risk-elevated: #E65100;
-  --risk-high: #9B2226;
-  --font-heading: 'DM Sans', 'Segoe UI', -apple-system, sans-serif;
-  --font-body: 'DM Sans', 'Segoe UI', -apple-system, sans-serif;
+  /* Editorial palette: near-black ink, warm grays, one electric-blue accent. */
+  --ink: #15191E;
+  --ink-soft: #3D4754;
+  --gray: #6A737F;
+  --gray-faint: #B9BFC7;
+  --hairline: #E4E7EB;
+  --wash: #F6F7F8;
+  --paper: #FFFFFF;
+  --accent: #2251FF;
+  --accent-dark: #1A3FD6;
+  /* Semantic colours: reserved for data (deltas, risk) only. */
+  --pos: #0E7C3F;
+  --neg: #C03434;
+  --warn: #A6690F;
+  --risk-low: #0E7C3F;
+  --risk-moderate: #A6690F;
+  --risk-elevated: #C2410C;
+  --risk-high: #B91C1C;
+  --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --sans: 'Inter', 'Segoe UI', -apple-system, sans-serif;
+  --font-heading: var(--serif);
+  --font-body: var(--sans);
+  /* Legacy aliases (used by inline styles in render helpers). */
+  --navy: var(--ink);
+  --dark-slate: var(--ink-soft);
+  --deep-red: var(--neg);
+  --forest-green: var(--pos);
+  --warm-gold: var(--warn);
+  --steel-blue: var(--accent);
+  --off-white: var(--paper);
+  --light-gray: var(--wash);
+  --border: var(--hairline);
+  --medium-gray: var(--gray);
   --max-width: 1100px;
+  --prose: 740px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -335,244 +364,368 @@ body {
   font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.7;
-  color: var(--dark-slate);
-  background: var(--off-white);
+  color: var(--ink-soft);
+  background: var(--paper);
 }
 
-/* --- HERO --- */
-.hero {
-  background: linear-gradient(135deg, var(--navy) 0%, #282828 100%);
-  color: #fff;
-  padding: 4rem 2rem 3.5rem;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
+::selection { background: rgba(34, 81, 255, 0.14); }
+
+/* --- EDITORIAL COVER --- */
+.cover {
+  background: var(--paper);
+  padding: 4.5rem 2.5rem 3rem;
+  border-bottom: 1px solid var(--hairline);
 }
-/* Portuguese flag accent bar */
-.hero::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(to right, #009B3A 38.5%, #FF0000 38.5%);
-}
-.hero h1 {
-  font-family: var(--font-heading);
-  font-size: 2.75rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-  letter-spacing: -0.02em;
-}
-.hero .subtitle {
-  font-size: 1.15rem;
-  font-weight: 300;
-  opacity: 0.85;
+.cover-inner { max-width: 940px; margin: 0 auto; }
+.kicker {
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
   margin-bottom: 1.5rem;
 }
-.hero .meta {
-  font-size: 0.85rem;
-  opacity: 0.65;
-  margin-bottom: 2rem;
+.cover h1 {
+  font-family: var(--serif);
+  font-size: 3.3rem;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  max-width: 21ch;
 }
-.hero .executive-summary {
-  max-width: 800px;
-  margin: 0 auto;
-  text-align: left;
-  font-size: 0.95rem;
-  line-height: 1.8;
-  opacity: 0.9;
-  border-left: 3px solid var(--warm-gold);
-  padding-left: 1.5rem;
+.cover .dek {
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin-top: 1.1rem;
+  max-width: 52ch;
 }
-/* Hero KPI pills */
-.hero-metrics {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
-  margin: 1.5rem 0 0;
-}
-.hm-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.3rem 0.8rem;
-  border-radius: 20px;
+.cover .meta-row {
+  font-family: var(--sans);
   font-size: 0.8rem;
   font-weight: 500;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  letter-spacing: 0.02em;
+  color: var(--gray);
+  margin: 1.6rem 0 2.5rem;
 }
-.hm-pill.positive { background: rgba(45, 122, 64, 0.5); border-color: rgba(45,122,64,0.7); }
-.hm-pill.negative { background: rgba(155, 34, 38, 0.5); border-color: rgba(155,34,38,0.7); }
-.hm-pill.moderate { background: rgba(212, 163, 115, 0.3); border-color: rgba(212,163,115,0.5); }
-.hm-pill .pill-label { opacity: 0.75; font-size: 0.72rem; }
+.cover .meta-row span + span::before { content: "·"; margin: 0 0.6rem; color: var(--gray-faint); }
 
-/* --- TOC --- */
-.toc {
-  max-width: var(--max-width);
-  margin: 2rem auto;
-  padding: 1.5rem 2rem;
-  background: var(--light-gray);
-  border-radius: 8px;
+/* KPI ticker strip */
+.ticker {
+  display: flex;
+  flex-wrap: wrap;
+  border-top: 2px solid var(--ink);
+  border-bottom: 1px solid var(--hairline);
 }
-.toc h2 {
-  font-family: var(--font-heading);
-  font-size: 1.1rem;
-  color: var(--navy);
-  margin-bottom: 0.75rem;
+.ticker-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  padding: 0.95rem 1.5rem 0.95rem 0;
+  margin-right: 1.5rem;
+  border-right: 1px solid var(--hairline);
 }
-.toc-grid {
+.ticker-item:last-child { border-right: none; margin-right: 0; }
+.t-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+.t-value {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.t-delta { font-size: 0.72rem; font-weight: 600; }
+.t-delta.positive { color: var(--pos); }
+.t-delta.negative { color: var(--neg); }
+.t-delta.moderate { color: var(--warn); }
+.t-delta.neutral { color: var(--gray); }
+
+/* Executive summary panel */
+.exec-panel {
+  max-width: 940px;
+  margin: 2.5rem auto 0;
+  padding: 1.8rem 2.2rem;
+  background: var(--wash);
+  border-left: 3px solid var(--accent);
+}
+.exec-panel .panel-label {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-bottom: 0.9rem;
+}
+.exec-panel p {
+  font-size: 0.97rem;
+  line-height: 1.75;
+  color: var(--ink-soft);
+  margin-bottom: 0.8rem;
+}
+.exec-panel p:last-child { margin-bottom: 0; }
+
+/* --- LAYOUT SHELL: sticky rail + content column --- */
+.layout {
+  max-width: 1340px;
+  margin: 0 auto;
+  padding: 0 2.5rem;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0.4rem 2rem;
+  grid-template-columns: 230px minmax(0, 1fr);
+  column-gap: 4.5rem;
 }
-.toc a {
-  color: var(--steel-blue);
+.content { min-width: 0; max-width: 980px; }
+
+#side-rail {
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+  padding: 3rem 0 2rem;
+  scrollbar-width: thin;
+}
+#side-rail .rail-title {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin-bottom: 1rem;
+}
+#side-rail ol { list-style: none; counter-reset: rail; }
+#side-rail li { counter-increment: rail; }
+#side-rail a {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--gray);
   text-decoration: none;
-  font-size: 0.9rem;
-  padding: 0.2rem 0;
-  display: block;
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.2s;
+  border-left: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
 }
-.toc a:hover { border-bottom-color: var(--steel-blue); }
+#side-rail a::before {
+  content: counter(rail, decimal-leading-zero);
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--gray-faint);
+  font-variant-numeric: tabular-nums;
+  padding-top: 0.12rem;
+}
+#side-rail a:hover { color: var(--ink); }
+#side-rail li.active a {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+#side-rail li.active a::before { color: var(--accent); }
+
+/* --- MOBILE CONTENTS (rail hidden on narrow screens) --- */
+.toc-mobile {
+  display: none;
+  margin: 2rem 0;
+  padding: 1.25rem 1.5rem;
+  background: var(--wash);
+  border: 1px solid var(--hairline);
+}
+.toc-mobile summary {
+  font-family: var(--sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink);
+  cursor: pointer;
+}
+.toc-mobile a {
+  display: block;
+  padding: 0.25rem 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.toc-mobile a:hover { color: var(--accent); }
 
 /* --- MAIN CONTENT --- */
-main {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: 0 2rem;
+main { counter-reset: sec exhibit; }
+main > section {
+  counter-increment: sec;
+  padding: 3.25rem 0;
+  border-top: 1px solid var(--hairline);
+  margin: 0;
+}
+main > section:first-child { border-top: none; padding-top: 2.75rem; }
+
+main > section > h2 {
+  font-family: var(--serif);
+  font-size: 1.9rem;
+  font-weight: 600;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-bottom: 1.25rem;
+  border: none;
+  padding: 0;
+}
+main > section > h2::before {
+  content: "Section " counter(sec, decimal-leading-zero);
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.8rem;
 }
 
-/* --- KPI DASHBOARD --- */
-.kpi-dashboard { margin: 2.5rem 0; }
-.kpi-dashboard h2 {
-  font-family: var(--font-heading);
-  font-size: 1.5rem;
-  color: var(--navy);
-  margin-bottom: 1.5rem;
-  padding-left: 1rem;
-  border-left: 4px solid var(--warm-gold);
+/* Standfirst (pillar headline) */
+.standfirst {
+  font-family: var(--serif);
+  font-size: 1.22rem;
+  line-height: 1.5;
+  color: var(--ink);
+  margin-bottom: 1.4rem;
+  max-width: var(--prose);
 }
+
+section h3 {
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  margin: 2rem 0 0.8rem;
+}
+
+/* Constrain prose for readability; exhibits and tables run wider. */
+main section p { max-width: var(--prose); }
+.pillar-narrative { margin-bottom: 1.5rem; white-space: pre-line; max-width: var(--prose); }
+.pillar-narrative p { margin-bottom: 0.85rem; }
+
+/* --- KPI DASHBOARD --- */
+.kpi-dashboard h2 { margin-bottom: 1.5rem; }
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
+  gap: 1px;
+  background: var(--hairline);
+  border: 1px solid var(--hairline);
 }
 .kpi-card {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 1.25rem 1rem;
-  text-align: center;
-  border-top: 3px solid var(--steel-blue);
-  transition: box-shadow 0.2s, transform 0.15s;
+  background: var(--paper);
+  padding: 1.3rem 1.5rem 1.2rem;
+  text-align: left;
 }
-.kpi-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); transform: translateY(-2px); }
-/* Semantic KPI colors */
-.kpi-card.positive { border-top-color: var(--forest-green); }
-.kpi-card.moderate { border-top-color: var(--warm-gold); }
-.kpi-card.negative { border-top-color: var(--deep-red); }
-.kpi-value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--navy);
-  line-height: 1.2;
-}
-.kpi-value.positive { color: var(--forest-green); }
-.kpi-value.moderate { color: #9a6d00; }
-.kpi-value.negative { color: var(--deep-red); }
 .kpi-label {
-  font-size: 0.78rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--medium-gray);
-  margin-top: 0.4rem;
-}
-.kpi-period {
-  font-size: 0.7rem;
-  color: var(--medium-gray);
-  margin-top: 0.2rem;
-}
-.kpi-trend {
-  font-size: 0.78rem;
+  font-size: 0.67rem;
   font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+.kpi-value {
+  font-size: 2.1rem;
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
   margin-top: 0.35rem;
 }
-.kpi-trend.positive { color: var(--forest-green); }
-.kpi-trend.moderate { color: #9a6d00; }
-.kpi-trend.negative { color: var(--deep-red); }
+.kpi-meta {
+  display: flex;
+  gap: 0.85rem;
+  align-items: baseline;
+  margin-top: 0.45rem;
+  font-size: 0.74rem;
+  color: var(--gray);
+}
+.kpi-period { font-variant-numeric: tabular-nums; }
+.kpi-trend { font-weight: 600; }
+.kpi-trend.positive { color: var(--pos); }
+.kpi-trend.moderate { color: var(--warn); }
+.kpi-trend.negative { color: var(--neg); }
+.kpi-trend.neutral { color: var(--gray); }
 
-/* --- PILLAR SECTIONS --- */
-.pillar-section {
-  margin: 3rem 0;
-  padding-top: 1rem;
+/* --- EXHIBIT SYSTEM (numbered figures) --- */
+.exhibit {
+  counter-increment: exhibit;
+  margin: 2.25rem 0;
+  text-align: left;
 }
-.pillar-section h2 {
-  font-family: var(--font-heading);
-  font-size: 1.6rem;
-  color: var(--navy);
-  padding-left: 1rem;
-  border-left: 4px solid var(--warm-gold);
-  margin-bottom: 1.25rem;
-}
-.pillar-section h3 {
-  font-size: 1.05rem;
+.exhibit-head {
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.92rem;
   font-weight: 600;
-  color: var(--navy);
-  margin: 1.5rem 0 0.75rem;
+  line-height: 1.4;
+  color: var(--ink);
+  padding-bottom: 0.55rem;
+  border-bottom: 1px solid var(--ink);
+  margin-bottom: 1rem;
+  font-style: normal;
+  text-align: left;
 }
-.pillar-narrative {
-  margin-bottom: 1.5rem;
-  white-space: pre-line;
+.exhibit-head::before {
+  content: "Exhibit " counter(exhibit);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-right: 0.9rem;
 }
-.pillar-narrative p { margin-bottom: 0.8rem; }
-
-figure {
-  margin: 1.5rem 0;
-  text-align: center;
-}
-figure img {
+.exhibit img {
   max-width: 100%;
   height: auto;
-  border-radius: 6px;
-  border: 1px solid var(--border);
+  border: none;
+  border-radius: 0;
 }
-figcaption {
-  font-size: 0.8rem;
-  color: var(--medium-gray);
-  font-style: italic;
-  margin-top: 0.5rem;
+.exhibit-source {
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--gray);
+  margin-top: 0.6rem;
+  max-width: none !important;
 }
 
+figure { margin: 1.5rem 0; }
+figure img { max-width: 100%; height: auto; }
+figcaption { font-size: 0.78rem; color: var(--gray); margin-top: 0.5rem; }
+
 /* Findings list */
-.key-findings { margin: 1rem 0; padding-left: 1.25rem; }
+.key-findings { margin: 1rem 0; padding-left: 1.1rem; max-width: var(--prose); }
 .key-findings li {
   margin-bottom: 0.5rem;
   font-size: 0.92rem;
-  line-height: 1.6;
+  line-height: 1.65;
 }
+.key-findings li::marker { color: var(--accent); }
 
 /* Risk callout */
 .risk-callout {
-  padding: 1rem 1.25rem;
-  border-radius: 6px;
-  background: var(--light-gray);
-  border-left: 4px solid var(--medium-gray);
-  margin: 1.25rem 0;
-  font-size: 0.9rem;
+  padding: 1.1rem 1.4rem;
+  background: var(--wash);
+  border-left: 3px solid var(--gray);
+  margin: 1.5rem 0;
+  font-size: 0.91rem;
+  max-width: var(--prose);
 }
 .risk-callout.low { border-left-color: var(--risk-low); }
 .risk-callout.moderate { border-left-color: var(--risk-moderate); }
 .risk-callout.elevated { border-left-color: var(--risk-elevated); }
 .risk-callout.high { border-left-color: var(--risk-high); }
-.risk-callout strong { color: var(--navy); }
+.risk-callout strong { color: var(--ink); }
 
 /* Stats table */
 .stats-table {
@@ -580,56 +733,54 @@ figcaption {
   border-collapse: collapse;
   margin: 1rem 0;
   font-size: 0.88rem;
+  font-variant-numeric: tabular-nums;
 }
 .stats-table th {
-  background: var(--navy);
-  color: #fff;
-  font-weight: 500;
+  background: none;
+  color: var(--gray);
+  font-size: 0.69rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   text-align: left;
-  padding: 0.6rem 0.8rem;
+  padding: 0.55rem 0.8rem 0.55rem 0;
+  border-bottom: 2px solid var(--ink);
 }
-.stats-table th:not(:first-child) {
-  text-align: right;
-}
+.stats-table th:not(:first-child) { text-align: right; }
 .stats-table td {
-  padding: 0.5rem 0.8rem;
-  border-bottom: 1px solid var(--border);
+  padding: 0.55rem 0.8rem 0.55rem 0;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--ink-soft);
 }
-.stats-table tr:nth-child(even) td { background: var(--light-gray); }
-.stats-table td:not(:first-child) { text-align: right; font-variant-numeric: tabular-nums; }
+.stats-table td:first-child { color: var(--ink); }
+.stats-table td:not(:first-child) { text-align: right; }
 
 /* --- ANALYSIS SECTIONS --- */
-.analysis-section {
-  margin: 3rem 0;
-  padding-top: 1rem;
-}
-.analysis-section h2 {
-  font-family: var(--font-heading);
-  font-size: 1.6rem;
-  color: var(--navy);
-  padding-left: 1rem;
-  border-left: 4px solid var(--warm-gold);
-  margin-bottom: 1.25rem;
-}
 .chart-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
   margin: 1.5rem 0;
 }
-.plotly-chart {
-  margin: 1.5rem 0;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  overflow: hidden;
-}
+.plotly-chart { margin: 0; border: none; border-radius: 0; overflow: hidden; }
 .plotly-chart .chart-caption {
-  font-size: 0.8rem;
-  color: var(--medium-gray);
-  text-align: center;
-  padding: 0.4rem 1rem 0.6rem;
-  background: var(--light-gray);
+  font-size: 0.74rem;
+  color: var(--gray);
+  text-align: left;
+  padding: 0.5rem 0 0;
+  background: none;
 }
+
+/* Info cards (cross-pillar relationships, platform) */
+.info-card {
+  background: var(--paper);
+  border: 1px solid var(--hairline);
+  padding: 1.2rem 1.4rem;
+}
+.info-card strong { color: var(--ink); font-size: 0.95rem; }
+.info-card p { font-size: 0.87rem; margin-top: 0.45rem; max-width: none; }
+.info-card .launch { font-size: 0.78rem; color: var(--gray); margin-top: 0.5rem; }
+.info-card code { font-size: 0.78rem; background: var(--wash); padding: 0.1rem 0.35rem; }
 
 /* --- RISK MATRIX --- */
 .risk-matrix {
@@ -639,77 +790,67 @@ figcaption {
   font-size: 0.9rem;
 }
 .risk-matrix th {
-  background: var(--navy);
-  color: #fff;
-  font-weight: 500;
-  padding: 0.6rem 1rem;
+  background: none;
+  color: var(--gray);
+  font-size: 0.69rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.55rem 1rem 0.55rem 0;
   text-align: left;
+  border-bottom: 2px solid var(--ink);
 }
 .risk-matrix td {
-  padding: 0.6rem 1rem;
-  border-bottom: 1px solid var(--border);
+  padding: 0.7rem 1rem 0.7rem 0;
+  border-bottom: 1px solid var(--hairline);
   vertical-align: top;
 }
 .risk-badge {
   display: inline-block;
-  padding: 0.2rem 0.6rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
+  padding: 0.18rem 0.6rem;
+  border-radius: 3px;
+  font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #fff;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
 }
-.risk-badge.low { background: var(--risk-low); }
-.risk-badge.moderate { background: var(--risk-moderate); color: var(--navy); }
-.risk-badge.elevated { background: var(--risk-elevated); }
-.risk-badge.high { background: var(--risk-high); }
+.risk-badge.low { background: rgba(14, 124, 63, 0.1); color: var(--risk-low); }
+.risk-badge.moderate { background: rgba(166, 105, 15, 0.12); color: var(--risk-moderate); }
+.risk-badge.elevated { background: rgba(194, 65, 12, 0.1); color: var(--risk-elevated); }
+.risk-badge.high { background: rgba(185, 28, 28, 0.1); color: var(--risk-high); }
 
 /* --- RECOMMENDATIONS --- */
 .recommendations-list {
   counter-reset: rec;
   list-style: none;
   padding: 0;
+  max-width: var(--prose);
 }
 .recommendations-list li {
   counter-increment: rec;
-  padding: 1rem 1.25rem 1rem 3.5rem;
-  margin-bottom: 0.75rem;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  padding: 1.1rem 0 1.1rem 3.2rem;
+  border-bottom: 1px solid var(--hairline);
   position: relative;
-  font-size: 0.92rem;
+  font-size: 0.94rem;
+  line-height: 1.7;
 }
 .recommendations-list li::before {
-  content: counter(rec);
+  content: counter(rec, decimal-leading-zero);
   position: absolute;
-  left: 1rem;
-  top: 1rem;
-  width: 1.8rem;
-  height: 1.8rem;
-  background: var(--steel-blue);
-  color: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  left: 0;
+  top: 1.15rem;
+  font-size: 1rem;
   font-weight: 700;
-  font-size: 0.85rem;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
 /* --- METHODOLOGY --- */
 .methodology-section {
-  margin: 3rem 0;
-  padding: 2rem;
-  background: var(--light-gray);
-  border-radius: 8px;
-}
-.methodology-section h2 {
-  font-family: var(--font-heading);
-  font-size: 1.3rem;
-  color: var(--navy);
-  margin-bottom: 1rem;
+  background: var(--wash);
+  padding: 2.5rem 2.5rem 2.25rem !important;
+  margin: 3rem 0 0 !important;
 }
 .source-table {
   width: 100%;
@@ -718,37 +859,39 @@ figcaption {
   margin: 1rem 0;
 }
 .source-table th, .source-table td {
-  padding: 0.5rem 0.8rem;
-  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 0.8rem 0.5rem 0;
+  border-bottom: 1px solid var(--hairline);
   text-align: left;
 }
-.source-table th { font-weight: 600; color: var(--navy); }
+.source-table th {
+  font-size: 0.69rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--gray);
+  border-bottom: 2px solid var(--ink);
+}
 
 /* --- FOOTER --- */
 footer {
-  max-width: var(--max-width);
-  margin: 3rem auto;
-  padding: 2rem;
-  border-top: 2px solid var(--navy);
+  max-width: 1340px;
+  margin: 0 auto;
+  padding: 2rem 2.5rem 3rem;
+  border-top: 2px solid var(--ink);
   font-size: 0.8rem;
-  color: var(--medium-gray);
-  text-align: center;
+  color: var(--gray);
+  text-align: left;
 }
-footer .author { font-weight: 600; color: var(--navy); font-size: 0.9rem; }
-
-/* --- SECTION SEPARATORS --- */
-main > section + section {
-  border-top: 1px solid #EBEBEB;
-}
+footer .author { font-weight: 600; color: var(--ink); font-size: 0.9rem; }
 
 /* --- SCROLL PROGRESS BAR --- */
 #progress-bar {
   position: fixed;
   top: 0;
   left: 0;
-  height: 3px;
+  height: 2px;
   width: 0%;
-  background: linear-gradient(90deg, #009B3A 0%, var(--warm-gold) 50%, var(--deep-red) 100%);
+  background: var(--accent);
   z-index: 9999;
   transition: width 0.05s linear;
   pointer-events: none;
@@ -759,50 +902,56 @@ main > section + section {
   position: fixed;
   bottom: 2rem;
   right: 2rem;
-  width: 2.75rem;
-  height: 2.75rem;
-  background: var(--navy);
-  color: #fff;
-  border: none;
+  width: 2.6rem;
+  height: 2.6rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--hairline);
   border-radius: 50%;
   cursor: pointer;
   display: none;
   align-items: center;
   justify-content: center;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   z-index: 9998;
-  transition: background 0.2s, transform 0.2s;
+  transition: color 0.2s, border-color 0.2s;
   line-height: 1;
 }
-#back-to-top:hover { background: var(--steel-blue); transform: translateY(-3px); }
+#back-to-top:hover { color: var(--accent); border-color: var(--accent); }
 
 /* --- RESPONSIVE --- */
+@media (max-width: 1080px) {
+  .layout { display: block; padding: 0 1.5rem; }
+  #side-rail { display: none; }
+  .toc-mobile { display: block; }
+  .content { max-width: none; }
+}
 @media (max-width: 768px) {
-  .hero h1 { font-size: 1.8rem; }
+  .cover { padding: 3rem 1.5rem 2rem; }
+  .cover h1 { font-size: 2.2rem; }
+  .cover .dek { font-size: 1.05rem; }
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .chart-grid { grid-template-columns: 1fr !important; }
-  main { padding: 0 1rem; }
-  .hero-metrics { gap: 0.35rem; }
-  .hm-pill { font-size: 0.72rem; padding: 0.25rem 0.6rem; }
+  .ticker-item { padding-right: 1rem; margin-right: 1rem; }
+  main > section > h2 { font-size: 1.5rem; }
 }
 @media (max-width: 480px) {
-  .hero h1 { font-size: 1.5rem; }
-  .hero .subtitle { font-size: 0.95rem; }
+  .cover h1 { font-size: 1.75rem; }
   .kpi-grid { grid-template-columns: 1fr 1fr; }
-  .kpi-value { font-size: 1.65rem; }
-  #back-to-top { bottom: 1rem; right: 1rem; width: 2.25rem; height: 2.25rem; font-size: 1rem; }
+  .kpi-value { font-size: 1.6rem; }
+  #back-to-top { bottom: 1rem; right: 1rem; width: 2.25rem; height: 2.25rem; font-size: 0.95rem; }
 }
 
 /* --- PRINT --- */
 @media print {
-  .hero { background: var(--navy) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .toc { display: none; }
-  .pillar-section, .analysis-section { page-break-before: auto; page-break-inside: avoid; }
-  body { font-size: 11pt; }
-  .kpi-card { border: 1px solid #ccc; }
-  #progress-bar, #back-to-top { display: none !important; }
+  #side-rail, .toc-mobile, #progress-bar, #back-to-top { display: none !important; }
+  .layout { display: block; padding: 0; }
+  .cover { padding: 2rem 0 1.5rem; }
+  main > section { page-break-inside: avoid; padding: 1.5rem 0; }
+  body { font-size: 10.5pt; }
+  .exhibit-head, main > section > h2::before { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 """
 
@@ -842,76 +991,108 @@ def _risk_class(risk_text: str) -> str:
 
 
 def render_hero(briefing: Dict, kpis: Optional[Dict] = None) -> str:
+    """Editorial cover: kicker, serif headline, dek, meta row, KPI ticker, summary panel."""
     title = briefing.get("title", "Portugal Macroeconomic Intelligence Briefing")
     date = briefing.get("date", datetime.now().strftime("%d %B %Y"))
     summary = briefing.get("overall_assessment", "")
 
-    # Build metrics pills from KPI definitions
-    pills_html = ""
+    # KPI ticker strip
+    ticker_html = ""
     if kpis:
-        pills = []
-        _PILL_DEFS = [
+        items = []
+        _TICKER_DEFS = [
             ("gdp", "gdp_growth_yoy", "GDP", ".1f", "%"),
             ("unemployment", "unemployment_rate", "Unemployment", ".1f", "%"),
             ("inflation", "hicp", "Inflation", ".1f", "%"),
             ("public_debt", "debt_to_gdp_ratio", "Debt/GDP", ".1f", "%"),
             ("interest_rates", "portugal_10y_bond_yield", "10Y Yield", ".2f", "%"),
         ]
-        for pk, col, lbl, fmt, suf in _PILL_DEFS:
+        for pk, col, lbl, fmt, suf in _TICKER_DEFS:
             val = kpis.get(pk, {}).get(col)
             if val is None:
                 continue
-            sem = _KPI_SEMANTIC.get(col, lambda v: "neutral")(val)
-            arrow, _ = _kpi_trend(pk, col)
-            formatted = f"{val:{fmt}}{suf}"
-            pills.append(
-                f'<span class="hm-pill {sem}">'
-                f'<span class="pill-label">{lbl}</span>'
-                f" {arrow} {formatted}"
-                f"</span>"
+            arrow, trend_cls = _kpi_trend(pk, col)
+            delta = f'<span class="t-delta {trend_cls}">{arrow}</span>' if arrow else ""
+            items.append(
+                f'<div class="ticker-item">'
+                f'<span class="t-label">{lbl}</span>'
+                f'<span class="t-value">{val:{fmt}}{suf}</span>'
+                f"{delta}"
+                f"</div>"
             )
-        if pills:
-            pills_html = f'<div class="hero-metrics">{"".join(pills)}</div>'
+        if items:
+            ticker_html = f'<div class="ticker">{"".join(items)}</div>'
+
+    summary_html = ""
+    if summary:
+        summary_html = f"""
+  <div class="exec-panel">
+    <p class="panel-label">Executive summary</p>
+    {_paragraphs(summary)}
+  </div>"""
 
     return f"""
-<header class="hero">
-  <h1>{_esc(title)}</h1>
-  <div class="subtitle">Macroeconomic Analysis of the Portuguese Economy {START_YEAR}&ndash;{END_YEAR}</div>
-  <div class="meta">{_esc(date)} &middot; Portugal Data Intelligence</div>
-  <div class="executive-summary">
-    {_paragraphs(summary)}
+<header class="cover">
+  <div class="cover-inner">
+    <p class="kicker">Economic Research &middot; Portugal Data Intelligence</p>
+    <h1>{_esc(title)}</h1>
+    <p class="dek">A structural read of the Portuguese economy across twelve
+    macroeconomic pillars, {START_YEAR}&ndash;{END_YEAR}.</p>
+    <p class="meta-row"><span>{_esc(date)}</span><span>Edition v{VERSION}</span><span>Diogo Serino</span></p>
+    {ticker_html}
+    {summary_html}
   </div>
-  {pills_html}
 </header>
 """
 
 
-def render_toc() -> str:
-    links = ['<a href="#key-indicators">Key Indicators</a>']
-    for key, title, _, icon in _PILLAR_CONFIG:
-        links.append(f'<a href="#{key}">{_esc(title)}</a>')
-    links.extend(
+def _toc_entries() -> list:
+    """Ordered (anchor, label) pairs matching the document section order."""
+    entries = [("key-indicators", "Key Indicators")]
+    for key, title, _, _icon in _PILLAR_CONFIG:
+        entries.append((key, title))
+    entries.extend(
         [
-            '<a href="#executive-dashboard">Executive Dashboard</a>',
-            '<a href="#cross-pillar">Cross-Pillar Analysis</a>',
-            '<a href="#stl-decomposition">STL Decomposition</a>',
-            '<a href="#forecasting">SARIMAX Forecasting</a>',
-            '<a href="#benchmarking">EU Benchmarking</a>',
-            '<a href="#regional">Regional Analysis (NUTS2)</a>',
-            '<a href="#risk-matrix">Risk Matrix</a>',
-            '<a href="#recommendations">Strategic Recommendations</a>',
-            '<a href="#platform">Platform &amp; Tools</a>',
-            '<a href="#methodology">Methodology</a>',
+            ("executive-dashboard", "Executive Dashboard"),
+            ("cross-pillar", "Cross-Pillar Analysis"),
+            ("stl-decomposition", "STL Decomposition"),
+            ("forecasting", "SARIMAX Forecasting"),
+            ("benchmarking", "EU Benchmarking"),
+            ("regional", "Regional Analysis (NUTS2)"),
+            ("risk-matrix", "Risk Matrix"),
+            ("recommendations", "Strategic Recommendations"),
+            ("platform", "Platform &amp; Tools"),
+            ("methodology", "Methodology"),
         ]
     )
-    items = "\n    ".join(links)
+    return entries
+
+
+def render_side_rail() -> str:
+    """Sticky left-rail contents with numbered entries (desktop)."""
+    items = "\n    ".join(
+        f'<li><a href="#{anchor}">{label}</a></li>' for anchor, label in _toc_entries()
+    )
     return f"""
-<nav class="toc">
-  <h2>Contents</h2>
-  <div class="toc-grid">
+<aside id="side-rail" aria-label="Contents">
+  <p class="rail-title">Contents</p>
+  <ol>
+    {items}
+  </ol>
+</aside>
+"""
+
+
+def render_toc() -> str:
+    """Collapsible contents block shown on narrow screens (rail hidden)."""
+    items = "\n    ".join(f'<a href="#{anchor}">{label}</a>' for anchor, label in _toc_entries())
+    return f"""
+<details class="toc-mobile">
+  <summary>Contents</summary>
+  <div style="margin-top:0.75rem;">
     {items}
   </div>
-</nav>
+</details>
 """
 
 
@@ -972,7 +1153,7 @@ def render_kpi_dashboard(kpis: Dict) -> str:
             sem_cls = _KPI_SEMANTIC.get(col, lambda v: "neutral")(value)
             arrow, trend_cls = _kpi_trend(pillar_key, col)
             trend_html = (
-                f'<div class="kpi-trend {trend_cls}">{arrow} vs prev</div>' if arrow else ""
+                f'<span class="kpi-trend {trend_cls}">{arrow} vs prev</span>' if arrow else ""
             )
         else:
             formatted = "N/A"
@@ -980,10 +1161,9 @@ def render_kpi_dashboard(kpis: Dict) -> str:
             trend_html = ""
         cards.append(
             f'<div class="kpi-card {sem_cls}">'
-            f'<div class="kpi-value {sem_cls}">{formatted}</div>'
             f'<div class="kpi-label">{_esc(label)}</div>'
-            f'<div class="kpi-period">{_esc(period)}</div>'
-            f"{trend_html}"
+            f'<div class="kpi-value">{formatted}</div>'
+            f'<div class="kpi-meta"><span class="kpi-period">{_esc(period)}</span>{trend_html}</div>'
             f"</div>"
         )
 
@@ -995,6 +1175,20 @@ def render_kpi_dashboard(kpis: Dict) -> str:
   </div>
 </section>
 """
+
+
+_DEFAULT_SOURCE = "INE &middot; Banco de Portugal &middot; Eurostat &middot; ECB"
+
+
+def _exhibit(inner_html: str, title: str, source: str = _DEFAULT_SOURCE, note: str = "") -> str:
+    """Wrap a chart in the numbered-exhibit pattern: title above, source below."""
+    note_html = f" &mdash; {note}" if note else ""
+    return f"""
+    <figure class="exhibit">
+      <figcaption class="exhibit-head">{title}</figcaption>
+      {inner_html}
+      <p class="exhibit-source">Source: {source}{note_html}</p>
+    </figure>"""
 
 
 def render_stats_table(pillar_key: str, baseline: Dict) -> str:
@@ -1043,21 +1237,22 @@ def render_pillar_section(
 
     primary_col = _PILLAR_PRIMARY_COL.get(section_id, "")
     plotly_div = _make_plotly_timeseries(section_id, title, primary_col)
+    col_label = _COLUMN_LABELS.get(primary_col, primary_col.replace("_", " ").title())
+    exhibit_title = f"{col_label}, {START_YEAR}&ndash;{END_YEAR}"
     chart_html = ""
     if plotly_div:
-        chart_html = f"""
-    <div class="plotly-chart">
-      {plotly_div}
-      <p class="chart-caption">Source: Portugal Data Intelligence &middot; Data: {START_YEAR}&ndash;{END_YEAR} &middot; Interactive chart — zoom, hover, and download supported</p>
-    </div>"""
+        chart_html = _exhibit(
+            f'<div class="plotly-chart">{plotly_div}</div>',
+            exhibit_title,
+            note="interactive: zoom, hover, download",
+        )
     else:
         chart_uri = encode_chart(chart_filename)
         if chart_uri:
-            chart_html = f"""
-    <figure>
-      <img src="{chart_uri}" alt="{_esc(title)} chart" loading="lazy">
-      <figcaption>Source: Portugal Data Intelligence &middot; Data: {START_YEAR}&ndash;{END_YEAR}</figcaption>
-    </figure>"""
+            chart_html = _exhibit(
+                f'<img src="{chart_uri}" alt="{_esc(title)} chart" loading="lazy">',
+                exhibit_title,
+            )
 
     findings_html = ""
     if findings:
@@ -1084,12 +1279,7 @@ def render_pillar_section(
     if outlook:
         outlook_html = f"<h3>Outlook</h3>{_paragraphs(outlook)}"
 
-    headline_html = (
-        f'  <p style="font-size:1.05rem; font-weight:500; color:var(--navy); margin-bottom:1rem;">'
-        f"{_esc(headline)}</p>\n"
-        if headline
-        else ""
-    )
+    headline_html = f'  <p class="standfirst">{_esc(headline)}</p>\n' if headline else ""
     narrative_html = (
         f'  <div class="pillar-narrative">{_paragraphs(summary)}</div>\n' if summary else ""
     )
@@ -1118,9 +1308,9 @@ def render_cross_pillar(briefing: Dict) -> str:
         name = rel.get("name", "")
         desc = rel.get("description", "")
         rel_cards.append(f"""
-      <div style="background:#fff; border:1px solid var(--border); border-radius:6px; padding:1rem;">
-        <strong style="color:var(--navy);">{_esc(name)}</strong>
-        <p style="font-size:0.88rem; margin-top:0.4rem;">{_esc(desc)}</p>
+      <div class="info-card">
+        <strong>{_esc(name)}</strong>
+        <p>{_esc(desc)}</p>
       </div>""")
 
     rel_grid = ""
@@ -1129,26 +1319,23 @@ def render_cross_pillar(briefing: Dict) -> str:
 
     grid_charts = []
     for fn, caption in [
-        ("correlation_heatmap.png", "Cross-Pillar Correlation Matrix"),
-        ("phillips_curve.png", "Phillips Curve: Unemployment vs Inflation"),
+        ("correlation_heatmap.png", "Cross-pillar correlation matrix"),
+        ("phillips_curve.png", "Phillips curve: unemployment vs inflation"),
     ]:
         uri = encode_chart(fn)
         if uri:
-            grid_charts.append(f"""
-      <figure>
-        <img src="{uri}" alt="{caption}" loading="lazy">
-        <figcaption>{caption}</figcaption>
-      </figure>""")
+            grid_charts.append(
+                _exhibit(f'<img src="{uri}" alt="{caption}" loading="lazy">', caption)
+            )
 
     # Crisis timeline full-width
     crisis_html = ""
     crisis_uri = encode_chart("crisis_timeline.png")
     if crisis_uri:
-        crisis_html = f"""
-  <figure style="margin-top:2rem;">
-    <img src="{crisis_uri}" alt="Crisis Timeline: Macroeconomic Stress Periods" loading="lazy" style="width:100%;">
-    <figcaption>Crisis Timeline: Macroeconomic Stress Periods</figcaption>
-  </figure>"""
+        crisis_html = _exhibit(
+            f'<img src="{crisis_uri}" alt="Crisis timeline" loading="lazy" style="width:100%;">',
+            "Crisis timeline: macroeconomic stress periods",
+        )
 
     return f"""
 <section id="cross-pillar" class="analysis-section">
@@ -1166,16 +1353,12 @@ def render_cross_pillar(briefing: Dict) -> str:
 def render_benchmarking() -> str:
     charts = []
     for fn, caption in [
-        ("benchmark_radar_pt_vs_eu.png", "Portugal vs EU Averages — Radar Comparison"),
-        ("benchmark_small_multiples.png", "Peer Country Comparison — Key Indicators"),
+        ("benchmark_radar_pt_vs_eu.png", "Portugal vs EU averages — normalised radar"),
+        ("benchmark_small_multiples.png", "Peer country comparison — key indicators"),
     ]:
         uri = encode_chart(fn)
         if uri:
-            charts.append(f"""
-      <figure>
-        <img src="{uri}" alt="{caption}" loading="lazy">
-        <figcaption>{caption}</figcaption>
-      </figure>""")
+            charts.append(_exhibit(f'<img src="{uri}" alt="{caption}" loading="lazy">', caption))
 
     if not charts:
         return ""
@@ -1247,11 +1430,12 @@ def render_regional_section() -> str:
 
     map_html = ""
     if choropleth_div:
-        map_html = f"""
-  <div class="plotly-chart" style="margin:1.5rem 0;">
-    {choropleth_div}
-    <p class="chart-caption">Interactive choropleth — hover over each region for details. Source: Eurostat NUTS2.</p>
-  </div>"""
+        map_html = _exhibit(
+            f'<div class="plotly-chart">{choropleth_div}</div>',
+            "GDP per capita by NUTS2 region (PPS), latest year",
+            source="Eurostat (nama_10r_2gdp)",
+            note="interactive choropleth — hover over each region",
+        )
 
     source_note = ""
     if regional.get("source") == "synthetic_fallback":
@@ -1280,15 +1464,16 @@ def render_executive_dashboard() -> str:
     uri = encode_chart("economic_dashboard.png")
     if not uri:
         return ""
+    dashboard_exhibit = _exhibit(
+        f'<img src="{uri}" alt="Economic Dashboard" loading="lazy">',
+        f"Six core pillars at a glance, {START_YEAR}&ndash;{END_YEAR}",
+    )
     return f"""
 <section id="executive-dashboard" class="analysis-section">
   <h2>Executive Dashboard</h2>
   <p>Single-view summary of all six macroeconomic pillars — GDP, unemployment,
   credit, interest rates, inflation, and public debt — spanning {START_YEAR} to {END_YEAR}.</p>
-  <figure>
-    <img src="{uri}" alt="Economic Dashboard" loading="lazy">
-    <figcaption>Source: Portugal Data Intelligence &middot; Data: {START_YEAR}&ndash;{END_YEAR}</figcaption>
-  </figure>
+  {dashboard_exhibit}
 </section>
 """
 
@@ -1296,19 +1481,15 @@ def render_executive_dashboard() -> str:
 def render_stl_decomposition() -> str:
     """Render STL seasonal-trend decomposition charts."""
     stl_charts = [
-        ("stl_real_gdp.png", "STL Decomposition: Real GDP"),
-        ("stl_unemployment_rate.png", "STL Decomposition: Unemployment Rate"),
-        ("stl_hicp_inflation.png", "STL Decomposition: HICP Inflation"),
+        ("stl_real_gdp.png", "STL decomposition: real GDP"),
+        ("stl_unemployment_rate.png", "STL decomposition: unemployment rate"),
+        ("stl_hicp_inflation.png", "STL decomposition: HICP inflation"),
     ]
     charts = []
     for fn, caption in stl_charts:
         uri = encode_chart(fn)
         if uri:
-            charts.append(f"""
-      <figure>
-        <img src="{uri}" alt="{caption}" loading="lazy">
-        <figcaption>{caption}</figcaption>
-      </figure>""")
+            charts.append(_exhibit(f'<img src="{uri}" alt="{caption}" loading="lazy">', caption))
 
     if not charts:
         return ""
@@ -1397,7 +1578,7 @@ def render_forecasting() -> str:
                 x=periods + periods[::-1],
                 y=upper_95 + lower_95[::-1],
                 fill="toself",
-                fillcolor="rgba(200,16,46,0.08)",
+                fillcolor="rgba(34,81,255,0.07)",
                 line={"color": "rgba(255,255,255,0)"},
                 name="95% CI",
                 hoverinfo="skip",
@@ -1409,7 +1590,7 @@ def render_forecasting() -> str:
                 x=periods + periods[::-1],
                 y=upper_68 + lower_68[::-1],
                 fill="toself",
-                fillcolor="rgba(200,16,46,0.15)",
+                fillcolor="rgba(34,81,255,0.13)",
                 line={"color": "rgba(255,255,255,0)"},
                 name="68% CI",
                 hoverinfo="skip",
@@ -1420,20 +1601,26 @@ def render_forecasting() -> str:
             go.Scatter(
                 x=periods,
                 y=central,
-                mode="lines+markers",
+                mode="lines",
                 name=f"{method} Forecast",
-                line={"color": "#C8102E", "width": 2.5, "dash": "dot"},
-                marker={"size": 5, "color": "#C8102E"},
+                line={"color": "#2251FF", "width": 2.25, "dash": "dot"},
                 hovertemplate="<b>%{x}</b><br>Forecast: %{y:.2f}<extra></extra>",
             )
         )
         fig.update_layout(
-            xaxis={"showgrid": True, "gridcolor": "#E8E8E8", "tickangle": -30},
-            yaxis={"showgrid": True, "gridcolor": "#E8E8E8"},
+            xaxis={
+                "showgrid": False,
+                "tickangle": 0,
+                "nticks": 8,
+                "linecolor": "#E4E7EB",
+                "ticks": "outside",
+                "tickcolor": "#E4E7EB",
+            },
+            yaxis={"showgrid": True, "gridcolor": "#ECEEF1"},
             plot_bgcolor="white",
             paper_bgcolor="white",
-            font={"family": "Inter, 'Segoe UI', sans-serif", "size": 11},
-            margin={"l": 55, "r": 15, "t": 10, "b": 55},
+            font={"family": "Inter, 'Segoe UI', sans-serif", "size": 11, "color": "#3D4754"},
+            margin={"l": 55, "r": 12, "t": 8, "b": 45},
             height=260,
             hovermode="x unified",
             legend={"orientation": "h", "y": -0.28, "x": 0, "font": {"size": 10}},
@@ -1443,16 +1630,15 @@ def render_forecasting() -> str:
                 fig,
                 output_type="div",
                 include_plotlyjs=_plotly_include_arg(),
-                config={"displayModeBar": True, "displaylogo": False},
+                config={"displayModeBar": "hover", "displaylogo": False},
             )
             charts_html.append(
-                f'<div style="margin-bottom:1.2rem;">'
-                f'<h4 style="color:var(--navy);font-size:0.95rem;margin-bottom:0.4rem;">'
-                f"{_esc(indicator)}"
-                f'<span style="font-size:0.78rem;color:var(--medium-gray);font-weight:400;margin-left:0.5rem;">{method}</span>'
-                f"</h4>"
-                f'<div class="plotly-chart">{div}</div>'
-                f"</div>"
+                _exhibit(
+                    f'<div class="plotly-chart">{div}</div>',
+                    f"{_esc(indicator)} — 12-quarter forecast",
+                    source="Portugal Data Intelligence model suite",
+                    note=f"method: {method}; shaded bands are 68% / 95% intervals",
+                )
             )
         except Exception:
             continue
@@ -1472,7 +1658,7 @@ def render_forecasting() -> str:
         last_fc = fps[-1]
         cv = last_fc["central"]
         direction = "▲" if (lv is not None and cv > lv) else "▼"
-        dir_color = "#27ae60" if direction == "▲" else "#e74c3c"
+        dir_color = "#0E7C3F" if direction == "▲" else "#C03434"
         lv_str = f"{lv:.1f}" if lv is not None else "—"
         table_rows.append(
             f"<tr>"
@@ -1559,40 +1745,36 @@ def render_platform() -> str:
   <p>Portugal Data Intelligence v{VERSION} delivers insights through multiple complementary channels,
   each tailored to a different audience and use case.</p>
   <div class="chart-grid">
-    <div style="background:#fff; border:1px solid var(--border); border-radius:6px; padding:1.2rem;">
-      <strong style="color:var(--navy);">Interactive Dashboard (Streamlit)</strong>
-      <p style="font-size:0.88rem; margin-top:0.5rem;">
+    <div class="info-card">
+      <strong>Interactive Dashboard (Streamlit)</strong>
+      <p>
         Four-page web dashboard with real-time KPI cards, per-pillar deep-dive with configurable
         year range and indicator filters, cross-pillar correlation heatmap with Phillips curve
         analysis, and a raw data explorer with CSV download.
       </p>
-      <p style="font-size:0.8rem; color:var(--medium-gray); margin-top:0.4rem;">
-        Launch: <code>streamlit run dashboard/app.py</code>
-      </p>
+      <p class="launch">Launch: <code>streamlit run dashboard/app.py</code></p>
     </div>
-    <div style="background:#fff; border:1px solid var(--border); border-radius:6px; padding:1.2rem;">
-      <strong style="color:var(--navy);">REST API (FastAPI)</strong>
-      <p style="font-size:0.88rem; margin-top:0.5rem;">
+    <div class="info-card">
+      <strong>REST API (FastAPI)</strong>
+      <p>
         Seven endpoints exposing macroeconomic data programmatically: pillar listing,
         latest values with summary statistics, filtered timeseries queries, active alert
         monitoring, and cross-pillar correlation matrices. Full OpenAPI documentation at <code>/docs</code>.
       </p>
-      <p style="font-size:0.8rem; color:var(--medium-gray); margin-top:0.4rem;">
-        Launch: <code>uvicorn api.main:app --reload</code>
-      </p>
+      <p class="launch">Launch: <code>uvicorn api.main:app --reload</code></p>
     </div>
-    <div style="background:#fff; border:1px solid var(--border); border-radius:6px; padding:1.2rem;">
-      <strong style="color:var(--navy);">Ensemble Forecasting</strong>
-      <p style="font-size:0.88rem; margin-top:0.5rem;">
+    <div class="info-card">
+      <strong>Ensemble Forecasting</strong>
+      <p>
         Multi-model forecasting combining SARIMAX, Holt-Winters, linear trend, mean-reversion,
         and log-linear models. Models are automatically weighted by inverse MAE from
         expanding-window backtesting, producing robust consensus projections with 68% and 95%
         confidence bands.
       </p>
     </div>
-    <div style="background:#fff; border:1px solid var(--border); border-radius:6px; padding:1.2rem;">
-      <strong style="color:var(--navy);">Power BI Dashboard</strong>
-      <p style="font-size:0.88rem; margin-top:0.5rem;">
+    <div class="info-card">
+      <strong>Power BI Dashboard</strong>
+      <p>
         39 DAX measures across 7 categories (KPIs, YoY growth, moving averages, derived metrics,
         period comparisons, formatting, calculated columns) for enterprise-grade interactive
         dashboards with drill-down and what-if analysis.
@@ -1679,9 +1861,13 @@ def generate_report(output_path: Optional[Path] = None) -> Path:
     for pi in briefing.get("pillar_insights", []):
         pillar_insights[pi.get("pillar", "")] = pi
 
-    # Render sections
+    # Render sections: editorial cover, then a two-column shell with a sticky
+    # contents rail (desktop) and the content column.
     sections = [
         render_hero(briefing, kpis),
+        '<div class="layout">',
+        render_side_rail(),
+        '<div class="content">',
         render_toc(),
         "<main>",
         render_kpi_dashboard(kpis),
@@ -1706,6 +1892,8 @@ def generate_report(output_path: Optional[Path] = None) -> Path:
             render_platform(),
             render_methodology(),
             "</main>",
+            "</div>",
+            "</div>",
             render_footer(),
         ]
     )
@@ -1716,16 +1904,42 @@ def generate_report(output_path: Optional[Path] = None) -> Path:
 (function () {
   var bar = document.getElementById("progress-bar");
   var btn = document.getElementById("back-to-top");
-  if (!bar || !btn) return;
-  window.addEventListener("scroll", function () {
-    var h = document.documentElement;
-    var pct = h.scrollTop / (h.scrollHeight - h.clientHeight);
-    bar.style.width = (Math.min(pct, 1) * 100).toFixed(1) + "%";
-    btn.style.display = h.scrollTop > 600 ? "flex" : "none";
-  });
-  btn.addEventListener("click", function () {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
+  if (bar && btn) {
+    window.addEventListener("scroll", function () {
+      var h = document.documentElement;
+      var pct = h.scrollTop / (h.scrollHeight - h.clientHeight);
+      bar.style.width = (Math.min(pct, 1) * 100).toFixed(1) + "%";
+      btn.style.display = h.scrollTop > 600 ? "flex" : "none";
+    });
+    btn.addEventListener("click", function () {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
+
+  // Scroll-spy: highlight the contents-rail entry for the section in view.
+  var links = document.querySelectorAll("#side-rail a[href^='#']");
+  if (!links.length) return;
+  var byId = {};
+  links.forEach(function (a) { byId[a.getAttribute("href").slice(1)] = a.parentElement; });
+  var sections = Array.prototype.slice
+    .call(document.querySelectorAll("main > section[id]"))
+    .filter(function (s) { return byId[s.id]; });
+  var current = null;
+  function spy() {
+    var y = window.scrollY + 140;
+    var active = sections[0];
+    for (var i = 0; i < sections.length; i++) {
+      if (sections[i].offsetTop <= y) active = sections[i];
+    }
+    if (!active || active === current) return;
+    current = active;
+    links.forEach(function (a) { a.parentElement.classList.remove("active"); });
+    var li = byId[active.id];
+    li.classList.add("active");
+    if (li.scrollIntoView) li.scrollIntoView({ block: "nearest" });
+  }
+  window.addEventListener("scroll", spy, { passive: true });
+  spy();
 })();
 </script>"""
 
