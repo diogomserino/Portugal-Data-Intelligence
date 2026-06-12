@@ -68,7 +68,7 @@ Let's walk through each stage.
 
 **Files:** `src/etl/fetch_real_data.py`, `src/etl/generate_data.py`, `src/etl/generate_eu_benchmark.py`
 
-By default the pipeline rebuilds from the **committed raw snapshot** in `data/raw/` — real data for the six core pillars fetched from the official Eurostat, ECB, and Banco de Portugal open APIs (run `python main.py --refresh` to re-fetch live). The extended pillars (housing, labour detail, external accounts, fiscal, inequality, regional) are **deterministic estimates calibrated to published official values** — see `docs/data_provenance.md` for the full breakdown.
+By default the pipeline rebuilds from the **committed raw snapshot** in `data/raw/` — real data for the six core pillars fetched from the official Eurostat, ECB, and Banco de Portugal open APIs (run `python main.py --refresh` to re-fetch live). The inequality and regional pillars also carry the official Eurostat series (EU-SILC and NUTS2, with genuine publication gaps left empty). The remaining extended pillars (housing, labour detail, external accounts, fiscal) are **deterministic estimates calibrated to published official values** — see `docs/data_provenance.md` for the full breakdown.
 
 When no snapshot is present and the APIs are unreachable, `generate_data.py` provides a **synthetic fallback**. This isn't random noise — it's built from actual reference points (e.g., Portugal's real GDP trajectory, the 2011–2014 sovereign debt crisis, the 2020 COVID shock) and interpolated to monthly or quarterly resolution with controlled noise and seasonal patterns.
 
