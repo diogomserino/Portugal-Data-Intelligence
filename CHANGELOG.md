@@ -44,9 +44,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   works without a `.env` file (it is optional).
 - Committed `raw_eu_benchmark.csv` realigned with the pipeline generator
   output (560 rows, 5 indicators, EU/EA averages). The previous snapshot was
-  written by the separate fetch path (160 rows) which the pipeline never
-  reads — both producers still share the filename; unifying them is a
-  follow-up.
+  written by a separate fetch path (160 rows, 2 indicators) that the pipeline
+  never read; that dead fetch path has been removed, leaving
+  `generate_eu_benchmark.py` as the single producer of the benchmark dataset.
 
 ## [2.4.0] - 2026-06-11
 

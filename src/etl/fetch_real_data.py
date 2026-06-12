@@ -917,142 +917,15 @@ def fetch_public_debt() -> pd.DataFrame:
 
 
 # =============================================================================
-#  EU BENCHMARK DATA (Annual)
+#  EU BENCHMARK DATA
 # =============================================================================
-
-
-def fetch_eu_benchmark() -> pd.DataFrame:
-    """Fetch annual benchmark data for EU peer countries from Eurostat/ECB.
-
-    Countries: PT, DE, ES, FR, IT
-    Indicators: gdp_growth, unemployment, inflation, debt_to_gdp, interest_rate_10y
-    """
-    log_section(logger, "Fetching EU benchmark data")
-
-    countries = ["PT", "DE", "ES", "FR", "IT"]
-    country_names = {
-        "PT": "Portugal",
-        "DE": "Germany",
-        "ES": "Spain",
-        "FR": "France",
-        "IT": "Italy",
-    }
-
-    rows = []
-
-    # 1. GDP growth (annual) - nama_10_gdp
-    logger.info("  Benchmark: GDP growth")
-    for cc in countries:
-        try:
-            df = _fetch_eurostat("nama_10_gdp", f"A.CLV_PCH_PRE.B1GQ.{cc}")
-            for _, row in df.iterrows():
-                rows.append(
-                    {
-                        "date_key": row["period"],
-                        "country_code": cc,
-                        "country_name": country_names[cc],
-                        "indicator": "gdp_growth",
-                        "value": round(row["value"], 2),
-                    }
-                )
-        except Exception as exc:
-            logger.warning(f"    GDP growth for {cc} failed: {exc}")
-        time.sleep(0.3)
-
-    # 2. Unemployment (annual) - une_rt_a
-    logger.info("  Benchmark: Unemployment")
-    for cc in countries:
-        try:
-            df = _fetch_eurostat("une_rt_a", f"A.SA.TOTAL.PC_ACT.T.{cc}")
-            for _, row in df.iterrows():
-                rows.append(
-                    {
-                        "date_key": row["period"],
-                        "country_code": cc,
-                        "country_name": country_names[cc],
-                        "indicator": "unemployment",
-                        "value": round(row["value"], 2),
-                    }
-                )
-        except Exception as exc:
-            logger.warning(f"    Unemployment for {cc} failed: {exc}")
-        time.sleep(0.3)
-
-    # 3. Inflation (annual) - prc_hicp_aind (annual average rate of change)
-    logger.info("  Benchmark: Inflation")
-    for cc in countries:
-        try:
-            df = _fetch_eurostat("prc_hicp_aind", f"A.AVG.RCH_A.CP00.{cc}")
-            for _, row in df.iterrows():
-                rows.append(
-                    {
-                        "date_key": row["period"],
-                        "country_code": cc,
-                        "country_name": country_names[cc],
-                        "indicator": "inflation",
-                        "value": round(row["value"], 2),
-                    }
-                )
-        except Exception as exc:
-            logger.warning(f"    Inflation for {cc} failed: {exc}")
-        time.sleep(0.3)
-
-    # 4. Debt-to-GDP (annual) - gov_10dd_edpt1
-    logger.info("  Benchmark: Debt-to-GDP")
-    for cc in countries:
-        try:
-            df = _fetch_eurostat("gov_10dd_edpt1", f"A.GD.PC_GDP.S13.{cc}")
-            for _, row in df.iterrows():
-                rows.append(
-                    {
-                        "date_key": row["period"],
-                        "country_code": cc,
-                        "country_name": country_names[cc],
-                        "indicator": "debt_to_gdp",
-                        "value": round(row["value"], 2),
-                    }
-                )
-        except Exception as exc:
-            logger.warning(f"    Debt-to-GDP for {cc} failed: {exc}")
-        time.sleep(0.3)
-
-    # 5. 10Y bond yields from ECB (convergence long-term rate)
-    logger.info("  Benchmark: 10Y bond yields")
-    ecb_bond_keys = {
-        "PT": "IRS/M.PT.L.L40.CI.0000.EUR.N.Z",
-        "DE": "IRS/M.DE.L.L40.CI.0000.EUR.N.Z",
-        "ES": "IRS/M.ES.L.L40.CI.0000.EUR.N.Z",
-        "FR": "IRS/M.FR.L.L40.CI.0000.EUR.N.Z",
-        "IT": "IRS/M.IT.L.L40.CI.0000.EUR.N.Z",
-    }
-    for cc, full_key in ecb_bond_keys.items():
-        try:
-            flow, key = full_key.split("/", 1)
-            raw = _fetch_ecb(flow, key)
-            # Aggregate monthly -> annual average
-            raw["year"] = raw["period"].str[:4]
-            annual = raw.groupby("year")["value"].mean().reset_index()
-            for _, row in annual.iterrows():
-                yr = row["year"]
-                if int(yr) < START_YEAR or int(yr) > END_YEAR:
-                    continue
-                rows.append(
-                    {
-                        "date_key": yr,
-                        "country_code": cc,
-                        "country_name": country_names[cc],
-                        "indicator": "interest_rate_10y",
-                        "value": round(row["value"], 2),
-                    }
-                )
-        except Exception as exc:
-            logger.warning(f"    10Y yield for {cc} failed: {exc}")
-        time.sleep(0.3)
-
-    result = pd.DataFrame(rows)
-    result["source"] = "Eurostat/ECB"
-    logger.info(f"EU benchmark: {len(result)} records")
-    return result
+# The EU benchmark dataset (5 indicators x 7 entities incl. EU/EA averages)
+# is produced by src/etl/generate_eu_benchmark.py — curated reference points
+# calibrated to the official Eurostat/ECB vintage — and written/loaded by the
+# pipeline itself. It is intentionally NOT part of the snapshot fetch: an
+# earlier fetch path here wrote a partial dataset (2 indicators, 5 countries)
+# to the same raw_eu_benchmark.csv that the pipeline then overwrote, so the
+# fetched file was never consumed.
 
 
 # =============================================================================
@@ -2476,7 +2349,6 @@ PILLAR_FUNCTIONS = {
     "inflation": (fetch_inflation, "raw_inflation.csv"),
     "credit": (fetch_credit, "raw_credit.csv"),
     "public_debt": (fetch_public_debt, "raw_public_debt.csv"),
-    "eu_benchmark": (fetch_eu_benchmark, "raw_eu_benchmark.csv"),
     "housing": (fetch_housing, "raw_housing.csv"),
     "labor_detail": (fetch_labor_detail, "raw_labor_detail.csv"),
     "external_accounts": (fetch_external_accounts, "raw_external_accounts.csv"),
