@@ -5,6 +5,49 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.5.0] - 2026-06-12
+
+### Fixed
+- **Inequality pillar now carries the official Eurostat EU-SILC series.**
+  `fetch_inequality` queried the wrong dataset (`ilc_di12b`, the
+  before-social-transfers variant) and silently fell back to a smoothed
+  synthetic series that missed the official Gini spikes of 2021 (33.0) and
+  2023 (33.7) by up to 2.8 points. It now fetches `ilc_di12` (Gini),
+  `ilc_di11` (S80/S20) and `ilc_li02` (poverty risk) live, with the published
+  official series embedded as the offline fallback — both paths produce the
+  official values. The median income index remains an estimate and the
+  `source` column says so.
+- **Regional youth unemployment populated with official data.** The
+  `youth_unemployment_rate` column was 100% null by construction; it now
+  carries the official `lfst_r_lfu3rt` (15-24) series for the years Eurostat
+  publishes (58 of 112 region-years — full for Norte; the islands and the
+  discontinued pre-2024 NUTS codes have genuine gaps).
+- **Report methodology corrected.** The HTML report claimed *"All data is
+  sourced from authoritative national and European statistical institutions"*
+  and a *"7-layer validation framework"*; it now distinguishes official from
+  modelled/calibrated pillars and describes the actual 8-check framework.
+- Documentation drift: SECURITY.md supported versions (was stuck at 2.2.x),
+  README data note and provenance doc updated for the new pillar provenance.
+
+### Added
+- **Data-quality framework extended to all 12 pillars** (schema, expected
+  rows, not-null and plausibility-range checks for housing, labour detail,
+  external accounts, fiscal, inequality and regional — roughly 170 checks
+  per full run, up from ~100; the extended pillars previously only had a
+  freshness check). An all-null column like the old regional youth series
+  now fails instead of passing silently.
+
+### Changed
+- Test suite no longer rewrites `data/processed/*.csv` or the data-quality
+  drift baseline: artefact writes are redirected to a session temp directory.
+- Docker container now runs as a non-root `appuser`, and `docker-compose up`
+  works without a `.env` file (it is optional).
+- Committed `raw_eu_benchmark.csv` realigned with the pipeline generator
+  output (560 rows, 5 indicators, EU/EA averages). The previous snapshot was
+  written by the separate fetch path (160 rows) which the pipeline never
+  reads — both producers still share the filename; unifying them is a
+  follow-up.
+
 ## [2.4.0] - 2026-06-11
 
 ### Changed

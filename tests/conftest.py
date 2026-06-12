@@ -64,6 +64,31 @@ def isolated_db(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# Artifact-write isolation
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _isolate_artifact_writes(tmp_path_factory):
+    """Redirect artefact writes to a session temp dir.
+
+    ``transform_all()`` saves processed CSVs and ``DataQualityChecker`` saves
+    reports / the drift baseline as side effects; without this fixture the
+    suite rewrites the real ``data/processed/`` and ``reports/data_quality/``
+    contents on every run.
+    """
+    import src.etl.data_quality as dq_mod
+    import src.etl.transform as transform_mod
+
+    tmp_dir = tmp_path_factory.mktemp("artifacts")
+    mp = pytest.MonkeyPatch()
+    mp.setattr(transform_mod, "PROCESSED_DATA_DIR", tmp_dir / "processed")
+    mp.setattr(dq_mod, "DATA_QUALITY_DIR", tmp_dir / "data_quality")
+    yield
+    mp.undo()
+
+
+# ---------------------------------------------------------------------------
 # Data fixtures
 # ---------------------------------------------------------------------------
 

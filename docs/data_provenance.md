@@ -47,8 +47,8 @@ pipeline end to end — not to serve as an authoritative source for those indica
 | Labour Market Detail | Eurostat sector / wage / productivity trends | Estimated |
 | External Accounts | ECB / Eurostat BoP trend | Estimated (current account fetched when available) |
 | Fiscal Structure | Official Eurostat `gov_10a_main` revenue/expenditure series; COFOG components estimated | Calibrated to official values (2026-06 audit) |
-| Inequality & Income | Eurostat EU-SILC trend | Estimated (Gini fetched when available) |
-| Regional (NUTS2) | Official Eurostat `nama_10r_2gdp` / `lfst_r_lfu3rt`; Centro/Lisboa/Alentejo are population-weighted aggregates of their NUTS-2024 successor regions (the NUTS 2016 codes were discontinued); 2025 GDP extrapolated | Calibrated to official values (2026-06 audit) |
+| Inequality & Income | Official Eurostat EU-SILC series — Gini (`ilc_di12`), S80/S20 (`ilc_di11`), poverty risk (`ilc_li02`); fetched live with the published series embedded as offline fallback. Median income index estimated (calibrated to `ilc_di04`) | Official values (2026-06-12 audit) |
+| Regional (NUTS2) | Official Eurostat `nama_10r_2gdp` / `lfst_r_lfu3rt`; Centro/Lisboa/Alentejo are population-weighted aggregates of their NUTS-2024 successor regions (the NUTS 2016 codes were discontinued); 2025 GDP extrapolated. Youth unemployment (15-24) carries the official series only for the years Eurostat publishes (full for Norte; the islands and the discontinued NUTS-2016 codes have gaps) | Calibrated to official values (2026-06 audit) |
 
 ## Data Integrity
 

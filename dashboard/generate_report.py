@@ -1801,8 +1801,13 @@ def render_methodology() -> str:
 <section id="methodology" class="methodology-section">
   <h2>Methodology & Data Sources</h2>
   <p>This report analyses the Portuguese economy across twelve macroeconomic pillars
-  plus regional NUTS2 analysis, using data from {START_YEAR} to {END_YEAR}. All data is
-  sourced from authoritative national and European statistical institutions.</p>
+  plus regional NUTS2 analysis, using data from {START_YEAR} to {END_YEAR}. The core
+  macro-financial pillars (GDP, unemployment, inflation, interest rates, credit,
+  public debt) and the inequality and regional series carry the official values
+  published by the institutions below. The housing, labour-structure, external-accounts
+  and fiscal pillars are modelled series calibrated to the corresponding official
+  releases (Eurostat, INE, Banco de Portugal); they track the published levels and
+  dynamics but are not the raw official records.</p>
   <table class="source-table">
     <thead><tr><th>Source</th><th>URL</th></tr></thead>
     <tbody>{"".join(source_rows)}</tbody>
@@ -1811,8 +1816,8 @@ def render_methodology() -> str:
     <strong>Granularity:</strong> GDP, Public Debt, and External Accounts are quarterly;
     Unemployment, Credit, Interest Rates, and Inflation are monthly; Housing, Labour
     Detail, Fiscal, Inequality, and Regional are annual.<br>
-    <strong>Data Quality:</strong> All data passes a 7-layer validation framework
-    (schema, nulls, ranges, outliers, drift, consistency, freshness).<br>
+    <strong>Data Quality:</strong> All pillars pass an 8-check validation framework
+    (schema, nulls, ranges, outliers, drift, completeness, consistency, freshness).<br>
     <strong>Analysis Engine:</strong> Python (pandas, statsmodels, scipy) with
     SQLite storage, ensemble forecasting, and automated reporting.<br>
     <strong>Delivery:</strong> Power BI, Streamlit dashboard, self-contained HTML, REST API (FastAPI).<br>

@@ -17,8 +17,12 @@ COPY src/ src/
 COPY sql/ sql/
 COPY main.py .
 
-# Create data and report directories
-RUN mkdir -p data/raw data/processed data/database reports logs
+# Create data and report directories, then drop root privileges
+RUN mkdir -p data/raw data/processed data/database reports logs \
+    && useradd --create-home --shell /usr/sbin/nologin appuser \
+    && chown -R appuser:appuser /app
+
+USER appuser
 
 ENTRYPOINT ["python", "main.py"]
 CMD ["--mode", "full"]
