@@ -37,8 +37,13 @@ _SECONDARY_FAINT = "#DCE3E9"  # Very light navy for backgrounds
 _ACCENT_LIGHT = "#66C9F8"  # Lighter cyan
 _ACCENT_FAINT = "#DFF4FE"  # Very light cyan for backgrounds
 
-_NEGATIVE = "#C03434"  # Declines, losses, risks (muted red)
-_POSITIVE = "#0E7C3F"  # Growth, gains, success (muted green)
+# Mono-brand duotone: the consulting template keeps everything in the blue
+# family, so "good/bad" is carried by an electric-blue vs muted-steel pair
+# (saturation + bar direction convey the sign) instead of green/red. Both
+# stay distinct from the navy second series (_SECONDARY) and the grey
+# baseline (_NEUTRAL) for charts where all of them appear together.
+_POSITIVE = "#2251FF"  # Growth, gains, success (brand electric blue)
+_NEGATIVE = "#9DB0CE"  # Declines, losses, risks (muted steel blue)
 _NEUTRAL = "#6A737F"  # Baseline, unchanged (cool grey)
 
 _PALETTE_FULL = [_PRIMARY, _SECONDARY, _ACCENT, "#6E7B8A"]
