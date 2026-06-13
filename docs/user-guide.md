@@ -23,10 +23,13 @@ Each stage is tracked with a unique `run_id` for full lineage traceability.
 
 ## Data Quality
 
-The pipeline includes an automated quality gate between the Transform and Load stages. The `DataQualityChecker` runs 15+ checks:
+The pipeline includes an automated quality gate between the Transform and Load stages. The `DataQualityChecker` applies an 8-check framework, producing ~170 individual checks across the 12 pillars:
 
 - **Schema validation** — expected columns and types
+- **Not-null** — primary metrics are populated
 - **Range checks** — values within plausible bounds
+- **Outliers** — flags |z-score| > 3 against the series
+- **Drift** — distribution shifts vs the saved baseline
 - **Completeness** — no gaps in time series
 - **Cross-pillar consistency** — logical relationships hold
 - **Freshness** — data reaches the expected end date

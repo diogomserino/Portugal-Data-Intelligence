@@ -14,7 +14,7 @@ Portugal Data Intelligence consolidates macroeconomic data from official Portugu
 - **Statistical Analysis** — Correlation, SARIMAX forecasting (with model cache), STL decomposition, VAR/Granger causality, nowcasting, scenario analysis
 - **Anomaly Detection** — Rolling z-score and Isolation Forest multivariate detection
 - **Regional Analysis** — NUTS2 choropleth with Plotly (7 Portuguese regions)
-- **Data Quality Framework** — 15+ automated checks with pipeline lineage tracking
+- **Data Quality Framework** — 8-check framework (~170 automated checks across 12 pillars) with pipeline lineage tracking
 - **Interactive Dashboard** — Power BI dashboard with KPIs, drill-downs, and what-if scenarios
 - **Interactive HTML Report** — Plotly charts with zoom/hover, self-contained single file
 - **Excel Export** — Multi-sheet workbook with per-pillar data and correlation matrix
