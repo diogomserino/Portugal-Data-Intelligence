@@ -79,7 +79,11 @@ class CachedSession:
             with open(path, "r", encoding="utf-8") as f:
                 entry = json.load(f)
             age = time.time() - entry.get("cached_at", 0)
-            if age > self.ttl_seconds:
+            # Use >= so a zero TTL expires immediately: when a write and read
+            # land in the same clock tick (coarse timer resolution on some
+            # platforms), age can be exactly 0.0, and `age > 0` would wrongly
+            # treat the entry as still fresh.
+            if age >= self.ttl_seconds:
                 logger.debug("Cache expired for key %s (age: %.0fs)", key, age)
                 return None
             logger.debug("Cache hit for key %s (age: %.0fs)", key, age)
