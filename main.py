@@ -215,24 +215,24 @@ def _run_reports() -> StepResult:
 
     result = StepResult("Reports")
 
-    # AI / rule-based insights
+    # AI / rule-based insights — one briefing per language (en + pt) so the
+    # bilingual HTML report can render each from its own pre-generated briefing.
     log_section(logger, "STEP 5 / REPORTS: Insight Generation")
     try:
-        engine = InsightEngine(db_path=str(DATABASE_PATH), use_ai=False)
-        briefing = engine.generate_executive_briefing()
-        logger.info("Executive briefing generated (rule-based mode).")
-
-        # Persist the briefing JSON
         insights_dir = REPORTS_DIR / "insights"
         insights_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        briefing_path = insights_dir / f"executive_briefing_{timestamp}.json"
-        briefing_path.write_text(
-            json.dumps(briefing, indent=2, ensure_ascii=False, default=str),
-            encoding="utf-8",
-        )
-        result.files.append(str(briefing_path))
-        logger.info("Briefing saved to: %s", briefing_path)
+        # English keeps the canonical filename; Portuguese uses a "pt_" prefix.
+        for lang, suffix in (("en", ""), ("pt", "pt_")):
+            engine = InsightEngine(db_path=str(DATABASE_PATH), use_ai=False, lang=lang)
+            briefing = engine.generate_executive_briefing()
+            briefing_path = insights_dir / f"executive_briefing_{suffix}{timestamp}.json"
+            briefing_path.write_text(
+                json.dumps(briefing, indent=2, ensure_ascii=False, default=str),
+                encoding="utf-8",
+            )
+            result.files.append(str(briefing_path))
+            logger.info("Briefing (%s) saved to: %s", lang, briefing_path)
     except Exception as exc:
         logger.error("Insight generation failed: %s", exc)
         result.errors.append(f"Insight generation failed: {exc}")
@@ -251,11 +251,12 @@ def _run_report_html() -> StepResult:
 
     log_section(logger, "STEP 6 / REPORTS: HTML Report Generation")
     try:
-        from dashboard.generate_report import generate_report
+        from dashboard.generate_report import generate_all_reports
 
-        output_path = generate_report()
-        result.files.append(str(output_path))
-        logger.info("HTML report generated: %s", output_path)
+        # Bilingual: docs/index.html (EN) + docs/index.pt.html (PT).
+        for output_path in generate_all_reports():
+            result.files.append(str(output_path))
+            logger.info("HTML report generated: %s", output_path)
     except Exception as exc:
         logger.error("HTML report generation failed: %s", exc)
         result.errors.append(f"HTML report generation failed: {exc}")

@@ -228,6 +228,13 @@ def main():
         help="Generate insight for a single pillar only.",
     )
     parser.add_argument(
+        "--lang",
+        type=str,
+        choices=["en", "pt"],
+        default="en",
+        help="Narrative language: en (default) or pt.",
+    )
+    parser.add_argument(
         "--db-path",
         type=str,
         default=None,
@@ -246,16 +253,19 @@ def main():
     start_time = time.time()
 
     db_path = args.db_path or str(DATABASE_PATH)
-    engine = InsightEngine(db_path=db_path, use_ai=args.use_ai)
+    engine = InsightEngine(db_path=db_path, use_ai=args.use_ai, lang=args.lang)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Portuguese briefings carry a "pt_" prefix so the report loader can tell the
+    # languages apart (English keeps the canonical, prefix-free filename).
+    lang_prefix = "pt_" if args.lang == "pt" else ""
 
     if args.pillar:
         # Single pillar mode
         logger.info(f"Generating insight for pillar: {args.pillar}")
         insight = engine.generate_pillar_insight(args.pillar)
 
-        filename = f"insight_{args.pillar}_{timestamp}.json"
+        filename = f"insight_{lang_prefix}{args.pillar}_{timestamp}.json"
         filepath = _save_json(insight, filename)
         logger.info(f"Insight saved to: {filepath}")
 
@@ -269,7 +279,7 @@ def main():
         logger.info("Generating full executive briefing...")
         briefing = engine.generate_executive_briefing()
 
-        filename = f"executive_briefing_{timestamp}.json"
+        filename = f"executive_briefing_{lang_prefix}{timestamp}.json"
         filepath = _save_json(briefing, filename)
         logger.info(f"Executive briefing saved to: {filepath}")
 

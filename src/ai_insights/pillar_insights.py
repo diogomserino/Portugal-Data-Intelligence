@@ -25,6 +25,25 @@ def _safe(value, fmt: str = ".1f") -> str:
         return str(value)
 
 
+def risk_css_class(level_or_text: Optional[str]) -> str:
+    """Map an English risk-assessment string (or level keyword) to a CSS class
+    token: one of ``low`` | ``moderate`` | ``elevated`` | ``high``.
+
+    Mirrors the keyword logic used by the HTML report so the per-pillar risk
+    callout and the risk-matrix badge resolve to the same colour. The
+    Portuguese insight builders set ``risk_class`` explicitly (their prose
+    contains no English keywords), so this is only used for English narratives.
+    """
+    t = (level_or_text or "").upper()
+    if "ELEVATED" in t or "OVERHEATING" in t:
+        return "elevated"
+    if "HIGH" in t:
+        return "high"
+    if "LOW" in t:
+        return "low"
+    return "moderate"
+
+
 # ---------------------------------------------------------------------------
 # Common narrative builders (shared across all pillars)
 # ---------------------------------------------------------------------------

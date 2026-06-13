@@ -62,70 +62,39 @@ from config.settings import (
     VERSION,
     ensure_directories,
 )
+from src.reporting.i18n import (
+    COLUMN_LABELS,
+    DEFAULT_LANG,
+    FORECAST_INDICATORS,
+    LANG_FULL,
+    LANG_NAMES,
+    PILLAR_TITLES,
+    SUPPORTED_LANGS,
+    tr,
+)
 from src.utils.logger import get_logger
 
 logger = get_logger("generate_report")
 
-# ---------------------------------------------------------------------------
-# Human-readable column labels
-# ---------------------------------------------------------------------------
-_COLUMN_LABELS = {
-    "nominal_gdp": "Nominal GDP (EUR M)",
-    "real_gdp": "Real GDP (EUR M)",
-    "gdp_growth_yoy": "GDP Growth YoY (%)",
-    "gdp_growth_qoq": "GDP Growth QoQ (%)",
-    "gdp_per_capita": "GDP per Capita (EUR)",
-    "unemployment_rate": "Unemployment Rate (%)",
-    "youth_unemployment_rate": "Youth Unemployment (%)",
-    "long_term_unemployment_rate": "Long-term Unemp. (%)",
-    "labour_force_participation_rate": "Labour Force Part. (%)",
-    "total_credit": "Total Credit (EUR M)",
-    "credit_nfc": "Credit to NFCs (EUR M)",
-    "credit_households": "Household Credit (EUR M)",
-    "npl_ratio": "NPL Ratio (%)",
-    "ecb_main_refinancing_rate": "ECB Main Rate (%)",
-    "euribor_3m": "Euribor 3M (%)",
-    "euribor_6m": "Euribor 6M (%)",
-    "euribor_12m": "Euribor 12M (%)",
-    "portugal_10y_bond_yield": "PT 10Y Bond Yield (%)",
-    "hicp": "HICP Inflation (%)",
-    "cpi_estimated": "CPI Estimated (%)",
-    "core_inflation": "Core Inflation (%)",
-    "total_debt": "Total Debt (EUR M)",
-    "debt_to_gdp_ratio": "Debt-to-GDP Ratio (%)",
-    "budget_deficit": "Budget Balance Quarterly (% GDP)",
-    "budget_deficit_annual": "Budget Balance Annual (% GDP)",
-    "external_debt_share_estimated": "External Debt Share Est. (%)",
-    # Housing
-    "house_price_index": "House Price Index (2015=100)",
-    "house_price_yoy_change": "House Price Growth YoY (%)",
-    "avg_price_per_sqm": "Avg. Price per sqm (EUR)",
-    "housing_transactions": "Housing Transactions",
-    "mortgage_new_loans": "New Mortgage Loans (EUR M)",
-    # Labour detail
-    "employment_services_pct": "Employment: Services (%)",
-    "employment_industry_pct": "Employment: Industry (%)",
-    "employment_agriculture_pct": "Employment: Agriculture (%)",
-    "real_wage_index": "Real Wage Index (2015=100)",
-    "labour_productivity_index": "Labour Productivity Index (2015=100)",
-    # External accounts
-    "trade_balance_pct_gdp": "Trade Balance (% GDP)",
-    "current_account_pct_gdp": "Current Account (% GDP)",
-    "reer_index": "REER Index (2015=100)",
-    "export_growth_yoy": "Export Growth YoY (%)",
-    # Fiscal
-    "total_revenue_pct_gdp": "Total Revenue (% GDP)",
-    "total_expenditure_pct_gdp": "Total Expenditure (% GDP)",
-    "health_expenditure_pct": "Health Expenditure (% GDP)",
-    "education_expenditure_pct": "Education Expenditure (% GDP)",
-    "social_protection_pct": "Social Protection (% GDP)",
-    "interest_payments_pct": "Interest Payments (% GDP)",
-    # Inequality
-    "gini_index": "Gini Index",
-    "s80_s20_ratio": "S80/S20 Income Ratio",
-    "poverty_risk_rate": "Poverty Risk Rate (%)",
-    "median_income_index": "Median Income Index (EU27=100)",
-}
+# Human-readable column labels now live in src/reporting/i18n.py (bilingual).
+# This alias keeps the English set available for any language-agnostic caller.
+_COLUMN_LABELS = COLUMN_LABELS["en"]
+
+
+def _col_label(col: str, lang: str = DEFAULT_LANG) -> str:
+    """Localised, human-readable label for an indicator column."""
+    return COLUMN_LABELS.get(lang, COLUMN_LABELS[DEFAULT_LANG]).get(
+        col, col.replace("_", " ").title()
+    )
+
+
+# Output filename per language (English keeps the canonical docs/index.html).
+_OUTPUT_NAME = {"en": "index.html", "pt": "index.pt.html"}
+
+
+def _output_for_lang(lang: str) -> Path:
+    return PROJECT_ROOT / "docs" / _OUTPUT_NAME.get(lang, "index.html")
+
 
 # Pillar display config: (pillar_key, title, chart_filename, icon)
 _PILLAR_CONFIG = [
@@ -173,12 +142,23 @@ _KPI_DEFS = [
 # =============================================================================
 
 
-def load_latest_briefing() -> Dict[str, Any]:
-    """Load the most recent executive briefing JSON."""
-    pattern = "executive_briefing_*.json"
-    files = sorted(INSIGHTS_DIR.glob(pattern))
+def load_latest_briefing(lang: str = DEFAULT_LANG) -> Dict[str, Any]:
+    """Load the most recent executive briefing JSON for the given language.
+
+    Portuguese briefings are written as ``executive_briefing_pt_*.json`` and
+    English ones keep the canonical ``executive_briefing_*.json`` name; the
+    English glob therefore excludes the ``pt`` files it would otherwise match.
+    """
+    if lang == "pt":
+        files = sorted(INSIGHTS_DIR.glob("executive_briefing_pt_*.json"))
+    else:
+        files = sorted(
+            p
+            for p in INSIGHTS_DIR.glob("executive_briefing_*.json")
+            if not p.name.startswith("executive_briefing_pt_")
+        )
     if not files:
-        logger.warning("No executive briefing found in %s", INSIGHTS_DIR)
+        logger.warning("No %s executive briefing found in %s", lang, INSIGHTS_DIR)
         return {}
     latest = files[-1]
     logger.info("Loading briefing: %s", latest.name)
@@ -242,7 +222,9 @@ def encode_chart(filename: str, max_width: int = 1200) -> str:
     return f"data:image/png;base64,{b64}"
 
 
-def _make_plotly_timeseries(pillar_key: str, title: str, primary_col: str) -> str:
+def _make_plotly_timeseries(
+    pillar_key: str, title: str, primary_col: str, lang: str = DEFAULT_LANG
+) -> str:
     """Build an interactive Plotly timeseries div for a pillar.
 
     Returns an HTML string (the Plotly div) or empty string if unavailable.
@@ -260,7 +242,7 @@ def _make_plotly_timeseries(pillar_key: str, title: str, primary_col: str) -> st
         return ""
 
     x_col = "date_key" if "date_key" in df.columns else df.columns[0]
-    col_label = _COLUMN_LABELS.get(primary_col, primary_col.replace("_", " ").title())
+    col_label = _col_label(primary_col, lang)
 
     fig = go.Figure()
     fig.add_trace(
@@ -921,6 +903,34 @@ footer .author { font-weight: 600; color: var(--ink); font-size: 0.9rem; }
 }
 #back-to-top:hover { color: var(--accent); border-color: var(--accent); }
 
+/* --- LANGUAGE SWITCH --- */
+#lang-switch {
+  position: fixed;
+  top: 0.85rem;
+  right: 1rem;
+  display: flex;
+  gap: 1px;
+  background: var(--hairline);
+  border: 1px solid var(--hairline);
+  border-radius: 4px;
+  overflow: hidden;
+  z-index: 9998;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+#lang-switch a {
+  display: block;
+  padding: 0.3rem 0.6rem;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  color: var(--gray);
+  background: var(--paper);
+}
+#lang-switch a:hover { color: var(--ink); }
+#lang-switch a.active { background: var(--accent); color: #fff; }
+
 /* --- RESPONSIVE --- */
 @media (max-width: 1080px) {
   .layout { display: block; padding: 0 1.5rem; }
@@ -946,7 +956,7 @@ footer .author { font-weight: 600; color: var(--ink); font-size: 0.9rem; }
 
 /* --- PRINT --- */
 @media print {
-  #side-rail, .toc-mobile, #progress-bar, #back-to-top { display: none !important; }
+  #side-rail, .toc-mobile, #progress-bar, #back-to-top, #lang-switch { display: none !important; }
   .layout { display: block; padding: 0; }
   .cover { padding: 2rem 0 1.5rem; }
   main > section { page-break-inside: avoid; padding: 1.5rem 0; }
@@ -990,9 +1000,10 @@ def _risk_class(risk_text: str) -> str:
     return "moderate"
 
 
-def render_hero(briefing: Dict, kpis: Optional[Dict] = None) -> str:
+def render_hero(briefing: Dict, kpis: Optional[Dict] = None, lang: str = DEFAULT_LANG) -> str:
     """Editorial cover: kicker, serif headline, dek, meta row, KPI ticker, summary panel."""
-    title = briefing.get("title", "Portugal Macroeconomic Intelligence Briefing")
+    S = tr(lang)
+    title = briefing.get("title", S["default_briefing_title"])
     date = briefing.get("date", datetime.now().strftime("%d %B %Y"))
     summary = briefing.get("overall_assessment", "")
 
@@ -1001,11 +1012,11 @@ def render_hero(briefing: Dict, kpis: Optional[Dict] = None) -> str:
     if kpis:
         items = []
         _TICKER_DEFS = [
-            ("gdp", "gdp_growth_yoy", "GDP", ".1f", "%"),
-            ("unemployment", "unemployment_rate", "Unemployment", ".1f", "%"),
-            ("inflation", "hicp", "Inflation", ".1f", "%"),
-            ("public_debt", "debt_to_gdp_ratio", "Debt/GDP", ".1f", "%"),
-            ("interest_rates", "portugal_10y_bond_yield", "10Y Yield", ".2f", "%"),
+            ("gdp", "gdp_growth_yoy", S["ticker_gdp"], ".1f", "%"),
+            ("unemployment", "unemployment_rate", S["ticker_unemployment"], ".1f", "%"),
+            ("inflation", "hicp", S["ticker_inflation"], ".1f", "%"),
+            ("public_debt", "debt_to_gdp_ratio", S["ticker_debt"], ".1f", "%"),
+            ("interest_rates", "portugal_10y_bond_yield", S["ticker_yield"], ".2f", "%"),
         ]
         for pk, col, lbl, fmt, suf in _TICKER_DEFS:
             val = kpis.get(pk, {}).get(col)
@@ -1027,18 +1038,17 @@ def render_hero(briefing: Dict, kpis: Optional[Dict] = None) -> str:
     if summary:
         summary_html = f"""
   <div class="exec-panel">
-    <p class="panel-label">Executive summary</p>
+    <p class="panel-label">{S["exec_summary_label"]}</p>
     {_paragraphs(summary)}
   </div>"""
 
     return f"""
 <header class="cover">
   <div class="cover-inner">
-    <p class="kicker">Economic Research &middot; Portugal Data Intelligence</p>
+    <p class="kicker">{S["kicker"]}</p>
     <h1>{_esc(title)}</h1>
-    <p class="dek">A structural read of the Portuguese economy across twelve
-    macroeconomic pillars, {START_YEAR}&ndash;{END_YEAR}.</p>
-    <p class="meta-row"><span>{_esc(date)}</span><span>Edition v{VERSION}</span><span>Diogo Serino</span></p>
+    <p class="dek">{S["dek"].format(start=START_YEAR, end=END_YEAR)}</p>
+    <p class="meta-row"><span>{_esc(date)}</span><span>{S["edition"].format(version=VERSION)}</span><span>Diogo Serino</span></p>
     {ticker_html}
     {summary_html}
   </div>
@@ -1046,36 +1056,37 @@ def render_hero(briefing: Dict, kpis: Optional[Dict] = None) -> str:
 """
 
 
-def _toc_entries() -> list:
+def _toc_entries(lang: str = DEFAULT_LANG) -> list:
     """Ordered (anchor, label) pairs matching the document section order."""
-    entries = [("key-indicators", "Key Indicators")]
+    S = tr(lang)
+    entries = [("key-indicators", S["toc_key_indicators"])]
     for key, title, _, _icon in _PILLAR_CONFIG:
-        entries.append((key, title))
+        entries.append((key, PILLAR_TITLES.get(lang, PILLAR_TITLES[DEFAULT_LANG]).get(key, title)))
     entries.extend(
         [
-            ("executive-dashboard", "Executive Dashboard"),
-            ("cross-pillar", "Cross-Pillar Analysis"),
-            ("stl-decomposition", "STL Decomposition"),
-            ("forecasting", "SARIMAX Forecasting"),
-            ("benchmarking", "EU Benchmarking"),
-            ("regional", "Regional Analysis (NUTS2)"),
-            ("risk-matrix", "Risk Matrix"),
-            ("recommendations", "Strategic Recommendations"),
-            ("platform", "Platform &amp; Tools"),
-            ("methodology", "Methodology"),
+            ("executive-dashboard", S["toc_executive_dashboard"]),
+            ("cross-pillar", S["toc_cross_pillar"]),
+            ("stl-decomposition", S["toc_stl"]),
+            ("forecasting", S["toc_forecasting"]),
+            ("benchmarking", S["toc_benchmarking"]),
+            ("regional", S["toc_regional"]),
+            ("risk-matrix", S["toc_risk_matrix"]),
+            ("recommendations", S["toc_recommendations"]),
+            ("platform", S["toc_platform"]),
+            ("methodology", S["toc_methodology"]),
         ]
     )
     return entries
 
 
-def render_side_rail() -> str:
+def render_side_rail(lang: str = DEFAULT_LANG) -> str:
     """Sticky left-rail contents with numbered entries (desktop)."""
     items = "\n    ".join(
-        f'<li><a href="#{anchor}">{label}</a></li>' for anchor, label in _toc_entries()
+        f'<li><a href="#{anchor}">{label}</a></li>' for anchor, label in _toc_entries(lang)
     )
     return f"""
-<aside id="side-rail" aria-label="Contents">
-  <p class="rail-title">Contents</p>
+<aside id="side-rail" aria-label="{tr(lang)["contents"]}">
+  <p class="rail-title">{tr(lang)["contents"]}</p>
   <ol>
     {items}
   </ol>
@@ -1083,12 +1094,14 @@ def render_side_rail() -> str:
 """
 
 
-def render_toc() -> str:
+def render_toc(lang: str = DEFAULT_LANG) -> str:
     """Collapsible contents block shown on narrow screens (rail hidden)."""
-    items = "\n    ".join(f'<a href="#{anchor}">{label}</a>' for anchor, label in _toc_entries())
+    items = "\n    ".join(
+        f'<a href="#{anchor}">{label}</a>' for anchor, label in _toc_entries(lang)
+    )
     return f"""
 <details class="toc-mobile">
-  <summary>Contents</summary>
+  <summary>{tr(lang)["contents"]}</summary>
   <div style="margin-top:0.75rem;">
     {items}
   </div>
@@ -1142,9 +1155,21 @@ def _kpi_trend(pillar_key: str, col: str) -> tuple:
         return "", "neutral"
 
 
-def render_kpi_dashboard(kpis: Dict) -> str:
+_KPI_LABEL_KEYS = [
+    "kpi_gdp_growth",
+    "kpi_unemployment",
+    "kpi_inflation",
+    "kpi_debt",
+    "kpi_yield",
+    "kpi_npl",
+]
+
+
+def render_kpi_dashboard(kpis: Dict, lang: str = DEFAULT_LANG) -> str:
+    S = tr(lang)
     cards = []
-    for pillar_key, col, label, fmt, suffix in _KPI_DEFS:
+    for (pillar_key, col, _en_label, fmt, suffix), label_key in zip(_KPI_DEFS, _KPI_LABEL_KEYS):
+        label = S.get(label_key, _en_label)
         pillar_data = kpis.get(pillar_key, {})
         value = pillar_data.get(col)
         period = pillar_data.get("_date", "")
@@ -1153,7 +1178,9 @@ def render_kpi_dashboard(kpis: Dict) -> str:
             sem_cls = _KPI_SEMANTIC.get(col, lambda v: "neutral")(value)
             arrow, trend_cls = _kpi_trend(pillar_key, col)
             trend_html = (
-                f'<span class="kpi-trend {trend_cls}">{arrow} vs prev</span>' if arrow else ""
+                f'<span class="kpi-trend {trend_cls}">{arrow} {S["kpi_vs_prev"]}</span>'
+                if arrow
+                else ""
             )
         else:
             formatted = "N/A"
@@ -1169,7 +1196,7 @@ def render_kpi_dashboard(kpis: Dict) -> str:
 
     return f"""
 <section id="key-indicators" class="kpi-dashboard">
-  <h2>Key Indicators &mdash; Latest Values</h2>
+  <h2>{S["kpi_section_title"]}</h2>
   <div class="kpi-grid">
     {"".join(cards)}
   </div>
@@ -1180,25 +1207,32 @@ def render_kpi_dashboard(kpis: Dict) -> str:
 _DEFAULT_SOURCE = "INE &middot; Banco de Portugal &middot; Eurostat &middot; ECB"
 
 
-def _exhibit(inner_html: str, title: str, source: str = _DEFAULT_SOURCE, note: str = "") -> str:
+def _exhibit(
+    inner_html: str,
+    title: str,
+    source: str = _DEFAULT_SOURCE,
+    note: str = "",
+    lang: str = DEFAULT_LANG,
+) -> str:
     """Wrap a chart in the numbered-exhibit pattern: title above, source below."""
     note_html = f" &mdash; {note}" if note else ""
     return f"""
     <figure class="exhibit">
       <figcaption class="exhibit-head">{title}</figcaption>
       {inner_html}
-      <p class="exhibit-source">Source: {source}{note_html}</p>
+      <p class="exhibit-source">{tr(lang)["source"]}: {source}{note_html}</p>
     </figure>"""
 
 
-def render_stats_table(pillar_key: str, baseline: Dict) -> str:
+def render_stats_table(pillar_key: str, baseline: Dict, lang: str = DEFAULT_LANG) -> str:
     """Render a statistics table from DQ baseline data."""
     stats = baseline.get(pillar_key, {})
     if not stats:
         return ""
+    S = tr(lang)
     rows = []
     for col, values in stats.items():
-        label = _COLUMN_LABELS.get(col, col)
+        label = _col_label(col, lang)
         mean = values.get("mean", 0)
         std = values.get("std", 0)
         median = values.get("median", 0)
@@ -1215,7 +1249,7 @@ def render_stats_table(pillar_key: str, baseline: Dict) -> str:
             )
     return f"""
     <table class="stats-table">
-      <thead><tr><th>Indicator</th><th>Mean</th><th>Std Dev</th><th>Median</th></tr></thead>
+      <thead><tr><th>{S["th_indicator"]}</th><th>{S["th_mean"]}</th><th>{S["th_std"]}</th><th>{S["th_median"]}</th></tr></thead>
       <tbody>{"".join(rows)}</tbody>
     </table>"""
 
@@ -1226,58 +1260,65 @@ def render_pillar_section(
     section_id: str,
     title: str,
     baseline: Dict,
+    lang: str = DEFAULT_LANG,
 ) -> str:
     """Render a single pillar section."""
+    S = tr(lang)
     headline = insight.get("headline", "")
     summary = insight.get("executive_summary", "")
     findings = insight.get("key_findings", [])
     risk = insight.get("risk_assessment", "")
     outlook = insight.get("outlook", "")
-    risk_cls = _risk_class(risk)
+    # Prefer the language-neutral risk class token; fall back to parsing the prose
+    # (which only works for English) for briefings produced before the token existed.
+    risk_cls = insight.get("risk_class") or _risk_class(risk)
 
     primary_col = _PILLAR_PRIMARY_COL.get(section_id, "")
-    plotly_div = _make_plotly_timeseries(section_id, title, primary_col)
-    col_label = _COLUMN_LABELS.get(primary_col, primary_col.replace("_", " ").title())
+    plotly_div = _make_plotly_timeseries(section_id, title, primary_col, lang)
+    col_label = _col_label(primary_col, lang)
     exhibit_title = f"{col_label}, {START_YEAR}&ndash;{END_YEAR}"
     chart_html = ""
     if plotly_div:
         chart_html = _exhibit(
             f'<div class="plotly-chart">{plotly_div}</div>',
             exhibit_title,
-            note="interactive: zoom, hover, download",
+            note=S["interactive_note"],
+            lang=lang,
         )
     else:
         chart_uri = encode_chart(chart_filename)
         if chart_uri:
             chart_html = _exhibit(
-                f'<img src="{chart_uri}" alt="{_esc(title)} chart" loading="lazy">',
+                f'<img src="{chart_uri}" alt="{_esc(title)}" loading="lazy">',
                 exhibit_title,
+                lang=lang,
             )
 
     findings_html = ""
     if findings:
         items = "\n".join(f"<li>{_esc(f)}</li>" for f in findings)
         findings_html = f"""
-    <h3>Key Findings</h3>
+    <h3>{S["key_findings"]}</h3>
     <ul class="key-findings">{items}</ul>"""
 
-    stats_html = render_stats_table(insight.get("pillar", section_id), baseline)
+    stats_html = render_stats_table(insight.get("pillar", section_id), baseline, lang)
     stats_section = ""
     if stats_html:
         stats_section = (
-            f"<h3>Descriptive Statistics ({START_YEAR}&ndash;{END_YEAR})</h3>{stats_html}"
+            f"<h3>{S['descriptive_statistics'].format(start=START_YEAR, end=END_YEAR)}</h3>"
+            f"{stats_html}"
         )
 
     risk_html = ""
     if risk:
         risk_html = f"""
     <div class="risk-callout {risk_cls}">
-      <strong>Risk Assessment:</strong> {_esc(risk)}
+      <strong>{S["risk_assessment"]}</strong> {_esc(risk)}
     </div>"""
 
     outlook_html = ""
     if outlook:
-        outlook_html = f"<h3>Outlook</h3>{_paragraphs(outlook)}"
+        outlook_html = f"<h3>{S['outlook']}</h3>{_paragraphs(outlook)}"
 
     headline_html = f'  <p class="standfirst">{_esc(headline)}</p>\n' if headline else ""
     narrative_html = (
@@ -1296,7 +1337,8 @@ def render_pillar_section(
 """
 
 
-def render_cross_pillar(briefing: Dict) -> str:
+def render_cross_pillar(briefing: Dict, lang: str = DEFAULT_LANG) -> str:
+    S = tr(lang)
     cross = briefing.get("cross_pillar_insights", {})
     narrative = cross.get("macro_narrative", "")
     relationships = cross.get("relationships", [])
@@ -1306,7 +1348,8 @@ def render_cross_pillar(briefing: Dict) -> str:
     rel_cards = []
     for rel in relationships:
         name = rel.get("name", "")
-        desc = rel.get("description", "")
+        # The cross-pillar relationships store their prose under "narrative".
+        desc = rel.get("narrative") or rel.get("description", "")
         rel_cards.append(f"""
       <div class="info-card">
         <strong>{_esc(name)}</strong>
@@ -1319,13 +1362,13 @@ def render_cross_pillar(briefing: Dict) -> str:
 
     grid_charts = []
     for fn, caption in [
-        ("correlation_heatmap.png", "Cross-pillar correlation matrix"),
-        ("phillips_curve.png", "Phillips curve: unemployment vs inflation"),
+        ("correlation_heatmap.png", S["cap_correlation"]),
+        ("phillips_curve.png", S["cap_phillips"]),
     ]:
         uri = encode_chart(fn)
         if uri:
             grid_charts.append(
-                _exhibit(f'<img src="{uri}" alt="{caption}" loading="lazy">', caption)
+                _exhibit(f'<img src="{uri}" alt="{caption}" loading="lazy">', caption, lang=lang)
             )
 
     # Crisis timeline full-width
@@ -1333,13 +1376,14 @@ def render_cross_pillar(briefing: Dict) -> str:
     crisis_uri = encode_chart("crisis_timeline.png")
     if crisis_uri:
         crisis_html = _exhibit(
-            f'<img src="{crisis_uri}" alt="Crisis timeline" loading="lazy" style="width:100%;">',
-            "Crisis timeline: macroeconomic stress periods",
+            f'<img src="{crisis_uri}" alt="{S["cap_crisis"]}" loading="lazy" style="width:100%;">',
+            S["cap_crisis"],
+            lang=lang,
         )
 
     return f"""
 <section id="cross-pillar" class="analysis-section">
-  <h2>Cross-Pillar Analysis</h2>
+  <h2>{S["cross_pillar_title"]}</h2>
   {narrative_html}
   {rel_grid}
   <div class="chart-grid">
@@ -1350,24 +1394,26 @@ def render_cross_pillar(briefing: Dict) -> str:
 """
 
 
-def render_benchmarking() -> str:
+def render_benchmarking(lang: str = DEFAULT_LANG) -> str:
+    S = tr(lang)
     charts = []
     for fn, caption in [
-        ("benchmark_radar_pt_vs_eu.png", "Portugal vs EU averages — normalised radar"),
-        ("benchmark_small_multiples.png", "Peer country comparison — key indicators"),
+        ("benchmark_radar_pt_vs_eu.png", S["cap_radar"]),
+        ("benchmark_small_multiples.png", S["cap_small_multiples"]),
     ]:
         uri = encode_chart(fn)
         if uri:
-            charts.append(_exhibit(f'<img src="{uri}" alt="{caption}" loading="lazy">', caption))
+            charts.append(
+                _exhibit(f'<img src="{uri}" alt="{caption}" loading="lazy">', caption, lang=lang)
+            )
 
     if not charts:
         return ""
 
     return f"""
 <section id="benchmarking" class="analysis-section">
-  <h2>EU Benchmarking</h2>
-  <p>Portugal's macroeconomic performance compared to key European peers
-  (Germany, Spain, France, Italy) and EU/Euro Area averages.</p>
+  <h2>{S["benchmarking_title"]}</h2>
+  <p>{S["benchmarking_intro"]}</p>
   <div class="chart-grid">
     {"".join(charts)}
   </div>
@@ -1375,15 +1421,18 @@ def render_benchmarking() -> str:
 """
 
 
-def render_regional_section() -> str:
+def render_regional_section(lang: str = DEFAULT_LANG) -> str:
     """Render the NUTS2 regional analysis section with interactive choropleth."""
     from config.settings import DATABASE_PATH
     from src.analysis.regional_analysis import build_choropleth_div, run_regional_analysis
 
+    S = tr(lang)
     db_path = str(DATABASE_PATH)
-    regional = run_regional_analysis(db_path)
+    regional = run_regional_analysis(db_path, lang=lang)
     choropleth_div = (
-        build_choropleth_div(db_path, include_plotlyjs=_plotly_include_arg()) if _HAS_PLOTLY else ""
+        build_choropleth_div(db_path, include_plotlyjs=_plotly_include_arg(), lang=lang)
+        if _HAS_PLOTLY
+        else ""
     )
 
     gdp_block = regional.get("gdp_per_capita_pps", {})
@@ -1420,9 +1469,9 @@ def render_regional_section() -> str:
   <table class="stats-table" style="margin-top:1.5rem;">
     <thead>
       <tr>
-        <th>Code</th><th>Region</th>
-        <th style="text-align:right;">GDP per Capita (PPS)</th>
-        <th style="text-align:right;">Unemployment</th>
+        <th>{S["regional_th_code"]}</th><th>{S["regional_th_region"]}</th>
+        <th style="text-align:right;">{S["regional_th_gdp"]}</th>
+        <th style="text-align:right;">{S["regional_th_unemp"]}</th>
       </tr>
     </thead>
     <tbody>{table_rows}</tbody>
@@ -1432,25 +1481,23 @@ def render_regional_section() -> str:
     if choropleth_div:
         map_html = _exhibit(
             f'<div class="plotly-chart">{choropleth_div}</div>',
-            "GDP per capita by NUTS2 region (PPS), latest year",
-            source="Eurostat (nama_10r_2gdp)",
-            note="interactive choropleth — hover over each region",
+            S["regional_map_title"],
+            source=S["regional_source"],
+            note=S["regional_map_note"],
+            lang=lang,
         )
 
     source_note = ""
     if regional.get("source") == "synthetic_fallback":
         source_note = (
             '<p style="font-size:0.82rem;color:var(--medium-gray);margin-top:1rem;">'
-            "<em>Note: data based on synthetic estimates — run <code>python main.py</code> "
-            "to populate live data.</em></p>"
+            f"<em>{S['regional_synthetic_note']}</em></p>"
         )
 
     return f"""
 <section id="regional" class="analysis-section">
-  <h2>Regional Analysis — NUTS2</h2>
-  <p>Portugal's macroeconomic performance varies significantly across its seven NUTS2 regions.
-  Lisboa accounts for a disproportionate share of national GDP while peripheral regions face
-  structural challenges in competitiveness and employment.</p>
+  <h2>{S["regional_title"]}</h2>
+  <p>{S["regional_intro"]}</p>
   {map_html}
   {table_html}
   {findings_html}
@@ -1459,47 +1506,49 @@ def render_regional_section() -> str:
 """
 
 
-def render_executive_dashboard() -> str:
+def render_executive_dashboard(lang: str = DEFAULT_LANG) -> str:
     """Render the executive dashboard overview chart."""
+    S = tr(lang)
     uri = encode_chart("economic_dashboard.png")
     if not uri:
         return ""
     dashboard_exhibit = _exhibit(
-        f'<img src="{uri}" alt="Economic Dashboard" loading="lazy">',
-        f"Six core pillars at a glance, {START_YEAR}&ndash;{END_YEAR}",
+        f'<img src="{uri}" alt="{S["exec_dashboard_title"]}" loading="lazy">',
+        S["exec_dashboard_caption"].format(start=START_YEAR, end=END_YEAR),
+        lang=lang,
     )
     return f"""
 <section id="executive-dashboard" class="analysis-section">
-  <h2>Executive Dashboard</h2>
-  <p>Single-view summary of all six macroeconomic pillars — GDP, unemployment,
-  credit, interest rates, inflation, and public debt — spanning {START_YEAR} to {END_YEAR}.</p>
+  <h2>{S["exec_dashboard_title"]}</h2>
+  <p>{S["exec_dashboard_intro"].format(start=START_YEAR, end=END_YEAR)}</p>
   {dashboard_exhibit}
 </section>
 """
 
 
-def render_stl_decomposition() -> str:
+def render_stl_decomposition(lang: str = DEFAULT_LANG) -> str:
     """Render STL seasonal-trend decomposition charts."""
+    S = tr(lang)
     stl_charts = [
-        ("stl_real_gdp.png", "STL decomposition: real GDP"),
-        ("stl_unemployment_rate.png", "STL decomposition: unemployment rate"),
-        ("stl_hicp_inflation.png", "STL decomposition: HICP inflation"),
+        ("stl_real_gdp.png", S["cap_stl_gdp"]),
+        ("stl_unemployment_rate.png", S["cap_stl_unemployment"]),
+        ("stl_hicp_inflation.png", S["cap_stl_inflation"]),
     ]
     charts = []
     for fn, caption in stl_charts:
         uri = encode_chart(fn)
         if uri:
-            charts.append(_exhibit(f'<img src="{uri}" alt="{caption}" loading="lazy">', caption))
+            charts.append(
+                _exhibit(f'<img src="{uri}" alt="{caption}" loading="lazy">', caption, lang=lang)
+            )
 
     if not charts:
         return ""
 
     return f"""
 <section id="stl-decomposition" class="analysis-section">
-  <h2>Seasonal-Trend Decomposition (STL)</h2>
-  <p>Decomposition of key economic time series into trend, seasonal, and residual
-  components using STL (Seasonal and Trend decomposition using Loess). This reveals
-  underlying structural trends stripped of seasonal noise.</p>
+  <h2>{S["stl_title"]}</h2>
+  <p>{S["stl_intro"]}</p>
   <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:1.5rem;">
     {"".join(charts)}
   </div>
@@ -1507,8 +1556,10 @@ def render_stl_decomposition() -> str:
 """
 
 
-def render_forecasting() -> str:
+def render_forecasting(lang: str = DEFAULT_LANG) -> str:
     """Render SARIMAX 12-quarter-ahead forecasts with Plotly interactive charts."""
+    S = tr(lang)
+    fc_labels = FORECAST_INDICATORS.get(lang, FORECAST_INDICATORS[DEFAULT_LANG])
     if not _HAS_PLOTLY:
         return ""
 
@@ -1540,7 +1591,9 @@ def render_forecasting() -> str:
         if not forecast_points:
             continue
 
-        indicator = fc_data.get("indicator", pillar.replace("_", " ").title())
+        indicator = fc_labels.get(
+            pillar, fc_data.get("indicator", pillar.replace("_", " ").title())
+        )
         method = fc_data.get("method", "SARIMAX")
         periods = [p["period"] for p in forecast_points]
         central = [p["central"] for p in forecast_points]
@@ -1564,9 +1617,11 @@ def render_forecasting() -> str:
                             x=hist_df[x_col],
                             y=hist_df[pcol],
                             mode="lines",
-                            name="Historical",
+                            name=S["fc_historical"],
                             line={"color": "#1A1A2E", "width": 2},
-                            hovertemplate="<b>%{x}</b><br>Historical: %{y:.2f}<extra></extra>",
+                            hovertemplate=(
+                                "<b>%{x}</b><br>" + S["fc_historical"] + ": %{y:.2f}<extra></extra>"
+                            ),
                         )
                     )
             except Exception:
@@ -1602,9 +1657,11 @@ def render_forecasting() -> str:
                 x=periods,
                 y=central,
                 mode="lines",
-                name=f"{method} Forecast",
+                name=S["fc_forecast_name"].format(method=method),
                 line={"color": "#2251FF", "width": 2.25, "dash": "dot"},
-                hovertemplate="<b>%{x}</b><br>Forecast: %{y:.2f}<extra></extra>",
+                hovertemplate=(
+                    "<b>%{x}</b><br>" + S["fc_th_forecast"] + ": %{y:.2f}<extra></extra>"
+                ),
             )
         )
         fig.update_layout(
@@ -1635,9 +1692,10 @@ def render_forecasting() -> str:
             charts_html.append(
                 _exhibit(
                     f'<div class="plotly-chart">{div}</div>',
-                    f"{_esc(indicator)} — 12-quarter forecast",
-                    source="Portugal Data Intelligence model suite",
-                    note=f"method: {method}; shaded bands are 68% / 95% intervals",
+                    S["fc_chart_title"].format(indicator=_esc(indicator)),
+                    source=S["fc_source"],
+                    note=S["fc_note"].format(method=method),
+                    lang=lang,
                 )
             )
         except Exception:
@@ -1652,7 +1710,7 @@ def render_forecasting() -> str:
         fps = fc_data.get("forecast", [])
         if not fps or "error" in fc_data:
             continue
-        indicator = fc_data.get("indicator", pillar.title())
+        indicator = fc_labels.get(pillar, fc_data.get("indicator", pillar.title()))
         latest = fc_data.get("historical_latest", {})
         lv = latest.get("value")
         last_fc = fps[-1]
@@ -1677,8 +1735,10 @@ def render_forecasting() -> str:
             '<div style="overflow-x:auto;margin-bottom:2rem;">'
             '<table class="stats-table">'
             "<thead><tr>"
-            "<th>Indicator</th><th>Latest Period</th><th>Latest Value</th>"
-            "<th>Horizon</th><th>Forecast</th><th>Direction</th>"
+            f"<th>{S['fc_th_indicator']}</th><th>{S['fc_th_latest_period']}</th>"
+            f"<th>{S['fc_th_latest_value']}</th>"
+            f"<th>{S['fc_th_horizon']}</th><th>{S['fc_th_forecast']}</th>"
+            f"<th>{S['fc_th_direction']}</th>"
             "</tr></thead>"
             f'<tbody>{"".join(table_rows)}</tbody>'
             "</table></div>"
@@ -1686,27 +1746,28 @@ def render_forecasting() -> str:
 
     return f"""
 <section id="forecasting" class="analysis-section">
-  <h2>SARIMAX Forecasting</h2>
-  <p>12-quarter-ahead forecasts generated by SARIMAX models with automatic order selection via AIC.
-  Models are cached for 7 days (joblib) and refit when new data arrives. Shaded bands show 68%
-  and 95% prediction intervals; residual diagnostics include the Ljung-Box test.</p>
+  <h2>{S["forecasting_title"]}</h2>
+  <p>{S["forecasting_intro"]}</p>
   {table_html}
   {"".join(charts_html)}
 </section>
 """
 
 
-def render_risk_matrix(briefing: Dict) -> str:
+def render_risk_matrix(briefing: Dict, lang: str = DEFAULT_LANG) -> str:
+    S = tr(lang)
     risks = briefing.get("risk_matrix", [])
     if not risks:
         return ""
 
+    pillar_titles = PILLAR_TITLES.get(lang, PILLAR_TITLES[DEFAULT_LANG])
     rows = []
     for r in risks:
-        pillar = r.get("pillar", "").replace("_", " ").title()
+        pillar_key = r.get("pillar", "")
+        pillar = pillar_titles.get(pillar_key, pillar_key.replace("_", " ").title())
         level = r.get("risk_level", "moderate")
         desc = r.get("description", "")
-        cls = _risk_class(level)
+        cls = r.get("risk_class") or _risk_class(level)
         rows.append(
             f"<tr><td><strong>{_esc(pillar)}</strong></td>"
             f'<td><span class="risk-badge {cls}">{_esc(level)}</span></td>'
@@ -1715,125 +1776,95 @@ def render_risk_matrix(briefing: Dict) -> str:
 
     return f"""
 <section id="risk-matrix" class="analysis-section">
-  <h2>Risk Matrix</h2>
+  <h2>{S["risk_matrix_title"]}</h2>
   <table class="risk-matrix">
-    <thead><tr><th>Pillar</th><th>Risk Level</th><th>Assessment</th></tr></thead>
+    <thead><tr><th>{S["rm_th_pillar"]}</th><th>{S["rm_th_level"]}</th><th>{S["rm_th_assessment"]}</th></tr></thead>
     <tbody>{"".join(rows)}</tbody>
   </table>
 </section>
 """
 
 
-def render_recommendations(briefing: Dict) -> str:
+def render_recommendations(briefing: Dict, lang: str = DEFAULT_LANG) -> str:
     recs = briefing.get("strategic_recommendations", [])
     if not recs:
         return ""
     items = "\n".join(f"<li>{_esc(r)}</li>" for r in recs)
     return f"""
 <section id="recommendations" class="analysis-section">
-  <h2>Strategic Recommendations</h2>
+  <h2>{tr(lang)["recommendations_title"]}</h2>
   <ol class="recommendations-list">{items}</ol>
 </section>
 """
 
 
-def render_platform() -> str:
+def render_platform(lang: str = DEFAULT_LANG) -> str:
     """Render the Platform & Tools section showcasing v2 capabilities."""
+    S = tr(lang)
     return f"""
 <section id="platform" class="analysis-section">
-  <h2>Platform & Tools</h2>
-  <p>Portugal Data Intelligence v{VERSION} delivers insights through multiple complementary channels,
-  each tailored to a different audience and use case.</p>
+  <h2>{S["platform_title"]}</h2>
+  <p>{S["platform_intro"].format(version=VERSION)}</p>
   <div class="chart-grid">
     <div class="info-card">
-      <strong>Interactive Dashboard (Streamlit)</strong>
-      <p>
-        Four-page web dashboard with real-time KPI cards, per-pillar deep-dive with configurable
-        year range and indicator filters, cross-pillar correlation heatmap with Phillips curve
-        analysis, and a raw data explorer with CSV download.
-      </p>
-      <p class="launch">Launch: <code>streamlit run dashboard/app.py</code></p>
+      <strong>{S["platform_dashboard_h"]}</strong>
+      <p>{S["platform_dashboard_p"]}</p>
+      <p class="launch">{S["launch"]} <code>streamlit run dashboard/app.py</code></p>
     </div>
     <div class="info-card">
-      <strong>REST API (FastAPI)</strong>
-      <p>
-        Seven endpoints exposing macroeconomic data programmatically: pillar listing,
-        latest values with summary statistics, filtered timeseries queries, active alert
-        monitoring, and cross-pillar correlation matrices. Full OpenAPI documentation at <code>/docs</code>.
-      </p>
-      <p class="launch">Launch: <code>uvicorn api.main:app --reload</code></p>
+      <strong>{S["platform_api_h"]}</strong>
+      <p>{S["platform_api_p"]}</p>
+      <p class="launch">{S["launch"]} <code>uvicorn api.main:app --reload</code></p>
     </div>
     <div class="info-card">
-      <strong>Ensemble Forecasting</strong>
-      <p>
-        Multi-model forecasting combining SARIMAX, Holt-Winters, linear trend, mean-reversion,
-        and log-linear models. Models are automatically weighted by inverse MAE from
-        expanding-window backtesting, producing robust consensus projections with 68% and 95%
-        confidence bands.
-      </p>
+      <strong>{S["platform_forecast_h"]}</strong>
+      <p>{S["platform_forecast_p"]}</p>
     </div>
     <div class="info-card">
-      <strong>Power BI Dashboard</strong>
-      <p>
-        39 DAX measures across 7 categories (KPIs, YoY growth, moving averages, derived metrics,
-        period comparisons, formatting, calculated columns) for enterprise-grade interactive
-        dashboards with drill-down and what-if analysis.
-      </p>
+      <strong>{S["platform_powerbi_h"]}</strong>
+      <p>{S["platform_powerbi_p"]}</p>
     </div>
   </div>
   <p style="margin-top:1.2rem; font-size:0.9rem;">
-    Additionally, the platform includes a configurable <strong>alert engine</strong> with
-    warning/critical thresholds for 11 indicators across the economic pillars, an <strong>API response cache</strong>
-    to reduce redundant HTTP calls to Eurostat, ECB, and Banco de Portugal, and a
-    comprehensive <strong>CI/CD pipeline</strong> (GitHub Actions) with linting, testing
-    across Python 3.10&ndash;3.12, and automated coverage reporting.
+    {S["platform_footnote"]}
   </p>
 </section>
 """
 
 
-def render_methodology() -> str:
+def render_methodology(lang: str = DEFAULT_LANG) -> str:
+    S = tr(lang)
     source_rows = []
     for name, url in DATA_SOURCES.items():
         source_rows.append(f"<tr><td>{_esc(name)}</td><td>{_esc(url)}</td></tr>")
 
     return f"""
 <section id="methodology" class="methodology-section">
-  <h2>Methodology & Data Sources</h2>
-  <p>This report analyses the Portuguese economy across twelve macroeconomic pillars
-  plus regional NUTS2 analysis, using data from {START_YEAR} to {END_YEAR}. The core
-  macro-financial pillars (GDP, unemployment, inflation, interest rates, credit,
-  public debt) and the inequality and regional series carry the official values
-  published by the institutions below. The housing, labour-structure, external-accounts
-  and fiscal pillars are modelled series calibrated to the corresponding official
-  releases (Eurostat, INE, Banco de Portugal); they track the published levels and
-  dynamics but are not the raw official records.</p>
+  <h2>{S["methodology_title"]}</h2>
+  <p>{S["methodology_intro"].format(start=START_YEAR, end=END_YEAR)}</p>
   <table class="source-table">
-    <thead><tr><th>Source</th><th>URL</th></tr></thead>
+    <thead><tr><th>{S["methodology_th_source"]}</th><th>{S["methodology_th_url"]}</th></tr></thead>
     <tbody>{"".join(source_rows)}</tbody>
   </table>
   <p style="margin-top:1rem; font-size:0.85rem; color:var(--medium-gray);">
-    <strong>Granularity:</strong> GDP, Public Debt, and External Accounts are quarterly;
-    Unemployment, Credit, Interest Rates, and Inflation are monthly; Housing, Labour
-    Detail, Fiscal, Inequality, and Regional are annual.<br>
-    <strong>Data Quality:</strong> All pillars pass an 8-check validation framework
-    (schema, nulls, ranges, outliers, drift, completeness, consistency, freshness).<br>
-    <strong>Analysis Engine:</strong> Python (pandas, statsmodels, scipy) with
-    SQLite storage, ensemble forecasting, and automated reporting.<br>
-    <strong>Delivery:</strong> Power BI, Streamlit dashboard, self-contained HTML, REST API (FastAPI).<br>
-    <strong>Version:</strong> {VERSION} &mdash; Generated {datetime.now().strftime("%d %B %Y")}
+    {S["methodology_granularity"]}<br>
+    {S["methodology_quality"]}<br>
+    {S["methodology_engine"]}<br>
+    {S["methodology_delivery"]}<br>
+    {S["methodology_version"].format(version=VERSION, date=datetime.now().strftime("%d %B %Y"))}
   </p>
 </section>
 """
 
 
-def render_footer() -> str:
+def render_footer(lang: str = DEFAULT_LANG) -> str:
+    S = tr(lang)
     generated = datetime.now().strftime("%d %B %Y, %H:%M")
     return f"""
 <footer>
-  <div class="author">Portugal Data Intelligence v{VERSION}</div>
-  <p>Diogo Serino &middot; Portfolio 2026 &middot; Power BI &middot; Streamlit &middot; FastAPI &middot; HTML</p>
-  <p style="font-size:0.75rem; color:var(--medium-gray); margin-top:0.25rem;">Report generated: {generated}</p>
+  <div class="author">{S["footer_author_line"].format(version=VERSION)}</div>
+  <p>{S["footer_tagline"]}</p>
+  <p style="font-size:0.75rem; color:var(--medium-gray); margin-top:0.25rem;">{S["footer_generated"].format(generated=generated)}</p>
 </footer>
 """
 
@@ -1843,21 +1874,44 @@ def render_footer() -> str:
 # =============================================================================
 
 
-def generate_report(output_path: Optional[Path] = None) -> Path:
-    """Generate the full HTML report and write to disk."""
+def render_lang_switch(current: str) -> str:
+    """Build the fixed-position EN/PT language toggle."""
+    links = []
+    for code in SUPPORTED_LANGS:
+        href = _OUTPUT_NAME.get(code, "index.html")
+        cls = ' class="active"' if code == current else ""
+        # The non-current link is tagged so the preference script can redirect to it.
+        oid = "" if code == current else ' id="lang-other"'
+        links.append(
+            f'<a href="{href}" data-lang="{code}" hreflang="{code}"'
+            f'{cls}{oid} title="{LANG_FULL[code]}">{LANG_NAMES[code]}</a>'
+        )
+    label = tr(current)["lang_switch_label"]
+    return f'<nav id="lang-switch" aria-label="{label}">{"".join(links)}</nav>'
+
+
+def generate_report(output_path: Optional[Path] = None, lang: str = DEFAULT_LANG) -> Path:
+    """Generate the full HTML report for ``lang`` and write to disk.
+
+    English writes to ``docs/index.html`` (the canonical entry point); Portuguese
+    writes to ``docs/index.pt.html``. A language toggle in each file links to the
+    other and remembers the choice in ``localStorage``.
+    """
     ensure_directories()
+    lang = lang if lang in SUPPORTED_LANGS else DEFAULT_LANG
 
     # Reset so plotly.js is embedded exactly once per report (matters when
     # generate_report() is called more than once in the same process).
     _PLOTLY_STATE["included"] = False
 
     if output_path is None:
-        output_path = PROJECT_ROOT / "docs" / "index.html"
+        output_path = _output_for_lang(lang)
 
-    logger.info("Generating HTML report...")
+    S = tr(lang)
+    logger.info("Generating HTML report (lang=%s)...", lang)
 
     # Load data
-    briefing = load_latest_briefing()
+    briefing = load_latest_briefing(lang)
     kpis = load_kpi_values()
     baseline = load_dq_baseline()
 
@@ -1866,46 +1920,68 @@ def generate_report(output_path: Optional[Path] = None) -> Path:
     for pi in briefing.get("pillar_insights", []):
         pillar_insights[pi.get("pillar", "")] = pi
 
+    pillar_titles = PILLAR_TITLES.get(lang, PILLAR_TITLES[DEFAULT_LANG])
+
     # Render sections: editorial cover, then a two-column shell with a sticky
     # contents rail (desktop) and the content column.
     sections = [
-        render_hero(briefing, kpis),
+        render_hero(briefing, kpis, lang),
         '<div class="layout">',
-        render_side_rail(),
+        render_side_rail(lang),
         '<div class="content">',
-        render_toc(),
+        render_toc(lang),
         "<main>",
-        render_kpi_dashboard(kpis),
+        render_kpi_dashboard(kpis, lang),
     ]
 
     # Pillar sections
     for key, title, chart_fn, _ in _PILLAR_CONFIG:
         insight = pillar_insights.get(key, {})
-        sections.append(render_pillar_section(insight, chart_fn, key, title, baseline))
+        loc_title = pillar_titles.get(key, title)
+        sections.append(render_pillar_section(insight, chart_fn, key, loc_title, baseline, lang))
 
     # Executive dashboard, cross-pillar, STL, benchmarking, regional, risk, recommendations, platform
     sections.extend(
         [
-            render_executive_dashboard(),
-            render_cross_pillar(briefing),
-            render_stl_decomposition(),
-            render_forecasting(),
-            render_benchmarking(),
-            render_regional_section(),
-            render_risk_matrix(briefing),
-            render_recommendations(briefing),
-            render_platform(),
-            render_methodology(),
+            render_executive_dashboard(lang),
+            render_cross_pillar(briefing, lang),
+            render_stl_decomposition(lang),
+            render_forecasting(lang),
+            render_benchmarking(lang),
+            render_regional_section(lang),
+            render_risk_matrix(briefing, lang),
+            render_recommendations(briefing, lang),
+            render_platform(lang),
+            render_methodology(lang),
             "</main>",
             "</div>",
             "</div>",
-            render_footer(),
+            render_footer(lang),
         ]
     )
 
     body = "\n".join(sections)
 
     js_block = """<script>
+// Language preference: honour the visitor's last choice, then remember new ones.
+(function () {
+  var KEY = "pdi_lang";
+  var cur = document.documentElement.lang || "en";
+  var other = document.getElementById("lang-other");
+  try {
+    var pref = localStorage.getItem(KEY);
+    if (pref && pref !== cur && other) {
+      location.replace(other.getAttribute("href"));
+      return;
+    }
+  } catch (e) {}
+  var langLinks = document.querySelectorAll("#lang-switch a");
+  for (var i = 0; i < langLinks.length; i++) {
+    langLinks[i].addEventListener("click", function () {
+      try { localStorage.setItem(KEY, this.getAttribute("data-lang")); } catch (e) {}
+    });
+  }
+})();
 (function () {
   var bar = document.getElementById("progress-bar");
   var btn = document.getElementById("back-to-top");
@@ -1949,15 +2025,16 @@ def generate_report(output_path: Optional[Path] = None) -> Path:
 </script>"""
 
     html = f"""<!DOCTYPE html>
-<html lang="en">
+<html lang="{lang}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Portugal Macroeconomic Intelligence Briefing</title>
+  <title>{S["html_title"]}</title>
   <style>{CSS}</style>
 </head>
 <body>
 <div id="progress-bar"></div>
+{render_lang_switch(lang)}
 <button id="back-to-top" aria-label="Back to top">&#8679;</button>
 {body}
 {js_block}
@@ -1969,6 +2046,11 @@ def generate_report(output_path: Optional[Path] = None) -> Path:
     size_mb = output_path.stat().st_size / (1024 * 1024)
     logger.info("Report generated: %s (%.1f MB)", output_path, size_mb)
     return output_path
+
+
+def generate_all_reports(langs=SUPPORTED_LANGS) -> "list[Path]":
+    """Generate the report for every supported language (default: en + pt)."""
+    return [generate_report(lang=code) for code in langs]
 
 
 # =============================================================================
@@ -1984,8 +2066,24 @@ if __name__ == "__main__":
         "-o",
         type=Path,
         default=None,
-        help="Output path (default: docs/index.html)",
+        help="Output path (default: docs/index.html for en, docs/index.pt.html for pt)",
+    )
+    parser.add_argument(
+        "--lang",
+        choices=list(SUPPORTED_LANGS),
+        default=DEFAULT_LANG,
+        help="Report language (default: en). Ignored when --all is used.",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        default=False,
+        help="Generate every supported language (en + pt) to docs/.",
     )
     args = parser.parse_args()
-    path = generate_report(output_path=args.output)
-    print(f"Report ready: {path}")
+    if args.all:
+        for p in generate_all_reports():
+            print(f"Report ready: {p}")
+    else:
+        path = generate_report(output_path=args.output, lang=args.lang)
+        print(f"Report ready: {path}")

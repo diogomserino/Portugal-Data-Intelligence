@@ -170,8 +170,10 @@ def _synthetic_fallback() -> Dict:
     }
 
 
-def run_regional_analysis(db_path: Optional[str] = None) -> Dict:
+def run_regional_analysis(db_path: Optional[str] = None, lang: str = "en") -> Dict:
     """Analyse NUTS2 regional disparities in GDP and unemployment.
+
+    ``lang`` (``en``/``pt``) localises the generated ``key_findings`` sentences.
 
     Falls back to synthetic estimates if the fact_regional table does not exist.
 
@@ -241,33 +243,48 @@ def run_regional_analysis(db_path: Optional[str] = None) -> Dict:
             "top_bottom": _top_bottom({k: -v for k, v in latest_unemp.items()}, _NUTS2_REGIONS),
         }
 
-    # Summary findings
+    # Summary findings (localised)
     findings: List[str] = []
+    is_pt = lang == "pt"
+    pps = "PPC" if is_pt else "PPS"
     gdp_block = result.get("gdp_per_capita_pps", {})
     unemp_block = result.get("unemployment_rate", {})
     if gdp_block.get("top_bottom"):
         best = gdp_block["top_bottom"].get("best", {})
         worst = gdp_block["top_bottom"].get("worst", {})
         if best and worst:
-            findings.append(
-                f"{best.get('name', best.get('code', ''))} has the highest GDP per capita (PPS): "
-                f"{best.get('value', 0):,.0f}"
-            )
-            findings.append(
-                f"{worst.get('name', worst.get('code', ''))} has the lowest: "
-                f"{worst.get('value', 0):,.0f} — a gap of "
-                f"{best.get('value', 0) - worst.get('value', 0):,.0f} PPS"
-            )
+            bn = best.get("name", best.get("code", ""))
+            wn = worst.get("name", worst.get("code", ""))
+            bv = best.get("value", 0)
+            wv = worst.get("value", 0)
+            if is_pt:
+                findings.append(f"{bn} tem o PIB per capita mais elevado ({pps}): {bv:,.0f}")
+                findings.append(
+                    f"{wn} tem o mais baixo: {wv:,.0f} — uma diferença de {bv - wv:,.0f} {pps}"
+                )
+            else:
+                findings.append(f"{bn} has the highest GDP per capita ({pps}): {bv:,.0f}")
+                findings.append(f"{wn} has the lowest: {wv:,.0f} — a gap of {bv - wv:,.0f} {pps}")
     if unemp_block.get("dispersion", {}).get("range"):
+        rng = unemp_block["dispersion"]["range"]
         findings.append(
-            f"Unemployment range across regions: " f"{unemp_block['dispersion']['range']:.1f} pp"
+            f"Amplitude do desemprego entre regiões: {rng:.1f} pp"
+            if is_pt
+            else f"Unemployment range across regions: {rng:.1f} pp"
         )
     if gdp_block.get("convergence_slope") is not None:
         slope = gdp_block["convergence_slope"]
-        direction = "converging" if slope < 0 else "diverging"
-        findings.append(
-            f"Regional GDP dispersion is {direction} (CV trend slope: {slope:.6f} per year)"
-        )
+        if is_pt:
+            direction = "a convergir" if slope < 0 else "a divergir"
+            findings.append(
+                f"A dispersão regional do PIB está {direction} "
+                f"(declive da tendência do CV: {slope:.6f} por ano)"
+            )
+        else:
+            direction = "converging" if slope < 0 else "diverging"
+            findings.append(
+                f"Regional GDP dispersion is {direction} (CV trend slope: {slope:.6f} per year)"
+            )
 
     result["key_findings"] = findings
 
@@ -318,7 +335,29 @@ def _get_nuts2_geojson() -> Optional[dict]:
         return None
 
 
-def build_choropleth_div(db_path: Optional[str] = None, include_plotlyjs: object = "cdn") -> str:
+# Localised labels for the choropleth (kept local so this analysis module does
+# not depend on the reporting layer). Keys: en / pt.
+_CHOROPLETH_I18N = {
+    "en": {
+        "gdp_pps": "GDP per Capita (PPS)",
+        "code": "Code",
+        "unemployment": "Unemp. (%)",
+        "title": "GDP per Capita by NUTS2 Region (PPS)",
+        "colorbar": "GDP PPS",
+    },
+    "pt": {
+        "gdp_pps": "PIB per Capita (PPC)",
+        "code": "Código",
+        "unemployment": "Desemprego (%)",
+        "title": "PIB per Capita por Região NUTS2 (PPC)",
+        "colorbar": "PIB PPC",
+    },
+}
+
+
+def build_choropleth_div(
+    db_path: Optional[str] = None, include_plotlyjs: object = "cdn", lang: str = "en"
+) -> str:
     """Build an interactive Plotly choropleth of Portuguese NUTS2 regions.
 
     Returns an HTML <div> string for embedding in reports, or empty string
@@ -326,13 +365,15 @@ def build_choropleth_div(db_path: Optional[str] = None, include_plotlyjs: object
 
     ``include_plotlyjs`` is forwarded to ``plotly.offline.plot`` so callers
     that already embed plotly.js elsewhere can pass ``False`` to avoid
-    duplicating the library.
+    duplicating the library. ``lang`` (``en``/``pt``) localises the labels.
     """
     try:
         import plotly.express as px
         import plotly.offline as pyo
     except ImportError:
         return ""
+
+    loc = _CHOROPLETH_I18N.get(lang, _CHOROPLETH_I18N["en"])
 
     geojson = _get_nuts2_geojson()
     if not geojson:
@@ -372,20 +413,20 @@ def build_choropleth_div(db_path: Optional[str] = None, include_plotlyjs: object
         featureidkey="properties.NUTS_ID",
         color_continuous_scale="Blues",
         labels={
-            "gdp_pps": "GDP per Capita (PPS)",
-            "nuts2_code": "Code",
-            "unemployment": "Unemp. (%)",
+            "gdp_pps": loc["gdp_pps"],
+            "nuts2_code": loc["code"],
+            "unemployment": loc["unemployment"],
         },
         hover_name="name",
         hover_data={"nuts2_code": False, "gdp_pps": ":,.0f", "unemployment": ":.1f"},
-        title="GDP per Capita by NUTS2 Region (PPS)",
+        title=loc["title"],
     )
     fig.update_geos(fitbounds="locations", visible=False)
     fig.update_layout(
         margin={"r": 10, "t": 40, "l": 10, "b": 10},
         height=420,
         paper_bgcolor="white",
-        coloraxis_colorbar={"title": "GDP PPS", "thickness": 14},
+        coloraxis_colorbar={"title": loc["colorbar"], "thickness": 14},
         font={"family": "Inter, 'Segoe UI', sans-serif", "size": 12},
         title_font={"size": 14},
     )
