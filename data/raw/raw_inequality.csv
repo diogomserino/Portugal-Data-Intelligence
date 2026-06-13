@@ -1,17 +1,17 @@
 year,gini_index,s80_s20_ratio,poverty_risk_rate,median_income_index,date_key,quarter,source,country_code
-2010,33.7,6.0,17.9,72.0,2010-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
-2011,34.2,6.1,18.0,71.2,2011-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
-2012,34.5,6.0,17.9,69.8,2012-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
-2013,34.2,6.1,19.5,68.5,2013-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
-2014,34.5,6.2,19.5,68.0,2014-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
-2015,34.0,6.0,19.5,68.8,2015-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
-2016,33.9,5.9,19.0,70.2,2016-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
-2017,33.5,5.8,18.3,72.5,2017-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
-2018,32.8,5.6,17.7,74.8,2018-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
-2019,32.1,5.4,16.2,76.2,2019-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
-2020,31.8,5.2,16.2,75.0,2020-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
-2021,31.5,5.1,16.4,76.8,2021-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
-2022,31.2,5.0,16.7,78.5,2022-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
-2023,30.9,4.9,16.4,80.1,2023-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
-2024,30.6,4.8,16.0,81.8,2024-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
-2025,30.3,4.7,15.8,83.2,2025-Q4,4,"Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic",PT
+2010,33.7,5.56,17.9,72.0,2010-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT
+2011,34.2,5.68,18.0,71.2,2011-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT
+2012,34.5,5.82,17.9,69.8,2012-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT
+2013,34.2,6.01,18.7,68.5,2013-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT
+2014,34.5,6.23,19.5,68.0,2014-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT
+2015,34.0,6.01,19.5,68.8,2015-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT
+2016,33.9,5.88,19.0,70.2,2016-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT
+2017,33.5,5.75,18.3,72.5,2017-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT
+2018,32.1,5.22,17.3,74.8,2018-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT
+2019,31.9,5.16,17.2,76.2,2019-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT
+2020,31.2,4.99,16.2,75.0,2020-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT
+2021,33.0,5.66,18.4,76.8,2021-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT
+2022,32.0,5.13,16.4,78.5,2022-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT
+2023,33.7,5.6,17.0,80.1,2023-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT
+2024,31.9,5.2,16.6,81.8,2024-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT
+2025,30.9,4.86,15.4,83.2,2025-Q4,4,"Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated",PT

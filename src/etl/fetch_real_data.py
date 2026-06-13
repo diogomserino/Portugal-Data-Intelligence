@@ -917,142 +917,15 @@ def fetch_public_debt() -> pd.DataFrame:
 
 
 # =============================================================================
-#  EU BENCHMARK DATA (Annual)
+#  EU BENCHMARK DATA
 # =============================================================================
-
-
-def fetch_eu_benchmark() -> pd.DataFrame:
-    """Fetch annual benchmark data for EU peer countries from Eurostat/ECB.
-
-    Countries: PT, DE, ES, FR, IT
-    Indicators: gdp_growth, unemployment, inflation, debt_to_gdp, interest_rate_10y
-    """
-    log_section(logger, "Fetching EU benchmark data")
-
-    countries = ["PT", "DE", "ES", "FR", "IT"]
-    country_names = {
-        "PT": "Portugal",
-        "DE": "Germany",
-        "ES": "Spain",
-        "FR": "France",
-        "IT": "Italy",
-    }
-
-    rows = []
-
-    # 1. GDP growth (annual) - nama_10_gdp
-    logger.info("  Benchmark: GDP growth")
-    for cc in countries:
-        try:
-            df = _fetch_eurostat("nama_10_gdp", f"A.CLV_PCH_PRE.B1GQ.{cc}")
-            for _, row in df.iterrows():
-                rows.append(
-                    {
-                        "date_key": row["period"],
-                        "country_code": cc,
-                        "country_name": country_names[cc],
-                        "indicator": "gdp_growth",
-                        "value": round(row["value"], 2),
-                    }
-                )
-        except Exception as exc:
-            logger.warning(f"    GDP growth for {cc} failed: {exc}")
-        time.sleep(0.3)
-
-    # 2. Unemployment (annual) - une_rt_a
-    logger.info("  Benchmark: Unemployment")
-    for cc in countries:
-        try:
-            df = _fetch_eurostat("une_rt_a", f"A.SA.TOTAL.PC_ACT.T.{cc}")
-            for _, row in df.iterrows():
-                rows.append(
-                    {
-                        "date_key": row["period"],
-                        "country_code": cc,
-                        "country_name": country_names[cc],
-                        "indicator": "unemployment",
-                        "value": round(row["value"], 2),
-                    }
-                )
-        except Exception as exc:
-            logger.warning(f"    Unemployment for {cc} failed: {exc}")
-        time.sleep(0.3)
-
-    # 3. Inflation (annual) - prc_hicp_aind (annual average rate of change)
-    logger.info("  Benchmark: Inflation")
-    for cc in countries:
-        try:
-            df = _fetch_eurostat("prc_hicp_aind", f"A.AVG.RCH_A.CP00.{cc}")
-            for _, row in df.iterrows():
-                rows.append(
-                    {
-                        "date_key": row["period"],
-                        "country_code": cc,
-                        "country_name": country_names[cc],
-                        "indicator": "inflation",
-                        "value": round(row["value"], 2),
-                    }
-                )
-        except Exception as exc:
-            logger.warning(f"    Inflation for {cc} failed: {exc}")
-        time.sleep(0.3)
-
-    # 4. Debt-to-GDP (annual) - gov_10dd_edpt1
-    logger.info("  Benchmark: Debt-to-GDP")
-    for cc in countries:
-        try:
-            df = _fetch_eurostat("gov_10dd_edpt1", f"A.GD.PC_GDP.S13.{cc}")
-            for _, row in df.iterrows():
-                rows.append(
-                    {
-                        "date_key": row["period"],
-                        "country_code": cc,
-                        "country_name": country_names[cc],
-                        "indicator": "debt_to_gdp",
-                        "value": round(row["value"], 2),
-                    }
-                )
-        except Exception as exc:
-            logger.warning(f"    Debt-to-GDP for {cc} failed: {exc}")
-        time.sleep(0.3)
-
-    # 5. 10Y bond yields from ECB (convergence long-term rate)
-    logger.info("  Benchmark: 10Y bond yields")
-    ecb_bond_keys = {
-        "PT": "IRS/M.PT.L.L40.CI.0000.EUR.N.Z",
-        "DE": "IRS/M.DE.L.L40.CI.0000.EUR.N.Z",
-        "ES": "IRS/M.ES.L.L40.CI.0000.EUR.N.Z",
-        "FR": "IRS/M.FR.L.L40.CI.0000.EUR.N.Z",
-        "IT": "IRS/M.IT.L.L40.CI.0000.EUR.N.Z",
-    }
-    for cc, full_key in ecb_bond_keys.items():
-        try:
-            flow, key = full_key.split("/", 1)
-            raw = _fetch_ecb(flow, key)
-            # Aggregate monthly -> annual average
-            raw["year"] = raw["period"].str[:4]
-            annual = raw.groupby("year")["value"].mean().reset_index()
-            for _, row in annual.iterrows():
-                yr = row["year"]
-                if int(yr) < START_YEAR or int(yr) > END_YEAR:
-                    continue
-                rows.append(
-                    {
-                        "date_key": yr,
-                        "country_code": cc,
-                        "country_name": country_names[cc],
-                        "indicator": "interest_rate_10y",
-                        "value": round(row["value"], 2),
-                    }
-                )
-        except Exception as exc:
-            logger.warning(f"    10Y yield for {cc} failed: {exc}")
-        time.sleep(0.3)
-
-    result = pd.DataFrame(rows)
-    result["source"] = "Eurostat/ECB"
-    logger.info(f"EU benchmark: {len(result)} records")
-    return result
+# The EU benchmark dataset (5 indicators x 7 entities incl. EU/EA averages)
+# is produced by src/etl/generate_eu_benchmark.py — curated reference points
+# calibrated to the official Eurostat/ECB vintage — and written/loaded by the
+# pipeline itself. It is intentionally NOT part of the snapshot fetch: an
+# earlier fetch path here wrote a partial dataset (2 indicators, 5 countries)
+# to the same raw_eu_benchmark.csv that the pipeline then overwrote, so the
+# fetched file was never consumed.
 
 
 # =============================================================================
@@ -1748,94 +1621,110 @@ def fetch_fiscal() -> pd.DataFrame:
 # =============================================================================
 
 
-def fetch_inequality() -> pd.DataFrame:
-    """Fetch annual inequality indicators from Eurostat EU-SILC survey.
-
-    Sources:
-        - Gini:            ilc_di12b / A.PT
-        - Poverty risk:    ilc_peps01n / A.PT
-        - S80/S20 ratio:   ilc_di11 / A.PT
-        - Median income:   ilc_di04 / A.PT (PPP index EU27=100)
-    """
-    log_section(logger, "Fetching inequality data")
-
-    # Try Gini from Eurostat
-    try:
-        gini_raw = _fetch_eurostat("ilc_di12b", "A.T.Y_LT65.PT")
-        if not gini_raw.empty:
-            gini_raw["year"] = gini_raw["period"].astype(int)
-            gini_df = gini_raw.rename(columns={"value": "gini_index"})[["year", "gini_index"]]
-        else:
-            raise ValueError("Empty Gini response")
-    except Exception as exc:
-        logger.warning(f"  Gini fetch failed, using synthetic: {exc}")
-        years = list(range(START_YEAR, END_YEAR + 1))
-        gini_values = [
-            33.7,
-            34.2,
-            34.5,
-            34.2,
-            34.5,
-            34.0,
-            33.9,
-            33.5,
-            32.8,
-            32.1,
-            31.8,
-            31.5,
-            31.2,
-            30.9,
-            30.6,
-            30.3,
-        ]
-        gini_df = pd.DataFrame({"year": years, "gini_index": gini_values[: len(years)]})
-
-    years = list(range(START_YEAR, END_YEAR + 1))
-    df = pd.DataFrame({"year": years}).merge(gini_df, on="year", how="left")
-
-    # S80/S20 ratio (synthetic EU-SILC)
-    s80_values = [
-        6.0,
-        6.1,
-        6.0,
-        6.1,
-        6.2,
-        6.0,
-        5.9,
-        5.8,
-        5.6,
-        5.4,
-        5.2,
-        5.1,
-        5.0,
-        4.9,
-        4.8,
-        4.7,
-    ]
-    df["s80_s20_ratio"] = s80_values[: len(years)]
-
-    # At-risk-of-poverty rate % (Eurostat ilc_peps01n synthetic)
-    poverty_values = [
+# Official Eurostat EU-SILC series for Portugal by SURVEY year (income
+# reference year = survey year - 1). Verified against ilc_di12 / ilc_di11 /
+# ilc_li02 on 2026-06-12; they keep offline rebuilds aligned with the
+# published data and fill years the API no longer serves (Gini pre-2014).
+_INEQUALITY_OFFICIAL = {
+    # ilc_di12 / A.TOTAL.GINI_HND.PT (2010-2013 from the published archive)
+    "gini_index": [
+        33.7,
+        34.2,
+        34.5,
+        34.2,
+        34.5,
+        34.0,
+        33.9,
+        33.5,
+        32.1,
+        31.9,
+        31.2,
+        33.0,
+        32.0,
+        33.7,
+        31.9,
+        30.9,
+    ],
+    # ilc_di11 / A.TOTAL.T.RAT.PT
+    "s80_s20_ratio": [
+        5.56,
+        5.68,
+        5.82,
+        6.01,
+        6.23,
+        6.01,
+        5.88,
+        5.75,
+        5.22,
+        5.16,
+        4.99,
+        5.66,
+        5.13,
+        5.60,
+        5.20,
+        4.86,
+    ],
+    # ilc_li02 / A.PC.LI_R_MD60.T.TOTAL.PT (2025 from the INE EU-SILC release)
+    "poverty_risk_rate": [
         17.9,
         18.0,
         17.9,
-        19.5,
+        18.7,
         19.5,
         19.5,
         19.0,
         18.3,
-        17.7,
+        17.3,
+        17.2,
         16.2,
-        16.2,
+        18.4,
         16.4,
-        16.7,
-        16.4,
-        16.0,
-        15.8,
-    ]
-    df["poverty_risk_rate"] = poverty_values[: len(years)]
+        17.0,
+        16.6,
+        15.4,
+    ],
+}
 
-    # Median income index (EU27=100)
+# Eurostat SDMX keys for the live refresh of each inequality indicator.
+_INEQUALITY_SDMX = {
+    "gini_index": ("ilc_di12", "A.TOTAL.GINI_HND.PT"),
+    "s80_s20_ratio": ("ilc_di11", "A.TOTAL.T.RAT.PT"),
+    "poverty_risk_rate": ("ilc_li02", "A.PC.LI_R_MD60.T.TOTAL.PT"),
+}
+
+
+def fetch_inequality() -> pd.DataFrame:
+    """Fetch annual inequality indicators from Eurostat EU-SILC survey.
+
+    Sources:
+        - Gini:            ilc_di12 / A.TOTAL.GINI_HND.PT
+        - S80/S20 ratio:   ilc_di11 / A.TOTAL.T.RAT.PT
+        - Poverty risk:    ilc_li02 / A.PC.LI_R_MD60.T.TOTAL.PT
+        - Median income:   estimated index (EU27=100), calibrated to ilc_di04
+
+    Years are EU-SILC survey years (income reference = survey year - 1).
+    The live API values take precedence; ``_INEQUALITY_OFFICIAL`` (the
+    published series, embedded) fills any years the API does not return,
+    so offline rebuilds still match the official data.
+    """
+    log_section(logger, "Fetching inequality data")
+
+    years = list(range(START_YEAR, END_YEAR + 1))
+    df = pd.DataFrame({"year": years})
+
+    for column, (dataset, key) in _INEQUALITY_SDMX.items():
+        values = dict(zip(years, _INEQUALITY_OFFICIAL[column]))
+        try:
+            raw = _fetch_eurostat(dataset, key, start=str(START_YEAR), end=str(END_YEAR))
+            for _, r in raw.iterrows():
+                values[int(str(r["period"])[:4])] = float(r["value"])
+        except Exception as exc:
+            logger.warning(f"  {column} fetch failed, using embedded official series: {exc}")
+        df[column] = [values.get(y) for y in years]
+        time.sleep(0.3)
+
+    # Median income index (EU27=100) — estimated trajectory calibrated to
+    # ilc_di04 (PT median equivalised income in PPS relative to the EU27).
     income_index = [
         72.0,
         71.2,
@@ -1858,7 +1747,7 @@ def fetch_inequality() -> pd.DataFrame:
 
     df["date_key"] = df["year"].astype(str) + "-Q4"
     df["quarter"] = 4
-    df["source"] = "Eurostat (ilc_di12b, ilc_peps01n, ilc_di11) synthetic"
+    df["source"] = "Eurostat EU-SILC (ilc_di12, ilc_di11, ilc_li02); median income index estimated"
     df["country_code"] = "PT"
 
     logger.info(f"Inequality: {len(df)} rows")
@@ -2162,6 +2051,140 @@ _REGIONAL_SYNTHETIC: dict = {
 # EU27 GDP per capita (EUR, = PPS reference by construction) per year, from
 # Eurostat nama_10_pc — used to express the regional PPS levels as an
 # EU27=100 index with the correct denominator for each year.
+# Official youth (15-24) unemployment by region — lfst_r_lfu3rt /
+# A.TOTAL.T.Y15-24.PC.{geo}, fetched 2026-06-12. Eurostat suppresses small
+# samples (the islands) and stopped the pre-2024 NUTS codes for Centro,
+# Lisboa and Alentejo after 2018, so those years are genuinely unpublished
+# (None) rather than estimated.
+_REGIONAL_YOUTH_OFFICIAL: dict = {
+    "PT11": [
+        23.2,
+        28.9,
+        33.1,
+        35.9,
+        36.1,
+        33.1,
+        27.8,
+        25.9,
+        19.1,
+        16.7,
+        19.2,
+        22.7,
+        17.4,
+        19.9,
+        18.6,
+        18.4,
+    ],
+    "PT15": [
+        28.9,
+        37.0,
+        40.5,
+        39.6,
+        30.2,
+        28.9,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        20.8,
+        22.3,
+        18.8,
+    ],
+    "PT16": [
+        17.7,
+        25.7,
+        36.5,
+        32.1,
+        28.5,
+        28.7,
+        26.7,
+        21.3,
+        19.0,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+    ],
+    "PT17": [
+        25.0,
+        33.2,
+        43.6,
+        45.1,
+        35.4,
+        30.3,
+        27.5,
+        22.5,
+        20.4,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+    ],
+    "PT18": [
+        29.5,
+        33.3,
+        44.9,
+        39.6,
+        36.2,
+        37.2,
+        30.3,
+        24.6,
+        22.3,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+    ],
+    "PT20": [
+        None,
+        None,
+        39.1,
+        39.7,
+        41.9,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+    ],
+    "PT30": [
+        None,
+        39.3,
+        50.3,
+        52.1,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+    ],
+}
+
 _EU27_PPS_BY_YEAR = {
     2010: 25100,
     2011: 25880,
@@ -2188,6 +2211,7 @@ def fetch_regional() -> pd.DataFrame:
     Sources:
         - GDP per capita PPS: nama_10r_2gdp / A.PPS_EU27_2020_HAB.{nuts2_code}
         - Unemployment rate:  lfst_r_lfu3rt / A.PC_ACT.T.Y15-74.{nuts2_code}
+        - Youth unemployment: lfst_r_lfu3rt / A.TOTAL.T.Y15-24.PC.{nuts2_code}
     """
     log_section(logger, "Fetching NUTS2 regional data")
     years = list(range(START_YEAR, END_YEAR + 1))
@@ -2197,6 +2221,7 @@ def fetch_regional() -> pd.DataFrame:
         gdp_pps_by_year: dict = {}
         gdp_idx_by_year: dict = {}
         unemp_by_year: dict = {}
+        youth_by_year: dict = {}
 
         # --- GDP per capita PPS (EU27=100 index) ---
         try:
@@ -2236,10 +2261,30 @@ def fetch_regional() -> pd.DataFrame:
         except Exception as exc:
             logger.warning("  Unemployment fetch failed for %s: %s", nuts2_code, exc)
 
+        # --- Youth unemployment rate (15-24) ---
+        try:
+            youth_raw = _fetch_eurostat(
+                "lfst_r_lfu3rt",
+                f"A.TOTAL.T.Y15-24.PC.{nuts2_code}",
+                start=START_PERIOD,
+                end=END_PERIOD,
+            )
+            if not youth_raw.empty:
+                for _, r in youth_raw.iterrows():
+                    try:
+                        yr = int(str(r["period"])[:4])
+                        youth_by_year[yr] = float(r["value"])
+                    except (ValueError, TypeError):
+                        pass
+            time.sleep(0.3)
+        except Exception as exc:
+            logger.warning("  Youth unemployment fetch failed for %s: %s", nuts2_code, exc)
+
         # Curated per-region series (calibrated to official Eurostat values)
         syn = _REGIONAL_SYNTHETIC.get(nuts2_code, {})
         syn_gdp = syn.get("gdp_pps", [])
         syn_unemp = syn.get("unemp", [])
+        official_youth = _REGIONAL_YOUTH_OFFICIAL.get(nuts2_code, [])
 
         for i, yr in enumerate(years):
             # GDP per capita: use the curated series (official nama_10r_2gdp
@@ -2260,6 +2305,12 @@ def fetch_regional() -> pd.DataFrame:
             if yr not in unemp_by_year and i < len(syn_unemp):
                 unemp_by_year[yr] = syn_unemp[i]
 
+            # Youth — prefer API, fall back to the embedded official series.
+            # Years Eurostat does not publish (suppressed small samples,
+            # pre-2024 NUTS codes discontinued after 2018) stay None.
+            if yr not in youth_by_year and i < len(official_youth):
+                youth_by_year[yr] = official_youth[i]
+
             rows.append(
                 {
                     "date_key": f"{yr}-Q4",
@@ -2270,7 +2321,7 @@ def fetch_regional() -> pd.DataFrame:
                     "gdp_per_capita_pps": gdp_pps_by_year.get(yr),
                     "gdp_index_eu27": gdp_idx_by_year.get(yr),
                     "unemployment_rate": unemp_by_year.get(yr),
-                    "youth_unemployment_rate": None,  # lfst_r_lfu3rt_youth requires separate key
+                    "youth_unemployment_rate": youth_by_year.get(yr),
                     "source": "Eurostat (nama_10r_2gdp, lfst_r_lfu3rt)",
                     "country_code": "PT",
                 }
@@ -2298,7 +2349,6 @@ PILLAR_FUNCTIONS = {
     "inflation": (fetch_inflation, "raw_inflation.csv"),
     "credit": (fetch_credit, "raw_credit.csv"),
     "public_debt": (fetch_public_debt, "raw_public_debt.csv"),
-    "eu_benchmark": (fetch_eu_benchmark, "raw_eu_benchmark.csv"),
     "housing": (fetch_housing, "raw_housing.csv"),
     "labor_detail": (fetch_labor_detail, "raw_labor_detail.csv"),
     "external_accounts": (fetch_external_accounts, "raw_external_accounts.csv"),

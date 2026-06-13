@@ -163,7 +163,7 @@ Four-page interactive dashboard with real-time KPI cards, pillar deep-dive with 
 
 **Schema notes:**
 
-- All fact tables include an `is_provisional` flag for marking projected or preliminary rows; in the current synthetic dataset every row is final (the flag is reserved for live-data refreshes).
+- All fact tables include an `is_provisional` flag for marking projected or preliminary rows; in the current snapshot every row is final (the flag is reserved for live-data refreshes).
 - GDP growth rates (`gdp_growth_yoy`, `gdp_growth_qoq`) are derived from `real_gdp` during the transform step (not from API nominal growth figures).
 - `total_credit` (in `fact_credit`): total financing to the non-financial sector (households, corporations, and general government), so it is larger than `credit_nfc` + `credit_households` (which exclude government).
 - `cpi_estimated` (in `fact_inflation`): CPI is estimated from HICP, not sourced directly from INE.
@@ -182,7 +182,7 @@ Four-page interactive dashboard with real-time KPI cards, pillar deep-dive with 
 | **PORDATA** | Contemporary Portugal database | [pordata.pt](https://www.pordata.pt) | Excel / CSV |
 | **Eurostat** | European statistical office | [ec.europa.eu/eurostat](https://ec.europa.eu/eurostat) | CSV / JSON API |
 
-> **Data note.** The six core pillars (GDP, unemployment, inflation, interest rates, credit, public debt) are fetched from the official Eurostat, ECB, and Banco de Portugal open APIs. The extended pillars (housing, labour detail, external accounts, fiscal, inequality, regional) and the EU benchmark use **modelled estimates** calibrated to published trends where granular data is not available via an open API. The committed dataset is deterministic and reproducible. See [docs/data_provenance.md](docs/data_provenance.md) for the full breakdown.
+> **Data note.** The six core pillars (GDP, unemployment, inflation, interest rates, credit, public debt) are fetched from the official Eurostat, ECB, and Banco de Portugal open APIs. The inequality pillar (Gini, S80/S20, poverty risk — Eurostat `ilc_di12`, `ilc_di11`, `ilc_li02`) and the regional pillar carry the official published series (regional youth unemployment only for the years Eurostat publishes; the NUTS-2024 revision discontinued some series). The remaining extended pillars (housing, labour detail, external accounts, fiscal) and the EU benchmark use **modelled estimates** calibrated to published trends where granular data is not available via an open API. The committed dataset is deterministic and reproducible. See [docs/data_provenance.md](docs/data_provenance.md) for the full breakdown.
 
 ---
 

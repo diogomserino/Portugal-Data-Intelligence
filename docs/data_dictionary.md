@@ -308,7 +308,7 @@ Reference table for institutional data providers.
 ### Pillar 11: fact_inequality
 
 **Granularity:** Annual (2010-Q4 to 2025-Q4 = 16 rows)
-**Primary Sources:** Eurostat (`ilc_di12` — Gini, `ilc_peps01` — poverty risk)
+**Primary Sources:** Eurostat EU-SILC (`ilc_di12` — Gini, `ilc_di11` — S80/S20, `ilc_li02` — poverty risk); median income index estimated (calibrated to `ilc_di04`)
 
 | Column | Data Type | Nullable | Unit | Constraints | Description |
 |--------|-----------|----------|------|-------------|-------------|
@@ -339,7 +339,7 @@ Reference table for institutional data providers.
 | `gdp_per_capita_pps` | REAL | Yes | PPS | > 0 | GDP per capita in Purchasing Power Standards |
 | `gdp_index_eu27` | REAL | Yes | index | > 0 | GDP per capita index (EU27 = 100) |
 | `unemployment_rate` | REAL | Yes | % | [0, 50] | Regional unemployment rate |
-| `youth_unemployment_rate` | REAL | Yes | % | [0, 80] | Regional youth (15-24) unemployment rate. **Currently NULL for all rows** — Eurostat suppresses the 15-24 series for several PT regions (small samples: Açores/Madeira have ≤3 published observations since 2010), so the column is reserved rather than filled with estimates |
+| `youth_unemployment_rate` | REAL | Yes | % | [0, 80] | Regional youth (15-24) unemployment rate — official `lfst_r_lfu3rt` series for the years Eurostat publishes (58 of 112 region-years: full for Norte; Açores/Madeira mostly suppressed for small samples; the pre-2024 NUTS codes for Centro/Lisboa/Alentejo end in 2018). Unpublished years are NULL, never estimated |
 | `is_provisional` | INTEGER | No | boolean | {0, 1} | 1 = provisional/projected, 0 = confirmed |
 | `source_key` | INTEGER | No (FK) | - | FK → dim_source | Data source reference |
 

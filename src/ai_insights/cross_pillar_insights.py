@@ -270,13 +270,27 @@ def synthesise_macro_narrative(summaries: dict, relationships: list, db_path: st
             "WHERE npl_ratio IS NOT NULL "
             "ORDER BY d.year DESC, d.month DESC LIMIT 1"
         )
+        # All-time debt peak (the 2021 COVID quarter), referenced in Act 3.
+        covid_peak_debt = _q("SELECT MAX(debt_to_gdp_ratio) FROM fact_public_debt")
         latest_hicp = _q(
             "SELECT hicp FROM fact_inflation f "
             "JOIN dim_date d ON f.date_key=d.date_key "
             "ORDER BY d.year DESC, d.month DESC LIMIT 1"
         )
-        peak_unemp = _q("SELECT MAX(unemployment_rate) FROM fact_unemployment")
-        peak_debt = _q("SELECT MAX(debt_to_gdp_ratio) FROM fact_public_debt")
+        # Peaks bounded to the 2010-2014 Troika window so the Act 1 prose is
+        # literally true: the all-time debt peak (137.5%) was actually the
+        # 2021 COVID quarter, not the sovereign-debt crisis (which peaked at
+        # ~134.7% in 2014).
+        peak_unemp = _q(
+            "SELECT MAX(unemployment_rate) FROM fact_unemployment f "
+            "JOIN dim_date d ON f.date_key=d.date_key "
+            "WHERE d.year BETWEEN 2010 AND 2014"
+        )
+        peak_debt = _q(
+            "SELECT MAX(debt_to_gdp_ratio) FROM fact_public_debt f "
+            "JOIN dim_date d ON f.date_key=d.date_key "
+            "WHERE d.year BETWEEN 2010 AND 2014"
+        )
 
     # --- Act 1: Crisis and Adjustment (2010-2014) ---
     parts.append(
@@ -309,7 +323,8 @@ def synthesise_macro_narrative(summaries: dict, relationships: list, db_path: st
     balance_value = abs(latest_deficit) if latest_deficit is not None else None
     parts.append(
         "ACT 3 - RESILIENCE AND CONVERGENCE (2020-2025): "
-        "The COVID shock caused a sharp but temporary contraction. "
+        "The COVID shock caused a sharp but temporary contraction that pushed "
+        f"debt-to-GDP to an all-time high of {s(covid_peak_debt)}% in 2021. "
         "The recovery was swift: real GDP surpassed pre-pandemic levels by 2022. "
         f"By 2025, unemployment stands at {s(latest_unemp)}% (near EU average), "
         f"debt-to-GDP has fallen to {s(latest_debt)}% ({sub100_text}), "

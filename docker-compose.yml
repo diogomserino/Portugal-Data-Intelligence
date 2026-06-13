@@ -6,6 +6,8 @@ services:
       - ./reports:/app/reports
       - ./logs:/app/logs
     env_file:
-      - .env
+      # Optional: copy .env.example to .env to set OPENAI_API_KEY etc.
+      - path: .env
+        required: false
     environment:
       - PYTHONUNBUFFERED=1

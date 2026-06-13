@@ -15,7 +15,7 @@ from pathlib import Path
 # Single source of truth for the project version. Imported by main.py, the API,
 # and the HTML report generator so the version is reported consistently.
 # Keep in sync with [project].version in pyproject.toml.
-VERSION = "2.4.0"
+VERSION = "2.5.0"
 
 # =============================================================================
 # PATH DEFINITIONS
@@ -264,6 +264,46 @@ DATA_RANGES = {
         "ecb_main_refinancing_rate": (-1, 6),
         "euribor_3m": (-1, 6),
         "portugal_10y_bond_yield": (-1, 18),
+    },
+    "housing": {
+        "house_price_index": (60, 320),
+        "house_price_yoy_change": (-12, 25),
+        "avg_price_per_sqm": (600, 3000),
+        "housing_transactions": (40000, 250000),
+        "mortgage_new_loans": (2000, 35000),
+    },
+    "labor_detail": {
+        "employment_services_pct": (55, 85),
+        "employment_industry_pct": (15, 35),
+        "employment_agriculture_pct": (1, 15),
+        "real_wage_index": (75, 135),
+        "labour_productivity_index": (75, 135),
+    },
+    "external_accounts": {
+        "trade_balance_pct_gdp": (-15, 10),
+        "current_account_pct_gdp": (-15, 8),
+        "reer_index": (80, 120),
+        "export_growth_yoy": (-25, 30),
+    },
+    "fiscal": {
+        "total_revenue_pct_gdp": (35, 50),
+        "total_expenditure_pct_gdp": (35, 55),
+        "health_expenditure_pct": (3, 10),
+        "education_expenditure_pct": (3, 8),
+        "social_protection_pct": (10, 25),
+        "interest_payments_pct": (1, 6),
+    },
+    "inequality": {
+        "gini_index": (25, 40),
+        "s80_s20_ratio": (3, 8),
+        "poverty_risk_rate": (10, 25),
+        "median_income_index": (50, 100),
+    },
+    "regional": {
+        "gdp_per_capita_pps": (10000, 60000),
+        "gdp_index_eu27": (40, 130),
+        "unemployment_rate": (0, 25),
+        "youth_unemployment_rate": (0, 60),
     },
 }
 

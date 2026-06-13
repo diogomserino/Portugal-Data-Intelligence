@@ -59,10 +59,19 @@ except ImportError:
         logger.info(f"{char * width}\n  {title}\n{char * width}")
 
 
-from src.ai_insights import ai_narrator, cross_pillar_insights
+from src.ai_insights import ai_narrator, cross_pillar_insights, cross_pillar_insights_pt
 
 # Delegate imports from extracted modules
-from src.ai_insights.pillar_insights import PILLAR_DISPATCH, _insight_generic
+from src.ai_insights.pillar_insights import (
+    PILLAR_DISPATCH,
+    _insight_generic,
+    risk_css_class,
+)
+from src.ai_insights.pillar_insights_pt import (
+    PILLAR_DISPATCH_PT,
+    _insight_generic_pt,
+)
+from src.reporting.i18n import PILLAR_TITLES, RISK_LABELS, tr
 
 logger = get_logger(__name__)
 
@@ -150,7 +159,9 @@ class InsightEngine:
     macroeconomic pillar, and produces executive-quality narrative commentary.
     """
 
-    def __init__(self, db_path: Optional[str] = None, use_ai: bool = False) -> None:
+    def __init__(
+        self, db_path: Optional[str] = None, use_ai: bool = False, lang: str = "en"
+    ) -> None:
         """
         Initialise the engine.
 
@@ -160,8 +171,13 @@ class InsightEngine:
             Path to the SQLite database.  Defaults to the project database.
         use_ai : bool
             If True **and** OPENAI_API_KEY is set, use GPT-4 for narratives.
+        lang : str
+            Narrative language: ``"en"`` (default) or ``"pt"``. Selects the
+            rule-based template set used for headlines, summaries, findings,
+            risk assessments, recommendations and the overall assessment.
         """
         self.db_path = str(db_path or DATABASE_PATH)
+        self.lang = lang if lang in ("en", "pt") else "en"
         self.use_ai = use_ai and bool(os.environ.get("OPENAI_API_KEY"))
         self._openai_client = None
 
@@ -182,7 +198,7 @@ class InsightEngine:
                 self.use_ai = False
 
         mode = "AI-powered (GPT-4)" if self.use_ai else "rule-based"
-        logger.info(f"InsightEngine initialised in {mode} mode.")
+        logger.info(f"InsightEngine initialised in {mode} mode (lang={self.lang}).")
 
     # ------------------------------------------------------------------
     # Database helpers
@@ -417,13 +433,22 @@ class InsightEngine:
         if data.get("status") != "ok":
             return self._empty_insight(pillar, reason=data.get("status", "unknown"))
 
+        insight = None
         if self.use_ai:
             try:
-                return self._generate_ai_insight(pillar, data)
+                insight = self._generate_ai_insight(pillar, data)
             except Exception as exc:
                 logger.error(f"AI generation failed for {pillar}: {exc}. Falling back to rules.")
 
-        return self._generate_rule_based_insight(pillar, data)
+        if insight is None:
+            insight = self._generate_rule_based_insight(pillar, data)
+
+        # Attach a language-neutral risk class token so downstream consumers
+        # (risk matrix, HTML callout colour) do not have to parse the prose,
+        # which may be in Portuguese. Portuguese builders set it themselves.
+        if "risk_class" not in insight:
+            insight["risk_class"] = risk_css_class(insight.get("risk_assessment", ""))
+        return insight
 
     def generate_cross_pillar_insights(self) -> dict:
         """
@@ -474,14 +499,22 @@ class InsightEngine:
 
         cross_pillar = self.generate_cross_pillar_insights()
 
-        # Build risk matrix from individual pillar assessments
+        # Build risk matrix from individual pillar assessments. ``risk_class`` is
+        # the language-neutral token (drives the badge colour); ``risk_level`` is
+        # the human-readable label, localised for the briefing language.
         risk_matrix = []
         for ins in pillar_insights:
-            risk_level = self._extract_risk_level(ins.get("risk_assessment", ""))
+            rclass = ins.get("risk_class") or risk_css_class(ins.get("risk_assessment", ""))
+            if self.lang == "pt":
+                risk_level = RISK_LABELS["pt"].get(rclass, RISK_LABELS["pt"]["moderate"])
+            else:
+                # Preserve the richer English keyword (e.g. "LOW-TO-MODERATE").
+                risk_level = self._extract_risk_level(ins.get("risk_assessment", ""))
             risk_matrix.append(
                 {
                     "pillar": ins.get("pillar", "unknown"),
                     "risk_level": risk_level,
+                    "risk_class": rclass,
                     "description": ins.get("risk_assessment", "Assessment unavailable."),
                 }
             )
@@ -499,7 +532,8 @@ class InsightEngine:
         logger.info(f"Executive briefing generated in {elapsed:.1f}s.")
 
         return {
-            "title": "Portugal Macroeconomic Intelligence Briefing",
+            "title": tr(self.lang)["default_briefing_title"],
+            "lang": self.lang,
             "date": datetime.now().strftime(REPORT_DATE_FORMAT),
             "generated_at": datetime.now().isoformat(),
             "mode": "ai" if self.use_ai else "rule_based",
@@ -518,7 +552,10 @@ class InsightEngine:
 
     def _generate_rule_based_insight(self, pillar: str, data: dict) -> dict:
         """Produce a complete insight dict using templates and data thresholds."""
-        fn = PILLAR_DISPATCH.get(pillar, _insight_generic)
+        if self.lang == "pt":
+            fn = PILLAR_DISPATCH_PT.get(pillar, _insight_generic_pt)
+        else:
+            fn = PILLAR_DISPATCH.get(pillar, _insight_generic)
         return fn(data)
 
     # ------------------------------------------------------------------
@@ -527,7 +564,8 @@ class InsightEngine:
 
     def _generate_rule_based_cross_pillar(self, summaries: Dict[str, dict]) -> dict:
         """Produce cross-pillar narrative using economic relationships."""
-        return cross_pillar_insights.generate_rule_based_cross_pillar(summaries, self.db_path)
+        module = cross_pillar_insights_pt if self.lang == "pt" else cross_pillar_insights
+        return module.generate_rule_based_cross_pillar(summaries, self.db_path)
 
     # ------------------------------------------------------------------
     # AI-powered insight generation (delegates to ai_narrator module)
@@ -546,12 +584,30 @@ class InsightEngine:
     # ------------------------------------------------------------------
 
     def _empty_insight(self, pillar: str, reason: str = "no_data") -> dict:
+        name = pillar.replace("_", " ").title()
+        if self.lang == "pt":
+            return {
+                "pillar": pillar,
+                "headline": f"Dados indisponíveis para {name}",
+                "executive_summary": (
+                    f"Dados insuficientes para gerar análises para o pilar "
+                    f"{pillar.replace('_', ' ')}. Motivo: {reason}."
+                ),
+                "key_findings": [],
+                "risk_assessment": "DESCONHECIDO. Dados indisponíveis para avaliação de risco.",
+                "risk_class": "moderate",
+                "recommendations": [
+                    "Investigar a disponibilidade e a qualidade dos dados deste pilar."
+                ],
+                "outlook": "Não é possível projetar perspetivas sem dados adequados.",
+            }
         return {
             "pillar": pillar,
-            "headline": f"Data unavailable for {pillar.replace('_', ' ').title()}",
+            "headline": f"Data unavailable for {name}",
             "executive_summary": f"Insufficient data to generate insights for the {pillar.replace('_', ' ')} pillar. Reason: {reason}.",
             "key_findings": [],
             "risk_assessment": "UNKNOWN. Data unavailable for risk assessment.",
+            "risk_class": "moderate",
             "recommendations": ["Investigate data availability and quality for this pillar."],
             "outlook": "Cannot project outlook without adequate data.",
         }
@@ -574,6 +630,38 @@ class InsightEngine:
 
     def _synthesise_strategic_recommendations(self, all_recs: list, pillar_insights: list) -> list:
         """Consolidate pillar-level recommendations into strategic themes."""
+        if self.lang == "pt":
+            return [
+                (
+                    "Manter a disciplina orçamental e uma trajetória descendente da dívida "
+                    "pública, visando o cumprimento dos referenciais de governação "
+                    "orçamental da UE, preservando ao mesmo tempo espaço para "
+                    "investimento público promotor do crescimento."
+                ),
+                (
+                    "Acelerar a implementação de reformas estruturais, em particular na "
+                    "flexibilidade do mercado de trabalho, transformação digital e "
+                    "transição verde, para elevar o crescimento potencial do produto e "
+                    "reforçar a resiliência económica."
+                ),
+                (
+                    "Reforçar a capacidade do setor financeiro de apoiar o crescimento "
+                    "económico através de uma melhor transmissão do crédito, resolução de "
+                    "NPL e diversificação dos canais de financiamento das empresas."
+                ),
+                (
+                    "Investir em capital humano e em ecossistemas de inovação para "
+                    "responder ao desajustamento de competências, apoiar setores de maior "
+                    "valor acrescentado e facilitar a convergência de Portugal para os "
+                    "níveis de rendimento e produtividade da UE."
+                ),
+                (
+                    "Desenvolver capacidades abrangentes de monitorização de risco e "
+                    "planeamento de cenários ao longo dos pilares macroeconómicos, "
+                    "permitindo uma resposta de política proativa a choques externos e a "
+                    "mudanças estruturais."
+                ),
+            ]
         strategic = [
             (
                 "Sustain fiscal discipline and maintain a declining public debt trajectory, "
@@ -605,11 +693,17 @@ class InsightEngine:
 
     def _build_overall_assessment(self, pillar_insights: list, cross_pillar: dict) -> str:
         """Compose the overall assessment paragraph for the executive briefing."""
-        risk_levels = [
-            self._extract_risk_level(ins.get("risk_assessment", "")) for ins in pillar_insights
+        # Use the language-neutral risk class token so the count is independent of
+        # the narrative language (English keyword parsing fails on PT prose).
+        risk_classes = [
+            ins.get("risk_class") or risk_css_class(ins.get("risk_assessment", ""))
+            for ins in pillar_insights
         ]
-        high_count = sum(1 for r in risk_levels if r == "HIGH")
-        elevated_count = sum(1 for r in risk_levels if r == "ELEVATED")
+        high_count = sum(1 for r in risk_classes if r == "high")
+        elevated_count = sum(1 for r in risk_classes if r == "elevated")
+
+        if self.lang == "pt":
+            return self._build_overall_assessment_pt(pillar_insights, high_count, elevated_count)
 
         if high_count >= 2:
             tone = (
@@ -649,4 +743,54 @@ class InsightEngine:
             f"amplify both upside opportunities and downside risks. Policymakers should "
             f"adopt an integrated view of macroeconomic management, recognising that "
             f"actions in one domain invariably affect outcomes in others."
+        )
+
+    def _build_overall_assessment_pt(
+        self, pillar_insights: list, high_count: int, elevated_count: int
+    ) -> str:
+        """Portuguese variant of the overall assessment paragraph."""
+        if high_count >= 2:
+            tone = (
+                "A avaliação macroeconómica global para Portugal é PREOCUPANTE. "
+                f"Vários pilares ({high_count}) apresentam condições de risco alto, "
+                "indicando vulnerabilidades sistémicas que exigem ação de política "
+                "urgente e coordenada."
+            )
+        elif high_count >= 1 or elevated_count >= 2:
+            tone = (
+                "A avaliação macroeconómica global para Portugal é CAUTELOSA. "
+                "Embora alguns indicadores mostrem tendências positivas, condições de "
+                "risco elevado em áreas-chave justificam vigilância acrescida e um "
+                "envolvimento proativo de política."
+            )
+        elif elevated_count >= 1:
+            tone = (
+                "A avaliação macroeconómica global para Portugal é EQUILIBRADA COM "
+                "RESSALVAS. A economia demonstra estabilidade fundamental, mas áreas "
+                "específicas de risco elevado exigem monitorização contínua e "
+                "intervenção dirigida."
+            )
+        else:
+            tone = (
+                "A avaliação macroeconómica global para Portugal é CAUTELOSAMENTE "
+                "OTIMISTA. Os indicadores-chave situam-se, em termos gerais, dentro de "
+                "intervalos aceitáveis, ainda que manter esta trajetória exija um "
+                "compromisso de política sustentado e reformas estruturais."
+            )
+
+        pillars_with_insights = [ins for ins in pillar_insights if ins.get("headline")]
+        headlines = "; ".join(
+            f"{PILLAR_TITLES['pt'].get(ins['pillar'], ins['pillar'].replace('_', ' ').title())}: "
+            f"{ins['headline']}"
+            for ins in pillars_with_insights[:3]
+        )
+
+        return (
+            f"{tone}\n\n"
+            f"Principais conclusões em destaque nos pilares: {headlines}.\n\n"
+            f"A análise inter-pilares revela interdependências importantes que "
+            f"amplificam tanto as oportunidades de subida como os riscos de descida. "
+            f"Os decisores políticos devem adotar uma visão integrada da gestão "
+            f"macroeconómica, reconhecendo que as ações num domínio afetam "
+            f"invariavelmente os resultados noutros."
         )

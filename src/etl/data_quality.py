@@ -76,6 +76,59 @@ _EXPECTED_COLUMNS: Dict[str, List[str]] = {
         "external_debt_share_estimated",
         "is_provisional",
     ],
+    "housing": [
+        "date_key",
+        "house_price_index",
+        "house_price_yoy_change",
+        "avg_price_per_sqm",
+        "housing_transactions",
+        "mortgage_new_loans",
+        "is_provisional",
+    ],
+    "labor_detail": [
+        "date_key",
+        "employment_services_pct",
+        "employment_industry_pct",
+        "employment_agriculture_pct",
+        "real_wage_index",
+        "labour_productivity_index",
+        "is_provisional",
+    ],
+    "external_accounts": [
+        "date_key",
+        "trade_balance_pct_gdp",
+        "current_account_pct_gdp",
+        "reer_index",
+        "export_growth_yoy",
+        "is_provisional",
+    ],
+    "fiscal": [
+        "date_key",
+        "total_revenue_pct_gdp",
+        "total_expenditure_pct_gdp",
+        "health_expenditure_pct",
+        "education_expenditure_pct",
+        "social_protection_pct",
+        "interest_payments_pct",
+        "is_provisional",
+    ],
+    "inequality": [
+        "date_key",
+        "gini_index",
+        "s80_s20_ratio",
+        "poverty_risk_rate",
+        "median_income_index",
+        "is_provisional",
+    ],
+    "regional": [
+        "date_key",
+        "nuts2_code",
+        "nuts2_name",
+        "gdp_per_capita_pps",
+        "gdp_index_eu27",
+        "unemployment_rate",
+        "is_provisional",
+    ],
 }
 
 # Expected row counts per pillar.
@@ -86,6 +139,12 @@ _EXPECTED_ROWS = {
     "interest_rates": 192,
     "inflation": 192,
     "public_debt": 64,
+    "housing": 16,
+    "labor_detail": 16,
+    "external_accounts": 64,
+    "fiscal": 16,
+    "inequality": 16,
+    "regional": 112,  # 7 NUTS2 regions x 16 years
 }
 
 
@@ -217,6 +276,14 @@ class DataQualityChecker:
             "interest_rates": ["euribor_3m"],
             "inflation": ["hicp"],
             "public_debt": ["total_debt"],
+            "housing": ["house_price_index"],
+            "labor_detail": ["employment_services_pct"],
+            "external_accounts": ["current_account_pct_gdp"],
+            "fiscal": ["total_revenue_pct_gdp"],
+            "inequality": ["gini_index"],
+            # Regional youth is legitimately sparse (Eurostat suppression and
+            # discontinued NUTS codes): partial nulls warn, all-null fails.
+            "regional": ["gdp_per_capita_pps", "unemployment_rate", "youth_unemployment_rate"],
         }
         for pillar, cols in primary_cols.items():
             df = self.data.get(pillar)
