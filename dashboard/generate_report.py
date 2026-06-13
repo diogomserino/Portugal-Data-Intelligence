@@ -15,6 +15,7 @@ Usage:
 import argparse
 import base64
 import json
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -70,6 +71,7 @@ from src.reporting.i18n import (
     LANG_NAMES,
     PILLAR_TITLES,
     SUPPORTED_LANGS,
+    fmt_date,
     tr,
 )
 from src.utils.logger import get_logger
@@ -1004,7 +1006,7 @@ def render_hero(briefing: Dict, kpis: Optional[Dict] = None, lang: str = DEFAULT
     """Editorial cover: kicker, serif headline, dek, meta row, KPI ticker, summary panel."""
     S = tr(lang)
     title = briefing.get("title", S["default_briefing_title"])
-    date = briefing.get("date", datetime.now().strftime("%d %B %Y"))
+    date = fmt_date(datetime.now(), lang)
     summary = briefing.get("overall_assessment", "")
 
     # KPI ticker strip
@@ -1851,7 +1853,7 @@ def render_methodology(lang: str = DEFAULT_LANG) -> str:
     {S["methodology_quality"]}<br>
     {S["methodology_engine"]}<br>
     {S["methodology_delivery"]}<br>
-    {S["methodology_version"].format(version=VERSION, date=datetime.now().strftime("%d %B %Y"))}
+    {S["methodology_version"].format(version=VERSION, date=fmt_date(datetime.now(), lang))}
   </p>
 </section>
 """
@@ -1859,7 +1861,7 @@ def render_methodology(lang: str = DEFAULT_LANG) -> str:
 
 def render_footer(lang: str = DEFAULT_LANG) -> str:
     S = tr(lang)
-    generated = datetime.now().strftime("%d %B %Y, %H:%M")
+    generated = fmt_date(datetime.now(), lang, with_time=True)
     return f"""
 <footer>
   <div class="author">{S["footer_author_line"].format(version=VERSION)}</div>
@@ -1888,6 +1890,40 @@ def render_lang_switch(current: str) -> str:
         )
     label = tr(current)["lang_switch_label"]
     return f'<nav id="lang-switch" aria-label="{label}">{"".join(links)}</nav>'
+
+
+# Single decimals only (e.g. "2.4"). The look-behind skips thousand groups and
+# the tail of a version; the look-ahead "(?!\.\d)" skips the head of a version
+# (x.y.z) while still converting a decimal that ends a sentence ("0.7.").
+_PT_DECIMAL_RE = re.compile(r"(?<![\d.,])(\d+)\.(\d+)(?!\.\d)")
+_PT_SCRIPT_STYLE_RE = re.compile(r"<(script|style)\b[\s\S]*?</\1>", re.IGNORECASE)
+_PT_TEXTNODE_RE = re.compile(r">([^<]+)<")
+
+
+def _localise_numbers_pt(html: str) -> str:
+    """Switch decimal points to commas in the PT report's *visible* text.
+
+    Portuguese uses a comma decimal separator. This runs only on the rendered
+    PT document and is deliberately conservative: it protects ``<script>`` /
+    ``<style>`` blocks (the Plotly JSON keeps dot decimals so the charts still
+    render), HTML attributes (it only touches text between ``>`` and ``<``),
+    and dotted version strings such as ``2.5.0`` (the look-arounds skip any
+    number that is part of a longer dotted sequence). Thousands groupings are
+    left untouched.
+    """
+    stash: list = []
+
+    def _protect(m: "re.Match") -> str:
+        stash.append(m.group(0))
+        return f"\x00{len(stash) - 1}\x00"
+
+    protected = _PT_SCRIPT_STYLE_RE.sub(_protect, html)
+
+    def _convert_textnode(m: "re.Match") -> str:
+        return ">" + _PT_DECIMAL_RE.sub(r"\1,\2", m.group(1)) + "<"
+
+    protected = _PT_TEXTNODE_RE.sub(_convert_textnode, protected)
+    return re.sub(r"\x00(\d+)\x00", lambda m: stash[int(m.group(1))], protected)
 
 
 def generate_report(output_path: Optional[Path] = None, lang: str = DEFAULT_LANG) -> Path:
@@ -2040,6 +2076,9 @@ def generate_report(output_path: Optional[Path] = None, lang: str = DEFAULT_LANG
 {js_block}
 </body>
 </html>"""
+
+    if lang == "pt":
+        html = _localise_numbers_pt(html)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")

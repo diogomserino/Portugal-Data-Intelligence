@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.5.1] - 2026-06-13
+
+### Fixed
+- **Portuguese report localisation.** Dates in the PT report now use Portuguese
+  month names ("13 de junho de 2026" instead of "13 June 2026") via a new
+  `fmt_date` helper, and numbers use the Portuguese comma decimal separator
+  ("2,4%" instead of "2.4%") via a conservative post-processor that protects
+  Plotly JSON, HTML attributes and version strings (e.g. 2.5.0). The English
+  report is unchanged.
+- **GDP plausibility range** widened to `[-18, 18]` so the real COVID-19 YoY
+  trough (-17.6% in 2020-Q2) no longer raises a data-quality warning.
+- Console summary in `run_analysis.py` uses a locale-neutral ISO date.
+
 ## [2.5.0] - 2026-06-12
 
 ### Fixed
