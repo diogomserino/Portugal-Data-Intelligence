@@ -601,3 +601,54 @@ STRINGS: Dict[str, Dict[str, str]] = {
 def tr(lang: str) -> Dict[str, str]:
     """Return the STRINGS table for ``lang`` (falls back to the default)."""
     return STRINGS.get(lang, STRINGS[DEFAULT_LANG])
+
+
+# Month names for date localisation (strftime("%B") is locale-dependent and
+# would print English months in the PT report).
+_MONTHS = {
+    "en": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ],
+    "pt": [
+        "janeiro",
+        "fevereiro",
+        "março",
+        "abril",
+        "maio",
+        "junho",
+        "julho",
+        "agosto",
+        "setembro",
+        "outubro",
+        "novembro",
+        "dezembro",
+    ],
+}
+
+
+def fmt_date(dt, lang: str = DEFAULT_LANG, with_time: bool = False) -> str:
+    """Format a date with a language-correct month name.
+
+    EN -> ``13 June 2026``; PT -> ``13 de junho de 2026``. With ``with_time``
+    a ``HH:MM`` suffix is appended.
+    """
+    months = _MONTHS.get(lang, _MONTHS[DEFAULT_LANG])
+    month = months[dt.month - 1]
+    if lang == "pt":
+        out = f"{dt.day} de {month} de {dt.year}"
+    else:
+        out = f"{dt.day:02d} {month} {dt.year}"
+    if with_time:
+        out += f", {dt.hour:02d}:{dt.minute:02d}"
+    return out

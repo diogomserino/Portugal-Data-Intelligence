@@ -55,7 +55,7 @@ def _format_executive_summary(stat_results: dict, corr_results: Optional[dict] =
     width = 72
     lines.append("=" * width)
     lines.append("  PORTUGAL DATA INTELLIGENCE - EXECUTIVE SUMMARY")
-    lines.append(f"  Generated: {datetime.now().strftime('%d %B %Y, %H:%M')}")
+    lines.append(f"  Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
     lines.append("=" * width)
     lines.append("")
 

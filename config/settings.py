@@ -15,7 +15,7 @@ from pathlib import Path
 # Single source of truth for the project version. Imported by main.py, the API,
 # and the HTML report generator so the version is reported consistently.
 # Keep in sync with [project].version in pyproject.toml.
-VERSION = "2.5.0"
+VERSION = "2.5.1"
 
 # =============================================================================
 # PATH DEFINITIONS
@@ -240,8 +240,10 @@ DATA_RANGES = {
         "labour_force_participation_rate": (40, 100),
     },
     "gdp": {
-        "gdp_growth_yoy": (-16, 18),
-        "gdp_growth_qoq": (-16, 18),
+        # -18 lower bound accommodates the real COVID-19 trough (YoY -17.6% in
+        # 2020-Q2) without flagging it as out-of-range.
+        "gdp_growth_yoy": (-18, 18),
+        "gdp_growth_qoq": (-18, 18),
         "nominal_gdp": (20000, 80000),
         "gdp_per_capita": (10000, 35000),
     },
