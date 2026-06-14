@@ -20,7 +20,7 @@
 # -- Mark documentation as non-language (prevents Markdown inflation) -------
 docs/** linguist-documentation=true
 *.md linguist-documentation=true
-LICENCE linguist-documentation=true
+LICENSE linguist-documentation=true
 
 # -- Mark generated/data files so they don't skew stats --------------------
 data/** linguist-generated=true

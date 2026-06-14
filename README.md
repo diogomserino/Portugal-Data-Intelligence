@@ -6,7 +6,7 @@
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
 ![SQL](https://img.shields.io/badge/SQL-SQLite3-003B57?logo=sqlite&logoColor=white)
 ![DAX](https://img.shields.io/badge/DAX-Power_BI-F2C811?logo=powerbi&logoColor=black)
-![License](https://img.shields.io/badge/Licence-MIT-green)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 
 **[View Live Report →](https://diogomserino.github.io/Portugal-Data-Intelligence/)**
@@ -18,7 +18,7 @@
 
 Portugal Data Intelligence is an end-to-end data analytics solution that examines the structural evolution of the Portuguese economy across **twelve macroeconomic pillars** plus regional NUTS2 analysis. The platform ingests data from authoritative national and European statistical sources, applies rigorous ETL processes, and delivers AI-augmented insights through interactive dashboards and executive-grade reports.
 
-Designed to demonstrate professional-grade data engineering, analytical rigour, and business intelligence delivery, this project follows methodologies consistent with Big Four consulting engagements in economic advisory and public sector analytics.
+Designed to demonstrate professional-grade data engineering, analytical rigour, and business intelligence delivery, this project applies a consulting-grade methodology suited to economic advisory and public sector analytics.
 
 ### Key Objectives
 
@@ -417,7 +417,7 @@ Data-driven scenario analysis (baseline, optimistic, pessimistic) with calibrate
 
 ## Licence
 
-This project is licenced under the MIT Licence. See `LICENCE` for details.
+This project is licensed under the MIT License. See `LICENSE` for details.
 
 ## Author
 
