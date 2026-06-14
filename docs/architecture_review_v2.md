@@ -68,7 +68,7 @@ data/raw/*.csv
 | **Database Schema** | Excellent | Star schema aligned across DDL, Transform, and Load layers |
 | **Naming Conventions** | Excellent | 100% snake_case consistency, PascalCase for classes |
 | **Fallback Strategy** | Excellent | API → Synthetic data, SARIMAX → Log-linear, OpenAI → Rule-based |
-| **Data Quality** | Excellent | 15+ checks with configurable fail/warn gates |
+| **Data Quality** | Excellent | 8-check framework (~170 checks) with configurable fail/warn gates |
 | **Documentation** | Excellent | Every module has comprehensive docstrings |
 | **Test Coverage** | Good | 32 test files, 206+ test cases (ETL and Analysis well covered) |
 | **Separation of Concerns** | Good | 9 layers with clear responsibilities |

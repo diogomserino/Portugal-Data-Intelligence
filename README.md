@@ -259,7 +259,7 @@ portugal-data-intelligence/
 │   │   └── ...                 # Correlation, benchmarking, scenarios
 │   ├── etl/                    # Extract, Transform, Load pipeline
 │   │   ├── api_cache.py        # Disk-based API response cache
-│   │   ├── data_quality.py     # 15+ validation checks with JSON reports
+│   │   ├── data_quality.py     # 8-check framework (~170 checks, 12 pillars)
 │   │   ├── lineage.py          # Batch tracking and data provenance
 │   │   └── ...                 # Extract, transform, load, fetch
 │   ├── reporting/              # Report generation
@@ -402,7 +402,7 @@ Seasonal-trend decomposition (STL) for unemployment, inflation, and GDP series w
 SARIMAX forecasting with automatic order selection via AIC, model-cache persistence (7-day TTL via joblib), and Ljung-Box residual diagnostics. Expanding-window backtesting with MAE, RMSE, MAPE, and directional accuracy metrics.
 
 ### Data Quality & Lineage
-15+ automated validation checks (schema, ranges, completeness, consistency, freshness) with JSON reports. Full batch tracking with UUID-based `run_id`, SHA-256 file checksums, and provenance metadata.
+An 8-check validation framework (schema, nulls, ranges, outliers, drift, completeness, consistency, freshness) producing ~170 automated checks across the 12 pillars, with JSON reports. Full batch tracking with UUID-based `run_id`, SHA-256 file checksums, and provenance metadata.
 
 ### Alert Engine
 Configurable threshold monitoring with warning/critical severity levels across 11 indicators — from GDP growth, unemployment, and inflation to house-price growth, the current account, and the budget balance. JSON output for integration with external notification systems.
