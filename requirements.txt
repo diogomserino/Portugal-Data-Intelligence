@@ -9,7 +9,7 @@ openpyxl>=3.1.0,<4.0.0
 xlsxwriter>=3.1.0,<4.0.0
 
 # API Data Fetching
-requests>=2.31.0,<3.0.0
+requests>=2.34.2,<3.0.0
 
 # Database
 # sqlite3 is included in the Python standard library (no installation required)
