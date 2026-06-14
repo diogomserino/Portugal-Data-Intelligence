@@ -3,10 +3,11 @@
 **A comprehensive macroeconomic analytics platform for the Portuguese economy (2010-2025)**
 
 [![CI](https://github.com/diogomserino/Portugal-Data-Intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/diogomserino/Portugal-Data-Intelligence/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/diogomserino/Portugal-Data-Intelligence/graph/badge.svg)](https://codecov.io/gh/diogomserino/Portugal-Data-Intelligence)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)
 ![SQL](https://img.shields.io/badge/SQL-SQLite3-003B57?logo=sqlite&logoColor=white)
 ![DAX](https://img.shields.io/badge/DAX-Power_BI-F2C811?logo=powerbi&logoColor=black)
-![License](https://img.shields.io/badge/Licence-MIT-green)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 
 **[View Live Report →](https://diogomserino.github.io/Portugal-Data-Intelligence/)**
@@ -18,7 +19,7 @@
 
 Portugal Data Intelligence is an end-to-end data analytics solution that examines the structural evolution of the Portuguese economy across **twelve macroeconomic pillars** plus regional NUTS2 analysis. The platform ingests data from authoritative national and European statistical sources, applies rigorous ETL processes, and delivers AI-augmented insights through interactive dashboards and executive-grade reports.
 
-Designed to demonstrate professional-grade data engineering, analytical rigour, and business intelligence delivery, this project follows methodologies consistent with Big Four consulting engagements in economic advisory and public sector analytics.
+Designed to demonstrate professional-grade data engineering, analytical rigour, and business intelligence delivery, this project applies a consulting-grade methodology suited to economic advisory and public sector analytics.
 
 ### Key Objectives
 
@@ -117,29 +118,41 @@ Four-page interactive dashboard with real-time KPI cards, pillar deep-dive with 
 
 ## Architecture Overview
 
-```
- DATA SOURCES                ETL PIPELINE               ANALYTICS LAYER            OUTPUT
-+------------------+    +--------------------+    +----------------------+    +------------------+
-|  INE             |    |                    |    |                      |    |  Power BI        |
-|  Banco de        |--->|  Extract (CSV/API) |--->|  Statistical         |--->|  Dashboards      |
-|  Portugal        |    |  Transform (Clean) |    |  Analysis (12 pillars)|   |                  |
-|  PORDATA         |    |  Load (SQLite)     |    |                      |    |  Streamlit       |
-|  Eurostat        |    |  Data Quality Gate |    |  AI Insight          |    |  Dashboard       |
-|  ECB             |    |  Lineage Tracking  |    |  Generation          |    |                  |
-+------------------+    +--------------------+    |                      |    |  HTML Report     |
-                                                  |  STL Decomposition   |    |  (Plotly interac)|
-                                                  |  SARIMAX + Cache     |    |                  |
-                                                  |  VAR / Granger       |    |  REST API        |
-                                                  |  Nowcasting          |    |  (FastAPI)       |
-                                                  |  Anomaly Detection   |    |                  |
-                                                  |  Backtesting         |    |  Excel Export    |
-                                                  |  Alert Engine        |    |  Regional NUTS2  |
-                                                  +----------------------+    +------------------+
-                                                           |
-                                                  +--------v---------+
-                                                  |  SQLite Database  |
-                                                  |  12 fact tables   |
-                                                  +------------------+
+```mermaid
+flowchart LR
+    subgraph SRC["Data sources"]
+        direction TB
+        S1["Eurostat · ECB · Banco de Portugal<br/>open APIs — 6 core pillars"]
+        S2["Modelled estimates<br/>housing · labour · external · fiscal · EU benchmark"]
+    end
+
+    subgraph ETL["ETL pipeline"]
+        direction TB
+        E1["Extract — API / CSV"] --> E2["Transform / clean"] --> E3["Data-quality gate<br/>8 checks · ~170 validations"] --> E4["Load"]
+        E5["Lineage tracking · API cache"]
+    end
+
+    DB[("SQLite star schema<br/>12 fact + dimension tables")]
+
+    subgraph AN["Analytics"]
+        direction TB
+        A1["Correlation · STL decomposition"]
+        A2["Forecasting — SARIMAX · ensemble · nowcasting"]
+        A3["VAR / Granger · anomaly detection · backtesting"]
+        A4["AI insight generation"]
+        A5["Alert engine"]
+    end
+
+    subgraph OUT["Outputs"]
+        direction TB
+        O1["Bilingual HTML report<br/>Plotly · EN / PT"]
+        O2["Streamlit dashboard"]
+        O3["Power BI dashboard"]
+        O4["REST API — FastAPI"]
+        O5["Excel export"]
+    end
+
+    SRC --> ETL --> DB --> AN --> OUT
 ```
 
 ---
@@ -417,7 +430,7 @@ Data-driven scenario analysis (baseline, optimistic, pessimistic) with calibrate
 
 ## Licence
 
-This project is licenced under the MIT Licence. See `LICENCE` for details.
+This project is licensed under the MIT License. See `LICENSE` for details.
 
 ## Author
 
